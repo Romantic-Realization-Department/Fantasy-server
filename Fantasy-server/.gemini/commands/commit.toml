@@ -1,0 +1,40 @@
+description = "Create Git commits by splitting changes into logical units"
+
+prompt = """
+Create Git commits following these rules:
+
+## Commit Message Format
+- Format: `type: description`
+- Types:
+  - **feat**: New features
+  - **fix**: Bug fixes
+  - **refactor**: Code changes that neither fix a bug nor add a feature (structural improvements)
+  - **update**: General updates, configuration changes, or minor improvements
+- Description:
+  - Korean, imperative mood (e.g., "로그인 로직 추가" not "추가했음" or "추가함")
+  - No period at the end
+- Use subject line only (no commit body)
+
+## Rules
+- Split changes into logical units with multiple commits
+- Each commit should have a single responsibility
+- Stage only relevant files for each unit using `git add`
+
+## Commit Unit Guidelines
+- **One feature/One bug = One commit**: Group all files related to a single feature or bug fix into one commit
+- **Unrelated files = Separate commits**: Files that serve different purposes or features should have their own commits
+- **Large refactoring = Multiple commits**: Split significant refactoring into smaller, manageable commits (e.g., rename phase, structure reorganization, testing phase)
+
+## Context
+- Current git status: !{git status}
+- Current git diff (staged and unstaged changes): !{git diff HEAD}
+- Current branch: !{git branch --show-current}
+
+## Steps
+1. Analyze changes with `git status` and `git diff`
+2. Group files into logical units
+3. For each group:
+   - Stage files: `git add <files>`
+   - Commit: `git commit -m "<type>: <description>"`
+4. Verify with `git log --oneline`
+"""

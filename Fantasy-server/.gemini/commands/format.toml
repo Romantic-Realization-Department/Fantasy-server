@@ -1,0 +1,17 @@
+﻿description = "Run code formatting and linting with .NET 10"
+prompt = """Run code formatting and linting:
+
+## Steps
+1. Format code:
+   !{dotnet format}
+2. Run code analysis:
+   !{dotnet build /p:EnforceCodeStyleInBuild=true}
+3. Report results:
+   - Success: List formatted files
+   - Failure: Show error messages and suggest solutions
+
+## Context
+- Project root: !{pwd}
+- .NET version: !{dotnet --version}
+- Project file: !{ls *.csproj}
+"""
