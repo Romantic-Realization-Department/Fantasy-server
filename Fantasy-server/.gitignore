@@ -1,0 +1,35 @@
+# Environment
+.env
+
+# Build results
+bin/
+obj/
+
+# Logs
+*.log
+logs/
+
+# User-specific files
+*.user
+*.rsuser
+*.suo
+
+# Visual Studio / Rider
+.vs/
+.idea/
+*.sln.iml
+
+# VSCode
+.vscode/*
+
+# Test results
+TestResults/
+
+# NuGet
+*.nupkg
+*.snupkg
+
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini
