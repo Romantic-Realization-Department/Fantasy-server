@@ -14,4 +14,8 @@
       <ProjectReference Include="..\Fantasy.Common\Fantasy.Common.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="Domain\" />
+    </ItemGroup>
+
 </Project>
