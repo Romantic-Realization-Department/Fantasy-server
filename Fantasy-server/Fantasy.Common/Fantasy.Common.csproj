@@ -8,7 +8,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <Folder Include="Domain\" />
+      <Folder Include="Domain\Account\Dto\Request\" />
     </ItemGroup>
 
     <ItemGroup>
