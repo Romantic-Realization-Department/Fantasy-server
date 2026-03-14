@@ -1,6 +1,10 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Fantasy.Server", "Fantasy.Server\Fantasy.Server.csproj", "{973CBE45-99C5-45B5-8798-255241E76E39}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Fantasy.Game", "Fantasy.Game\Fantasy.Game.csproj", "{973CBE45-99C5-45B5-8798-255241E76E39}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Fantasy.Common", "Fantasy.Common\Fantasy.Common.csproj", "{5482204B-362C-48B9-B910-A15A375A4693}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Fantasy.Auth", "Fantasy.Auth\Fantasy.Auth.csproj", "{FAA8EE5E-F923-4432-AE10-2D455E7B8CC1}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -12,5 +16,13 @@ Global
 		{973CBE45-99C5-45B5-8798-255241E76E39}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{973CBE45-99C5-45B5-8798-255241E76E39}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{973CBE45-99C5-45B5-8798-255241E76E39}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5482204B-362C-48B9-B910-A15A375A4693}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5482204B-362C-48B9-B910-A15A375A4693}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5482204B-362C-48B9-B910-A15A375A4693}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5482204B-362C-48B9-B910-A15A375A4693}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FAA8EE5E-F923-4432-AE10-2D455E7B8CC1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FAA8EE5E-F923-4432-AE10-2D455E7B8CC1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FAA8EE5E-F923-4432-AE10-2D455E7B8CC1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FAA8EE5E-F923-4432-AE10-2D455E7B8CC1}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
