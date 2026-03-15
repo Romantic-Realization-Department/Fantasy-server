@@ -1,5 +1,8 @@
-﻿namespace Fantasy.Common.Domain.Account.Dto.Request;
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace Fantasy.Common.Domain.Account.Dto.Request;
 
 public record DeleteAccountRequest(
+    [Required]
     string Password
     );
