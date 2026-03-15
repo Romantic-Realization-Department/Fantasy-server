@@ -1,9 +1,11 @@
-﻿namespace Fantasy.Common.Domain.Account.Repository;
+﻿using AccountEntity = Fantasy.Common.Domain.Account.Entity.Account;
+
+namespace Fantasy.Common.Domain.Account.Repository;
 
 public interface IAccountRepository
 {
-    Task<Entity.Account?> FindByEmailAsync(string email);
-    Task<Entity.Account> SaveAsync(Entity.Account account);
+    Task<AccountEntity?> FindByEmailAsync(string email);
+    Task<AccountEntity> SaveAsync(AccountEntity account);
     Task<bool> ExistsByEmailAsync(string email);
-    Task DeleteAsync(Entity.Account account);
+    Task DeleteAsync(AccountEntity account);
 }

@@ -12,9 +12,10 @@ public class Account
     public DateTime CreatedAt { get; private set; }
     public DateTime UpdatedAt { get; private set; }
     
-    public static Account Create(string email) => new()
+    public static Account Create(string email,  string password) => new()
     {
         Email = email,
+        Password =  password,
         IsNewAccount = true,
         CreatedAt = DateTime.UtcNow,
         UpdatedAt = DateTime.UtcNow
