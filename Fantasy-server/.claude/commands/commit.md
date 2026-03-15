@@ -14,7 +14,7 @@ Create Git commits following the project's commit conventions.
 **Types**:
 - `feat` — new feature added
 - `fix` — bug fix, missing config, or missing DI registration
-- `modify` — modification to existing code
+- `update` — modification to existing code
 
 **Description rules**:
 - Written in **Korean**
@@ -24,9 +24,9 @@ Create Git commits following the project's commit conventions.
 
 **Examples**:
 ```
-feat: 방 생성 API 추가
+feat: 로그인 로직 추가
 fix: 세션 DI 누락 수정
-modify: Room 엔터티 수정
+update: Account 엔터티 수정
 ```
 
 **Do NOT**:
