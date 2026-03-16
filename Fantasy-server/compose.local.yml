@@ -1,0 +1,23 @@
+services:
+  postgres:
+    image: postgres
+    container_name: fantasy-db
+    environment:
+      POSTGRES_USER: fantasy
+      POSTGRES_PASSWORD: root
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    container_name: fantasy-local-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+
+volumes:
+  postgres-data:
+  redis-data:
