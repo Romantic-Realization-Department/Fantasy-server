@@ -28,4 +28,13 @@ public class AccountController : ControllerBase
         await _createAccountService.ExecuteAsync(request);
         return Created();
     }
+    
+    [HttpDelete]
+    public async Task<IActionResult> Delete(
+        [FromBody] DeleteAccountRequest request
+        )
+    {
+        await _deleteAccountService.ExecuteAsync(request);
+        return NoContent();
+    }
 }
