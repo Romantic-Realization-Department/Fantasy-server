@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Fantasy.Auth.Domain.Account.Service.Interface;
+using Fantasy.Common.Domain.Account.Dto.Request;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Fantasy.Auth.Domain.Account.Controller;
 
@@ -6,5 +8,24 @@ namespace Fantasy.Auth.Domain.Account.Controller;
 [Route("v1/account")]
 public class AccountController : ControllerBase
 {
-    
+    private readonly ICreateAccountService _createAccountService;
+    private readonly IDeleteAccountService _deleteAccountService;
+
+    public AccountController(
+        ICreateAccountService createAccountService,
+        IDeleteAccountService deleteAccountService
+    )
+    {
+        _createAccountService = createAccountService;
+        _deleteAccountService = deleteAccountService;   
+    }
+
+    [HttpPost("signup")]
+    public async Task<IActionResult> SignUp(
+        [FromBody] CreateAccountRequest request
+        )
+    {
+        await _createAccountService.ExecuteAsync(request);
+        return Created();
+    }
 }
