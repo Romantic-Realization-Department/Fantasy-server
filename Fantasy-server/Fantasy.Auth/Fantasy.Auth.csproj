@@ -9,10 +9,15 @@
     <ItemGroup>
         <PackageReference Include="BCrypt.Net-Next" Version="4.1.0" />
         <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.3"/>
+        <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.5" />
     </ItemGroup>
 
     <ItemGroup>
       <ProjectReference Include="..\Fantasy.Common\Fantasy.Common.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Global\Security\" />
     </ItemGroup>
 
 </Project>
