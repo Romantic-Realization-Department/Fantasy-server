@@ -2,5 +2,6 @@
 
 public record TokenResponse(
     string AccessToken,
-    string RefreshToken
+    string RefreshToken,
+    long AccessTokenExpiresAt
     );

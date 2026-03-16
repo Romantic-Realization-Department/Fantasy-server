@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace Fantasy.Common.Domain.Auth.Dto.Request;
+namespace Fantasy.Auth.Domain.Auth.Dto.Request;
 
 public record LoginRequest(
     [Required]
