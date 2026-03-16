@@ -15,8 +15,7 @@ public static class DatabaseConfig
             ??  throw new InvalidOperationException("Database connection string is missing.");
         
         services.AddDbContext<AppDbContext>(options =>
-            options.UseNpgsql(
-                configuration.GetConnectionString(connectionString)));
+            options.UseNpgsql(connectionString));
 
         return services;
     }
