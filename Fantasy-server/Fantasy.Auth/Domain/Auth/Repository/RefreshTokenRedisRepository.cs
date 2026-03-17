@@ -18,16 +18,16 @@ public class RefreshTokenRedisRepository : IRefreshTokenRedisRepository
         {
             AbsoluteExpirationRelativeToNow = ttl
         };
-        await _cache.SetStringAsync(id.ToString(), token, options);
+        await _cache.SetStringAsync($"refresh:{id}", token, options);
     }
 
     public async Task<string?> FindByIdAsync(long id)
     {
-        return await _cache.GetStringAsync(id.ToString());
+        return await _cache.GetStringAsync($"refresh:{id}");
     }
 
     public async Task DeleteAsync(long id)
     {
-        await _cache.RemoveAsync(id.ToString());
+        await _cache.RemoveAsync($"refresh:{id}");
     }
-}
+} 
