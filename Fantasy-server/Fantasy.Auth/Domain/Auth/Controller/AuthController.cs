@@ -1,6 +1,7 @@
 ﻿using Fantasy.Auth.Domain.Auth.Dto.Request;
 using Fantasy.Auth.Domain.Auth.Service.Interface;
 using Fantasy.Common.Domain.Auth.Exception;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 
@@ -34,5 +35,13 @@ public class AuthController : ControllerBase
         {
             return Unauthorized();
         }
+    }
+
+    [Authorize]
+    [HttpPost("logout")]
+    public async Task<IActionResult> Logout()
+    {
+        await _logoutService.ExecuteAsync();
+        return NoContent();
     }
 }

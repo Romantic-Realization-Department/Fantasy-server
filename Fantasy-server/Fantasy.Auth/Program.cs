@@ -21,6 +21,7 @@ builder.Services.AddRateLimit();
 builder.Services.AddScoped<ICreateAccountService, CreateAccountService>();
 builder.Services.AddScoped<IDeleteAccountService, DeleteAccountService>();
 builder.Services.AddScoped<ILoginService, LoginService>();
+builder.Services.AddScoped<ILogoutService, LogoutService>();
 builder.Services.AddScoped<IRefreshTokenRedisRepository, RefreshTokenRedisRepository>();
 
 builder.Services.AddSingleton<IJwtProvider, JwtProvider>();
