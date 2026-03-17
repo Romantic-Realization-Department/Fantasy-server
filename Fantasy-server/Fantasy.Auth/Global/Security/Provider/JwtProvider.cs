@@ -7,7 +7,7 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace Fantasy.Auth.Global.Security.Provider;
 
-public class JwtProvider
+public class JwtProvider : IJwtProvider
 {
     private readonly string _secretKey;
     private readonly string _issuer;

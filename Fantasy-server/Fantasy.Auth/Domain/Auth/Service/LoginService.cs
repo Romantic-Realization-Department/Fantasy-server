@@ -14,13 +14,13 @@ public class LoginService : ILoginService
 
     private readonly IAccountRepository _accountRepository;
     private readonly IRefreshTokenRedisRepository _refreshTokenRepository;
-    private readonly JwtProvider _jwtProvider;
+    private readonly IJwtProvider _jwtProvider;
     private readonly IConfiguration _configuration;
 
     public LoginService(
         IAccountRepository accountRepository,
         IRefreshTokenRedisRepository refreshTokenRepository,
-        JwtProvider jwtProvider,
+        IJwtProvider jwtProvider,
         IConfiguration configuration)
     {
         _accountRepository = accountRepository;

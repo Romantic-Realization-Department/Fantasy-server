@@ -22,7 +22,7 @@ builder.Services.AddScoped<IDeleteAccountService, DeleteAccountService>();
 builder.Services.AddScoped<ILoginService, LoginService>();
 builder.Services.AddScoped<IRefreshTokenRedisRepository, RefreshTokenRedisRepository>();
 
-builder.Services.AddSingleton<JwtProvider>();
+builder.Services.AddSingleton<IJwtProvider, JwtProvider>();
 builder.Services.AddSingleton<JwtAuthenticationFilter>();
 
 var app = builder.Build();
