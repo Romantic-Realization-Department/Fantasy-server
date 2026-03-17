@@ -1,7 +1,6 @@
 using Fantasy.Common.Domain.Account.Exception;
 using Fantasy.Common.Domain.Auth.Exception;
 using Microsoft.AspNetCore.Diagnostics;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Fantasy.Common.Global.Exception;
