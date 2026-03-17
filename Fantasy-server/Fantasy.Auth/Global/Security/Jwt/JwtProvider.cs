@@ -5,7 +5,7 @@ using System.Text;
 using Fantasy.Common.Domain.Account.Entity;
 using Microsoft.IdentityModel.Tokens;
 
-namespace Fantasy.Auth.Global.Security.Provider;
+namespace Fantasy.Auth.Global.Security.Jwt;
 
 public class JwtProvider : IJwtProvider
 {
@@ -13,6 +13,7 @@ public class JwtProvider : IJwtProvider
     private readonly string _issuer;
     private readonly string _audience;
     private readonly int _accessTokenExpirationMinutes;
+    private readonly SymmetricSecurityKey _key;
 
     public JwtProvider(IConfiguration configuration)
     {
@@ -24,7 +25,9 @@ public class JwtProvider : IJwtProvider
             ?? throw new InvalidOperationException("JWT audience is missing.");
         _accessTokenExpirationMinutes = int.Parse(
             configuration["Jwt:AccessTokenExpirationMinutes"] ?? "15");
-    }
+        
+        _key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_secretKey));
+        }
 
     public string GenerateAccessToken(Account account)
     {
@@ -33,11 +36,13 @@ public class JwtProvider : IJwtProvider
             new Claim(JwtRegisteredClaimNames.Sub, account.Id.ToString()),
             new Claim(JwtRegisteredClaimNames.Email, account.Email),
             new Claim(ClaimTypes.Role, account.Role.ToString()),
-            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new Claim(JwtRegisteredClaimNames.Iat,
+                DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(),
+                ClaimValueTypes.Integer64)
         };
 
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_secretKey));
-        var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+        var credentials = new SigningCredentials(_key, SecurityAlgorithms.HmacSha256);
 
         var token = new JwtSecurityToken(
             issuer: _issuer,

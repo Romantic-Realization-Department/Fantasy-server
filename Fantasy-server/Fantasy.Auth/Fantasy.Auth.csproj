@@ -16,8 +16,4 @@
       <ProjectReference Include="..\Fantasy.Common\Fantasy.Common.csproj" />
     </ItemGroup>
 
-    <ItemGroup>
-      <Folder Include="Global\Security\" />
-    </ItemGroup>
-
 </Project>

@@ -1,6 +1,6 @@
 using Fantasy.Auth.Domain.Auth.Dto.Request;
 using Fantasy.Auth.Domain.Auth.Service;
-using Fantasy.Auth.Global.Security.Provider;
+using Fantasy.Auth.Global.Security.Jwt;
 using Fantasy.Common.Domain.Account.Repository;
 using Fantasy.Common.Domain.Auth.Exception;
 using Fantasy.Common.Domain.Auth.Repository;
