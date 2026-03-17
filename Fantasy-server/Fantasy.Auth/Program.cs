@@ -7,11 +7,14 @@ using Fantasy.Auth.Global.Security.Jwt;
 using Fantasy.Auth.Global.Security.Provider;
 using Fantasy.Common.Domain.Auth.Repository;
 using Fantasy.Common.Global.Config;
+using Fantasy.Common.Global.Exception;
 using Fantasy.Common.Global.Security.Filter;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+builder.Services.AddProblemDetails();
 
 builder.Services.AddDatabase(builder.Configuration);
 builder.Services.AddRedis(builder.Configuration, "auth:");
@@ -31,6 +34,7 @@ builder.Services.AddScoped<ICurrentUserProvider, CurrentUserProvider>();
 
 var app = builder.Build();
 
+app.UseExceptionHandler();
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
