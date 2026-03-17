@@ -1,6 +1,5 @@
 ﻿using Fantasy.Auth.Domain.Auth.Dto.Request;
 using Fantasy.Auth.Domain.Auth.Service.Interface;
-using Fantasy.Common.Domain.Auth.Exception;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -26,15 +25,8 @@ public class AuthController : ControllerBase
     [EnableRateLimiting("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
-        try
-        {
-            var response = await _loginService.ExecuteAsync(request);
-            return Ok(response);
-        }
-        catch (InvalidCredentialsException)
-        {
-            return Unauthorized();
-        }
+        var response = await _loginService.ExecuteAsync(request);
+        return Ok(response);
     }
 
     [Authorize]
