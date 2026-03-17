@@ -3,6 +3,7 @@ using Fantasy.Auth.Domain.Account.Service.Interface;
 using Fantasy.Auth.Domain.Auth.Repository;
 using Fantasy.Auth.Domain.Auth.Service;
 using Fantasy.Auth.Domain.Auth.Service.Interface;
+using Fantasy.Auth.Global.Security.Jwt;
 using Fantasy.Auth.Global.Security.Provider;
 using Fantasy.Common.Domain.Auth.Repository;
 using Fantasy.Common.Global.Config;
@@ -24,6 +25,8 @@ builder.Services.AddScoped<IRefreshTokenRedisRepository, RefreshTokenRedisReposi
 
 builder.Services.AddSingleton<IJwtProvider, JwtProvider>();
 builder.Services.AddSingleton<JwtAuthenticationFilter>();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentUserProvider, CurrentUserProvider>();
 
 var app = builder.Build();
 
