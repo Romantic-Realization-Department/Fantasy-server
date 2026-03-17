@@ -6,6 +6,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Fantasy.Common", "Fantasy.C
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Fantasy.Auth", "Fantasy.Auth\Fantasy.Auth.csproj", "{FAA8EE5E-F923-4432-AE10-2D455E7B8CC1}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Fantasy.Test", "Fantasy.Test\Fantasy.Test.csproj", "{FD54BD09-0836-4D9D-AD82-32B5E281B7B6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -24,5 +26,9 @@ Global
 		{FAA8EE5E-F923-4432-AE10-2D455E7B8CC1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FAA8EE5E-F923-4432-AE10-2D455E7B8CC1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FAA8EE5E-F923-4432-AE10-2D455E7B8CC1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FD54BD09-0836-4D9D-AD82-32B5E281B7B6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FD54BD09-0836-4D9D-AD82-32B5E281B7B6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FD54BD09-0836-4D9D-AD82-32B5E281B7B6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FD54BD09-0836-4D9D-AD82-32B5E281B7B6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
