@@ -1,10 +1,10 @@
-﻿using Fantasy.Auth.Domain.Auth.Dto.Request;
+using Fantasy.Auth.Domain.Auth.Dto.Request;
 using Fantasy.Auth.Domain.Auth.Service.Interface;
 using Fantasy.Auth.Global.Security.Jwt;
 using Fantasy.Common.Domain.Account.Repository;
 using Fantasy.Common.Domain.Auth.Dto.Response;
-using Fantasy.Common.Domain.Auth.Exception;
 using Fantasy.Common.Domain.Auth.Repository;
+using Gamism.SDK.Extensions.AspNetCore.Exceptions;
 
 namespace Fantasy.Auth.Domain.Auth.Service;
 
@@ -32,10 +32,10 @@ public class LoginService : ILoginService
     public async Task<TokenResponse> ExecuteAsync(LoginRequest request)
     {
         var account = await _accountRepository.FindByEmailAsync(request.Email)
-            ?? throw new InvalidCredentialsException();
+            ?? throw new UnauthorizedException("이메일 또는 비밀번호가 올바르지 않습니다.");
 
         if (!BCrypt.Net.BCrypt.Verify(request.Password, account.Password))
-            throw new InvalidCredentialsException();
+            throw new UnauthorizedException("이메일 또는 비밀번호가 올바르지 않습니다.");
 
         var accessToken = _jwtProvider.GenerateAccessToken(account);
         var refreshToken = _jwtProvider.GenerateRefreshToken();

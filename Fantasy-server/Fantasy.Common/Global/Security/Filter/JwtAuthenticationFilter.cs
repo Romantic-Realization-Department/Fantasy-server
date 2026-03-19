@@ -1,6 +1,6 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using Microsoft.AspNetCore.Mvc;
+using Gamism.SDK.Extensions.AspNetCore.Exceptions;
 using Microsoft.AspNetCore.Mvc.Filters;
 
 namespace Fantasy.Common.Global.Security.Filter;
@@ -13,15 +13,13 @@ public class JwtAuthenticationFilter : IAsyncActionFilter
 
         if (user.Identity?.IsAuthenticated != true)
         {
-            context.Result = new UnauthorizedResult();
-            return;
+            throw new UnauthorizedException("인증이 필요합니다.");
         }
 
         var accountIdClaim = user.FindFirstValue(JwtRegisteredClaimNames.Sub);
         if (accountIdClaim is null || !long.TryParse(accountIdClaim, out var accountId))
         {
-            context.Result = new UnauthorizedResult();
-            return;
+            throw new UnauthorizedException("유효하지 않은 토큰입니다.");
         }
 
         context.HttpContext.Items["AccountId"] = accountId;

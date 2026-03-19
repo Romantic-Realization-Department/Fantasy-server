@@ -1,7 +1,7 @@
-﻿using Fantasy.Auth.Domain.Account.Service.Interface;
+using Fantasy.Auth.Domain.Account.Service.Interface;
 using Fantasy.Common.Domain.Account.Dto.Request;
-using Fantasy.Common.Domain.Account.Exception;
 using Fantasy.Common.Domain.Account.Repository;
+using Gamism.SDK.Extensions.AspNetCore.Exceptions;
 using AccountEntity = Fantasy.Common.Domain.Account.Entity.Account;
 
 namespace Fantasy.Auth.Domain.Account.Service;
@@ -14,14 +14,14 @@ public class CreateAccountService : ICreateAccountService
     {
         _accountRepository = accountRepository;
     }
-    
+
     public async Task ExecuteAsync(CreateAccountRequest request)
     {
         if (await _accountRepository.ExistsByEmailAsync(request.Email))
-            throw new DuplicateEmailException(request.Email);
-        
+            throw new ConflictException("이미 사용중인 이메일입니다.");
+
         var hashedPassword = BCrypt.Net.BCrypt.HashPassword(request.Password);
-        
+
         var account = AccountEntity.Create(request.Email, hashedPassword);
         await _accountRepository.SaveAsync(account);
     }

@@ -1,23 +1,19 @@
+using Gamism.SDK.Extensions.AspNetCore;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-
 builder.Services.AddControllers();
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
+builder.Services.AddGamismSdk(options =>
+{
+    options.Swagger.Title = "Fantasy Game API";
+    options.Logging.NotLoggingUrls = ["/swagger/**", "/health"];
+    options.Response.NotWrappingUrls = ["/swagger/**", "/health"];
+});
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-}
-
+app.UseGamismSdk();
 app.UseHttpsRedirection();
-
 app.UseAuthorization();
-
 app.MapControllers();
-
 app.Run();

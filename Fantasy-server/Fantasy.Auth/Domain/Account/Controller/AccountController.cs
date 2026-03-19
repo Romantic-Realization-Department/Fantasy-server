@@ -1,5 +1,6 @@
-﻿using Fantasy.Auth.Domain.Account.Service.Interface;
+using Fantasy.Auth.Domain.Account.Service.Interface;
 using Fantasy.Common.Domain.Account.Dto.Request;
+using Gamism.SDK.Core.Network;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Fantasy.Auth.Domain.Account.Controller;
@@ -17,24 +18,23 @@ public class AccountController : ControllerBase
     )
     {
         _createAccountService = createAccountService;
-        _deleteAccountService = deleteAccountService;   
+        _deleteAccountService = deleteAccountService;
     }
 
     [HttpPost("signup")]
-    public async Task<IActionResult> SignUp(
+    public async Task<CommonApiResponse> SignUp(
         [FromBody] CreateAccountRequest request
         )
     {
         await _createAccountService.ExecuteAsync(request);
-        return Created();
+        return CommonApiResponse.Created("계정이 생성되었습니다.");
     }
-    
+
     [HttpDelete]
-    public async Task<IActionResult> Delete(
+    public async Task Delete(
         [FromBody] DeleteAccountRequest request
         )
     {
         await _deleteAccountService.ExecuteAsync(request);
-        return NoContent();
     }
 }

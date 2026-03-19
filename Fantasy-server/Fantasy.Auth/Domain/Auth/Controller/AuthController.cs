@@ -1,5 +1,6 @@
-﻿using Fantasy.Auth.Domain.Auth.Dto.Request;
+using Fantasy.Auth.Domain.Auth.Dto.Request;
 using Fantasy.Auth.Domain.Auth.Service.Interface;
+using Fantasy.Common.Domain.Auth.Dto.Response;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -23,17 +24,15 @@ public class AuthController : ControllerBase
 
     [HttpPost("login")]
     [EnableRateLimiting("login")]
-    public async Task<IActionResult> Login([FromBody] LoginRequest request)
+    public async Task<TokenResponse> Login([FromBody] LoginRequest request)
     {
-        var response = await _loginService.ExecuteAsync(request);
-        return Ok(response);
+        return await _loginService.ExecuteAsync(request);
     }
 
     [Authorize]
     [HttpPost("logout")]
-    public async Task<IActionResult> Logout()
+    public async Task Logout()
     {
         await _logoutService.ExecuteAsync();
-        return NoContent();
     }
 }
