@@ -3,32 +3,11 @@ description: Generate PR title suggestions and body based on changes from develo
 allowed-tools: Bash(git log:*), Bash(git diff:*), Bash(git branch:*), Bash(git tag:*), Bash(git checkout:*), Bash(gh pr create:*), Bash(rm:*), Write, AskUserQuestion
 ---
 
-Generate a PR based on the current branch.
-
-If the user provides a branch name, use that branch instead of the current branch.
-
----
-
-## Step 0. Determine target branch
-
-Ask the user:
-
-> "특정 브랜치로 PR을 생성하시겠습니까? (없으면 Enter)"
-> (예: feature/login-api, release/1.2.0)
-
-- If user input is empty:
-  - Use current branch:
-    !`git branch --show-current`
-- If user provides a branch name:
-  - Checkout that branch:
-    !`git checkout {branch_name}`
-  - Use it as current branch
-
----
+Generate a PR based on the current branch. Behavior differs depending on the branch.
 
 ## Context
 
-- Current branch: (determined above)
+- Current branch: !`git branch --show-current`
 
 ---
 
@@ -47,66 +26,166 @@ Ask the user:
 - Commits: `git log main..HEAD --oneline`
 - Diff stats: `git diff main...HEAD --stat`
 - Recommend one of:
-  - **Major** (x.0.0): Breaking changes
-  - **Minor** (0.x.0): New features
-  - **Patch** (0.0.x): Bug fixes
+  - **Major** (x.0.0): Breaking changes, incompatible API changes
+  - **Minor** (0.x.0): New backward-compatible features
+  - **Patch** (0.0.x): Bug fixes only
+- Briefly explain why you chose that level
 
-**Step 3. Ask user for version**
+**Step 3. Ask user for version number**
 
 Use AskUserQuestion:
 > "현재 버전: {current_version}
-> 추천 버전 업: {type} → {recommended_version}
-> 이유: {reason}
+> 추천 버전 업: {Major/Minor/Patch} → {recommended_version}
+> 이유: {brief reason}
 >
-> 사용할 버전 번호를 입력해주세요."
+> 사용할 버전 번호를 입력해주세요. (예: 1.0.1)"
 
 **Step 4. Create release branch**
 
-!`git checkout -b release/{version}`
+```bash
+git checkout -b release/{version}
+```
 
-**Step 5. Write PR body → PR_BODY.md**
+**Step 5. Write PR body** following the PR Body Template below
+- Analyze changes from `main` branch
+- Save to `PR_BODY.md`
 
-**Step 6. Create PR**
+**Step 6. Create PR to `main`**
 
-!`gh pr create --title "release/{version}" --body-file PR_BODY.md --base main`
+```bash
+gh pr create --title "release/{version}" --body-file PR_BODY.md --base main
+```
 
-**Step 7. Cleanup**
+**Step 7. Delete PR_BODY.md**
 
-!`rm PR_BODY.md`
+```bash
+rm PR_BODY.md
+```
 
 ---
 
 ### Case 2: Current branch is `release/x.x.x`
 
-**Step 1. Extract version**
+**Step 1. Extract version** from branch name (e.g., `release/1.2.0` → `1.2.0`)
 
-**Step 2. Analyze changes**
+**Step 2. Analyze changes from `main`**
 
-- `git log main..HEAD --oneline`
-- `git diff main...HEAD --stat`
+- Commits: `git log main..HEAD --oneline`
+- Diff stats: `git diff main...HEAD --stat`
 
-**Step 3. Write PR body**
+**Step 3. Write PR body** following the PR Body Template below
+- Save to `PR_BODY.md`
 
-**Step 4. Create PR**
+**Step 4. Create PR to `main`**
 
-!`gh pr create --title "release/{version}" --body-file PR_BODY.md --base main`
+```bash
+gh pr create --title "release/{version}" --body-file PR_BODY.md --base main
+```
 
-**Step 5. Cleanup**
+**Step 5. Delete PR_BODY.md**
 
-!`rm PR_BODY.md`
+```bash
+rm PR_BODY.md
+```
 
 ---
 
 ### Case 3: Any other branch
 
-**Step 1. Analyze changes from develop**
+**Step 1. Analyze changes from `develop`**
 
-- `git log develop..HEAD --oneline`
-- `git diff develop...HEAD --stat`
-- `git diff develop...HEAD`
+- Commits: `git log develop..HEAD --oneline`
+- Diff stats: `git diff develop...HEAD --stat`
+- Detailed diff: `git diff develop...HEAD`
 
-**Step 2. Suggest 3 PR titles**
+**Step 2. Suggest 3 PR titles** following the PR Title Convention below
 
-**Step 3. Write PR body → PR_BODY.md**
+**Step 3. Write PR body** following the PR Body Template below
+- Save to `PR_BODY.md`
 
-**Step 4. Output**
+**Step 4. Output** in this format:
+```
+## 추천 PR 제목
+
+1. [title1]
+2. [title2]
+3. [title3]
+
+## PR 본문 (PR_BODY.md에 저장됨)
+
+[full body preview]
+```
+
+**Step 5. Ask the user** using AskUserQuestion:
+> "어떤 제목을 사용할까요? (1 / 2 / 3 또는 직접 입력)"
+
+**Step 6. Create PR to `develop`**
+
+- If the user answered 1, 2, or 3, use the corresponding suggested title
+- If the user typed a custom title, use it as-is
+
+```bash
+gh pr create --title "{chosen title}" --body-file PR_BODY.md --base develop
+```
+
+**Step 7. Delete PR_BODY.md**
+
+```bash
+rm PR_BODY.md
+```
+
+---
+
+## PR Title Convention
+
+Format: `{type}: {Korean description}`
+
+**Types:**
+- `feature` — new feature added
+- `fix` — bug fix or missing configuration/DI registration
+- `modify` — modification to existing code
+- `refactor` — refactoring without behavior change
+
+**Rules:**
+- Description in Korean
+- Short and imperative (단문)
+- No trailing punctuation
+
+**Examples:**
+- `feature: 방 생성 API 추가`
+- `fix: Key Vault 연동 방식을 AddAzureKeyVault으로 변경`
+- `refactor: 로그인 로직 리팩토링`
+
+---
+
+## PR Body Template
+
+Follow this exact structure (keep the emoji headers as-is):
+
+```
+## 📚작업 내용
+
+- {change item 1}
+- {change item 2}
+
+## ◀️참고 사항
+
+{additional notes, context, before/after comparisons if relevant. Write "." if nothing to add.}
+
+## ✅체크리스트
+
+> `[ ]`안에 x를 작성하면 체크박스를 체크할 수 있습니다.
+
+- [x] 현재 의도하고자 하는 기능이 정상적으로 작동하나요?
+- [x] 변경한 기능이 다른 기능을 깨뜨리지 않나요?
+
+
+> *추후 필요한 체크리스트는 업데이트 될 예정입니다.*
+```
+
+**Rules:**
+- Analyze commits and diffs to fill in `작업 내용` with a concise bullet list
+- Fill in `참고 사항` with any important context (architecture decisions, before/after, caveats). Write `.` if nothing relevant.
+- Keep total body under 2500 characters
+- Write in Korean
+- No emojis in text content (keep the section header emojis)
