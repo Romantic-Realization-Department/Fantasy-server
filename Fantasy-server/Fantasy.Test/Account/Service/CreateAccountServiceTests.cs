@@ -1,8 +1,8 @@
 using Fantasy.Auth.Domain.Account.Service;
 using Fantasy.Common.Domain.Account.Dto.Request;
-using Fantasy.Common.Domain.Account.Exception;
 using Fantasy.Common.Domain.Account.Repository;
 using FluentAssertions;
+using Gamism.SDK.Extensions.AspNetCore.Exceptions;
 using NSubstitute;
 using Xunit;
 using AccountEntity = Fantasy.Common.Domain.Account.Entity.Account;
@@ -64,7 +64,7 @@ public class CreateAccountServiceTests
         {
             var act = async () => await _sut.ExecuteAsync(_request);
 
-            await act.Should().ThrowAsync<DuplicateEmailException>();
+            await act.Should().ThrowAsync<ConflictException>();
         }
     }
 }

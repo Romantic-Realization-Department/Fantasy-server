@@ -2,9 +2,9 @@ using Fantasy.Auth.Domain.Auth.Dto.Request;
 using Fantasy.Auth.Domain.Auth.Service;
 using Fantasy.Auth.Global.Security.Jwt;
 using Fantasy.Common.Domain.Account.Repository;
-using Fantasy.Common.Domain.Auth.Exception;
 using Fantasy.Common.Domain.Auth.Repository;
 using FluentAssertions;
+using Gamism.SDK.Extensions.AspNetCore.Exceptions;
 using Microsoft.Extensions.Configuration;
 using NSubstitute;
 using Xunit;
@@ -73,7 +73,7 @@ public class LoginServiceTests
         {
             var act = async () => await _sut.ExecuteAsync(_request);
 
-            await act.Should().ThrowAsync<InvalidCredentialsException>();
+            await act.Should().ThrowAsync<UnauthorizedException>();
         }
     }
 
@@ -98,7 +98,7 @@ public class LoginServiceTests
         {
             var act = async () => await _sut.ExecuteAsync(_request);
 
-            await act.Should().ThrowAsync<InvalidCredentialsException>();
+            await act.Should().ThrowAsync<UnauthorizedException>();
         }
     }
 }

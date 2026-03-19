@@ -1,6 +1,7 @@
-﻿using System.Security.Claims;
+using System.Security.Claims;
 using Fantasy.Common.Domain.Account.Entity;
 using Fantasy.Common.Domain.Account.Repository;
+using Gamism.SDK.Extensions.AspNetCore.Exceptions;
 
 namespace Fantasy.Auth.Global.Security.Provider;
 
@@ -8,7 +9,7 @@ public class CurrentUserProvider : ICurrentUserProvider
 {
     private readonly IAccountRepository _accountRepository;
     private readonly IHttpContextAccessor _httpContextAccessor;
-    
+
     public CurrentUserProvider(
         IAccountRepository accountRepository,
         IHttpContextAccessor httpContextAccessor
@@ -21,21 +22,21 @@ public class CurrentUserProvider : ICurrentUserProvider
     public async Task<Account> GetAccountAsync()
     {
         var email = GetEmail();
-        
+
         return await _accountRepository.FindByEmailAsync(email)
-            ?? throw new UnauthorizedAccessException();
+            ?? throw new UnauthorizedException("인증 정보를 찾을 수 없습니다.");
     }
 
     public string GetEmail()
     {
         return GetUser().FindFirstValue(ClaimTypes.Email)
-               ?? throw new UnauthorizedAccessException();
+               ?? throw new UnauthorizedException("이메일 클레임을 찾을 수 없습니다.");
     }
-    
+
     private ClaimsPrincipal GetUser()
     {
         var context = _httpContextAccessor.HttpContext
-                      ?? throw new UnauthorizedAccessException();
+                      ?? throw new UnauthorizedException("HTTP 컨텍스트를 찾을 수 없습니다.");
 
         return context.User;
     }
