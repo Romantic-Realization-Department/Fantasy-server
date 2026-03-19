@@ -9,8 +9,7 @@
 
     <ItemGroup>
         <PackageReference Include="BCrypt.Net-Next" Version="4.1.0" />
-        <PackageReference Include="Gamism.SDK.Extensions.AspNetCore" Version="0.2.6" />
-        <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.3"/>
+        <PackageReference Include="Gamism.SDK.Extensions.AspNetCore" Version="0.2.8" />
         <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.5" />
     </ItemGroup>
 

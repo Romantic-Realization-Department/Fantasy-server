@@ -8,7 +8,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Gamism.SDK.Extensions.AspNetCore" Version="0.2.6" />
+        <PackageReference Include="Gamism.SDK.Extensions.AspNetCore" Version="0.2.8" />
         <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.3"/>
     </ItemGroup>
 
