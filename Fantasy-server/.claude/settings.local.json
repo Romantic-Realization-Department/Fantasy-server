@@ -2,7 +2,11 @@
   "permissions": {
     "allow": [
       "Bash(claude mcp:*)",
-      "mcp__context7__resolve-library-id"
+      "mcp__context7__resolve-library-id",
+      "Bash(dotnet --version)",
+      "Bash(dotnet restore:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ]
   }
 }
