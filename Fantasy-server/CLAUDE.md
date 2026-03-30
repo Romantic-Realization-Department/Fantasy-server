@@ -42,3 +42,12 @@ mcp__context7__query-docs(libraryId: "/xunit/xunit.net", query: "Fact Theory asy
 ```
 
 `BCrypt.Net-Next` and `Gamism.SDK.Extensions.AspNetCore` have no Context7 entry — refer to the source code directly.
+
+## Reference Docs
+
+- `.claude/rules/architecture.md` — directory structure and layering rules (Controllers → Services → Repositories)
+- `.claude/rules/code-style.md` — C# naming conventions, entity/DTO/async patterns
+- `.claude/rules/conventions.md` — DB naming, EF Core Fluent API config, DI registration, password hashing
+- `.claude/rules/domain-patterns.md` — service, repository, and controller implementation patterns
+- `.claude/rules/global-patterns.md` — infrastructure configs (DB, Redis, JWT, rate limiting), security services
+- `.claude/rules/testing.md` — test project structure, naming conventions, mocking patterns
