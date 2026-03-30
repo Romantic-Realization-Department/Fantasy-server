@@ -2,40 +2,52 @@
 
 ## Project Overview
 
-A .NET 10 multi-project backend solution composed of three projects:
+A .NET 10 single-project backend solution:
 
 | Project | Type | Role |
 |---|---|---|
-| `Fantasy.Common` | Class Library | Shared domain models, DTOs, interfaces, infrastructure, and config |
-| `Fantasy.Auth` | ASP.NET Core Web API | Authentication service (signup, login, token management) |
-| `Fantasy.Game` | ASP.NET Core Web API | Game service (in development) |
-
-Both `Fantasy.Auth` and `Fantasy.Game` reference `Fantasy.Common`.
+| `Fantasy.Server` | ASP.NET Core Web API | Authentication, account management, and game service |
+| `Fantasy.Test` | xUnit Test Project | Unit tests for services |
 
 ---
 
 ## Architecture
 
-### Domain Structure
-
-Each domain follows this layout inside a service project:
+### Directory Structure
 
 ```
-Domain/{DomainName}/
-  Controller/         # ASP.NET Core controllers
-  Service/            # Service implementations
-    Interface/        # Service interfaces
-  Repository/         # Repository implementations
+Fantasy.Server/
+├── Domain/
+│   ├── {DomainName}/
+│   │   ├── Config/         # DI registration extension methods
+│   │   ├── Controller/     # ASP.NET Core controllers
+│   │   ├── Dto/
+│   │   │   ├── Request/
+│   │   │   └── Response/
+│   │   ├── Entity/
+│   │   │   └── Config/     # EF Core Fluent API configurations
+│   │   ├── Repository/
+│   │   │   └── Interface/  # Repository interfaces
+│   │   └── Service/
+│   │       └── Interface/  # Service interfaces
+└── Global/
+    ├── Config/             # Infrastructure registrations (DB, Redis, JWT, RateLimit)
+    ├── Constant/           # Global constants
+    ├── Controller/         # Global endpoints (e.g., health check)
+    ├── Infrastructure/     # AppDbContext
+    └── Security/           # JWT provider, auth filter, current user provider
+        ├── Config/
+        ├── Filter/
+        ├── Jwt/
+        └── Provider/
 ```
-
-Interfaces for repositories and services are defined in `Fantasy.Common`. Implementations live in the consuming service project (`Fantasy.Auth`, `Fantasy.Game`).
 
 ### Layering Rules
 
 - **Controllers** depend on service interfaces, never concrete services.
 - **Services** depend on repository interfaces, never `AppDbContext` directly.
 - **Repositories** are the only layer that touches `AppDbContext`.
-- All interfaces (repository + service) are defined in `Fantasy.Common`, not in the implementing project.
+- Interfaces (repository + service) are co-located within their domain, not in a separate project.
 
 ### Service Pattern
 
@@ -50,7 +62,26 @@ public interface ICreateAccountService
 
 ### Repository Pattern
 
-Interface in `Fantasy.Common/Domain/{DomainName}/Repository/`. Implementation in `Fantasy.Auth/Domain/{DomainName}/Repository/`.
+Interface in `Domain/{DomainName}/Repository/Interface/`. Implementation in `Domain/{DomainName}/Repository/`.
+
+### Domain DI Registration
+
+Each domain has a `Config/` class with an extension method that registers its services:
+
+```csharp
+// Domain/Account/Config/AccountServiceConfig.cs
+public static class AccountServiceConfig
+{
+    public static IServiceCollection AddAccountServices(this IServiceCollection services)
+    {
+        services.AddScoped<IAccountRepository, AccountRepository>();
+        services.AddScoped<ICreateAccountService, CreateAccountService>();
+        return services;
+    }
+}
+```
+
+Call all domain configs from `Program.cs`.
 
 ---
 
@@ -62,6 +93,7 @@ Interface in `Fantasy.Common/Domain/{DomainName}/Repository/`. Implementation in
 - **JWT** — `Microsoft.AspNetCore.Authentication.JwtBearer` + `System.IdentityModel.Tokens.Jwt`
 - **BCrypt.Net-Next** — password hashing
 - **ASP.NET Core Rate Limiting** — built-in fixed window limiter
+- **Gamism.SDK.Extensions.AspNetCore** — Swagger, structured logging, response wrapping
 
 ---
 
@@ -71,10 +103,6 @@ Interface in `Fantasy.Common/Domain/{DomainName}/Repository/`. Implementation in
 
 - Database table names: `snake_case`, schema-qualified (e.g., `"account"."account"`)
 - `AccountRole` enum is stored as a string in the database.
-- When using the `Account` entity inside `Fantasy.Auth`, alias it to avoid namespace collision:
-  ```csharp
-  using AccountEntity = Fantasy.Common.Domain.Account.Entity.Account;
-  ```
 
 ### DTOs
 
@@ -83,28 +111,27 @@ Interface in `Fantasy.Common/Domain/{DomainName}/Repository/`. Implementation in
 
 ### Entity Configuration
 
-- Use EF Core Fluent API via `IEntityTypeConfiguration<T>` in `Fantasy.Common/Domain/{DomainName}/Entity/Config/`.
+- Use EF Core Fluent API via `IEntityTypeConfiguration<T>` in `Domain/{DomainName}/Entity/Config/`.
 - `AppDbContext` applies all configurations automatically via `ApplyConfigurationsFromAssembly`.
 
-### Config Extension Methods
+### Global Config Extension Methods
 
-All infrastructure registrations are implemented as `IServiceCollection` extension methods in `Fantasy.Common/Global/Config/`:
+All infrastructure registrations are `IServiceCollection` extension methods in `Global/Config/`:
 
 | Class | Method | Purpose |
 |---|---|---|
 | `DatabaseConfig` | `AddDatabase` | EF Core + PostgreSQL |
 | `RedisConfig` | `AddRedis` | StackExchange.Redis + IDistributedCache |
-| `JwtConfig` | `AddJwtAuthentication` | JWT Bearer auth |
+| `JwtConfig` | `AddJwtAuthentication` | JWT Bearer auth middleware |
 | `RateLimitConfig` | `AddRateLimit` | Fixed window rate limiters |
-
-Call these from `Program.cs` in each service project.
 
 ### JWT
 
-`JwtConfig` provides three static members:
-- `AddJwtAuthentication(services, configuration)` — registers JWT Bearer auth middleware.
-- `GenerateAccessToken(account, configuration)` — issues a signed JWT with `sub`, `email`, `role`, `jti` claims.
+Token generation is handled by `IJwtProvider` / `JwtProvider` in `Global/Security/Jwt/`:
+- `GenerateAccessToken(account)` — issues a signed JWT with `sub`, `email`, `role`, `jti`, `iat` claims.
 - `GenerateRefreshToken()` — returns a cryptographically random Base64 string.
+
+`JwtConfig.AddJwtAuthentication` registers JWT Bearer auth middleware only.
 
 Required `appsettings.json` keys:
 ```json
@@ -115,6 +142,13 @@ Required `appsettings.json` keys:
   "AccessTokenExpirationMinutes": "15"
 }
 ```
+
+### Security Services
+
+Registered via `SecurityServiceConfig.AddSecurityServices()` in `Global/Security/Config/`:
+- `IJwtProvider` / `JwtProvider` — token generation
+- `ICurrentUserProvider` / `CurrentUserProvider` — extracts current user from JWT claims
+- `JwtAuthenticationFilter` — validates JWT from Authorization header
 
 ### Refresh Tokens
 
@@ -136,11 +170,12 @@ Always hash with `BCrypt.Net.BCrypt.HashPassword()` before persisting. Verify wi
 
 ## Adding a New Domain
 
-1. Define the entity in `Fantasy.Common/Domain/{Name}/Entity/`.
-2. Add EF config in `Fantasy.Common/Domain/{Name}/Entity/Config/`.
+1. Define the entity in `Domain/{Name}/Entity/`.
+2. Add EF config in `Domain/{Name}/Entity/Config/`.
 3. Register `DbSet<T>` in `AppDbContext`.
-4. Define DTOs (records) in `Fantasy.Common/Domain/{Name}/Dto/Request|Response/`.
-5. Define the repository interface in `Fantasy.Common/Domain/{Name}/Repository/`.
-6. Define service interface(s) in the service project's `Domain/{Name}/Service/Interface/`.
-7. Implement the repository and service in the relevant service project.
-8. Wire up DI in that project's `Program.cs`.
+4. Define DTOs (records) in `Domain/{Name}/Dto/Request|Response/`.
+5. Define the repository interface in `Domain/{Name}/Repository/Interface/`.
+6. Define service interface(s) in `Domain/{Name}/Service/Interface/`.
+7. Implement the repository and service in `Domain/{Name}/Repository/` and `Domain/{Name}/Service/`.
+8. Create `Domain/{Name}/Config/{Name}ServiceConfig.cs` with a DI extension method.
+9. Call the extension method from `Program.cs`.
