@@ -1,0 +1,5 @@
+﻿{
+  "env": {
+    "CLAUDE_CODE_EXPERIMENT_AGENT_TEAMS" : "1"
+  }
+}
