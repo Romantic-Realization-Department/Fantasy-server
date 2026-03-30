@@ -51,3 +51,4 @@ mcp__context7__query-docs(libraryId: "/xunit/xunit.net", query: "Fact Theory asy
 - `.claude/rules/domain-patterns.md` — service, repository, and controller implementation patterns
 - `.claude/rules/global-patterns.md` — infrastructure configs (DB, Redis, JWT, rate limiting), security services
 - `.claude/rules/testing.md` — test project structure, naming conventions, mocking patterns
+- `.claude/rules/flows.md` — 각 API 엔드포인트별 Mermaid sequence diagram
