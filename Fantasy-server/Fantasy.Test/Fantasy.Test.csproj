@@ -24,8 +24,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\Fantasy.Auth\Fantasy.Auth.csproj" />
-        <ProjectReference Include="..\Fantasy.Common\Fantasy.Common.csproj" />
+        <ProjectReference Include="..\Fantasy.Server\Fantasy.Server.csproj" />
     </ItemGroup>
 
 </Project>

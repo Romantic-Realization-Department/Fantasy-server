@@ -1,0 +1,30 @@
+name: CI - PR Convention
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize]
+
+jobs:
+  pr-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate PR title
+        run: |
+          TITLE="${{ github.event.pull_request.title }}"
+
+          if [[ ! "$TITLE" =~ ^(feat|fix|update|docs|refactor|test|chore):\ .+ ]] && [[ ! "$TITLE" =~ ^release/[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "PR title must follow convention: {type}: {description}"
+            echo ""
+            echo "Allowed types: feat, fix, update, docs, refactor, test, chore"
+            echo "Release PRs: release/x.x.x"
+            echo ""
+            echo "Examples:"
+            echo "  feat: 방 참여 기능 추가"
+            echo "  fix: 세션 만료 버그 수정"
+            echo "  update: Room 엔터티 수정"
+            echo "  docs: API 문서 업데이트"
+            echo "  release/1.0.0"
+            exit 1
+          fi
+
+          echo "PR title is valid: $TITLE"
