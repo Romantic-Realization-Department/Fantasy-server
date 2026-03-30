@@ -1,14 +1,14 @@
-using Fantasy.Auth.Domain.Auth.Dto.Request;
-using Fantasy.Auth.Domain.Auth.Service;
-using Fantasy.Auth.Global.Security.Jwt;
-using Fantasy.Common.Domain.Account.Repository;
-using Fantasy.Common.Domain.Auth.Repository;
+using Fantasy.Server.Domain.Account.Repository.Interface;
+using Fantasy.Server.Domain.Auth.Dto.Request;
+using Fantasy.Server.Domain.Auth.Repository.Interface;
+using Fantasy.Server.Domain.Auth.Service;
+using Fantasy.Server.Global.Security.Jwt;
 using FluentAssertions;
 using Gamism.SDK.Extensions.AspNetCore.Exceptions;
 using Microsoft.Extensions.Configuration;
 using NSubstitute;
 using Xunit;
-using AccountEntity = Fantasy.Common.Domain.Account.Entity.Account;
+using AccountEntity = Fantasy.Server.Domain.Account.Entity.Account;
 
 namespace Fantasy.Test.Auth.Service;
 
