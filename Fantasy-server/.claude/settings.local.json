@@ -16,7 +16,13 @@
       "Bash(git diff:*)",
       "Bash(git log:*)",
       "Bash(git branch:*)",
-      "Skill(db-migrate)"
+      "Skill(db-migrate)",
+      "Bash(xargs grep:*)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Skill(build)",
+      "Skill(test)",
+      "Bash(cat /c/Users/USER/Documents/GitHub/fantasy-server/Fantasy-server/.claude/rules/*)"
     ]
   }
 }
