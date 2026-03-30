@@ -3,10 +3,20 @@
     "allow": [
       "Bash(claude mcp:*)",
       "mcp__context7__resolve-library-id",
+      "mcp__context7__query-docs",
       "Bash(dotnet --version)",
       "Bash(dotnet restore:*)",
+      "Bash(dotnet build:*)",
+      "Bash(dotnet test:*)",
+      "Bash(dotnet ef migrations:*)",
+      "Bash(dotnet ef database:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git branch:*)",
+      "Skill(db-migrate)"
     ]
   }
 }
