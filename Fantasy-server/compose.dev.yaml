@@ -15,30 +15,15 @@ services:
     ports:
       - "6379:6379"
 
-  fantasy.auth:
-    image: fantasy.auth
+  fantasy.server:
+    image: fantasy.server
     build:
       context: .
-      dockerfile: Fantasy.Auth/dev.dockerfile
-    ports:
-      - "8080:8080"
-    environment:
-      - ConnectionStrings__Database=Host=postgres;Port=5432;Database=fantasy;Username=fantasy;Password=fantasy
-      - ConnectionStrings__Redis=redis:6379
-    volumes:
-      - .:/src
-    depends_on:
-      - postgres
-      - redis
-
-  fantasy.game:
-    image: fantasy.game
-    build:
-      context: .
-      dockerfile: Fantasy.Game/dev.dockerfile
+      dockerfile: Fantasy.Server/dev.dockerfile
     ports:
       - "8081:8080"
     environment:
+      - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__Database=Host=postgres;Port=5432;Database=fantasy;Username=fantasy;Password=fantasy
       - ConnectionStrings__Redis=redis:6379
     volumes:

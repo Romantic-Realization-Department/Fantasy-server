@@ -17,9 +17,9 @@ services:
       - redis_data:/data
     restart: unless-stopped
 
-  fantasy.auth:
-    image: ghcr.io/${GITHUB_REPOSITORY_OWNER}/fantasy-auth:latest
-    container_name: fantasy-auth
+  fantasy.server:
+    image: ghcr.io/${GITHUB_REPOSITORY_OWNER}/fantasy-server:latest
+    container_name: fantasy-server
     ports:
       - "8080:8080"
     environment:
@@ -27,20 +27,6 @@ services:
       - ConnectionStrings__Database=${DB_CONNECTION_STRING}
       - ConnectionStrings__Redis=${REDIS_CONNECTION_STRING}
       - Jwt__SecretKey=${JWT_SECRET_KEY}
-    depends_on:
-      - postgres
-      - redis
-    restart: unless-stopped
-
-  fantasy.game:
-    image: ghcr.io/${GITHUB_REPOSITORY_OWNER}/fantasy-game:latest
-    container_name: fantasy-game
-    ports:
-      - "8081:8080"
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Production
-      - ConnectionStrings__Database=${DB_CONNECTION_STRING}
-      - ConnectionStrings__Redis=${REDIS_CONNECTION_STRING}
     depends_on:
       - postgres
       - redis
