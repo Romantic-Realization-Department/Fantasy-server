@@ -1,6 +1,7 @@
-﻿---
-description: Create Git commits by splitting changes into logical units
-allowed-tools: Bash
+---
+name: commit
+description: Creates Git commits by splitting changes into logical units. Use for staging files and writing commit messages.
+allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git add:*), Bash(git commit:*), Bash(git log:*)
 ---
 
 Create Git commits following the project's commit conventions.
@@ -40,7 +41,7 @@ update: Account 엔터티 수정
 2. Categorize changes into logical units:
    - New feature addition → `feat`
    - Bug / missing registration fix → `fix`
-   - Modification to existing code → `modify`
+   - Modification to existing code → `update`
 3. Group files by each logical unit
 4. For each group:
    - Stage only the relevant files with `git add <files>`

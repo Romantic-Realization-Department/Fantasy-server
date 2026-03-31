@@ -1,17 +1,23 @@
-﻿---
-description: Generate PR title suggestions and body based on changes from develop
+---
+name: pr
+description: Generates a PR title suggestion and body based on the current branch, then creates a GitHub PR. Supports develop/release/feature branches.
 allowed-tools: Bash(git log:*), Bash(git diff:*), Bash(git branch:*), Bash(git tag:*), Bash(git checkout:*), Bash(gh pr create:*), Bash(rm:*), Write, AskUserQuestion
+context: fork
 ---
 
 Generate a PR based on the current branch. Behavior differs depending on the branch.
 
-## Context
+## Steps
 
-- Current branch: !`git branch --show-current`
+### Step 0. Initialize & Branch Discovery
+1. Identify the current branch using `git branch --show-current`.
+2. **Check for Arguments**:
+  - **If an argument is provided (e.g., `/pr {target}`)**: Set `{target}` as the **Base Branch** and proceed directly to **Case 3**.
+  - **If no argument is provided**: Follow the **Branch-Based Behavior** below.
 
 ---
 
-## Branch-Based Behavior
+## Branch-Based Behavior (Default)
 
 ### Case 1: Current branch is `develop`
 
@@ -31,7 +37,7 @@ Generate a PR based on the current branch. Behavior differs depending on the bra
   - **Patch** (0.0.x): Bug fixes only
 - Briefly explain why you chose that level
 
-**Step 3. Ask user for version number**
+**Step 3. Ask the user for a version number**
 
 Use AskUserQuestion:
 > "현재 버전: {current_version}
@@ -40,7 +46,7 @@ Use AskUserQuestion:
 >
 > 사용할 버전 번호를 입력해주세요. (예: 1.0.1)"
 
-**Step 4. Create release branch**
+**Step 4. Create a release branch**
 
 ```bash
 git checkout -b release/{version}
@@ -98,7 +104,7 @@ rm PR_BODY.md
 - Diff stats: `git diff develop...HEAD --stat`
 - Detailed diff: `git diff develop...HEAD`
 
-**Step 2. Suggest 3 PR titles** following the PR Title Convention below
+**Step 2. Suggest three PR titles** following the PR Title Convention below
 
 **Step 3. Write PR body** following the PR Body Template below
 - Save to `PR_BODY.md`
@@ -185,7 +191,7 @@ Follow this exact structure (keep the emoji headers as-is):
 
 **Rules:**
 - Analyze commits and diffs to fill in `작업 내용` with a concise bullet list
-- Fill in `참고 사항` with any important context (architecture decisions, before/after, caveats). Write `.` if nothing relevant.
-- Keep total body under 2500 characters
+- Fill in `참고 사항` with any important context (architecture decisions, before/after, warnings). Write `.` if nothing relevant.
+- Keep the total body under 2500 characters
 - Write in Korean
 - No emojis in text content (keep the section header emojis)

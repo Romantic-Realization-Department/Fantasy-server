@@ -16,6 +16,7 @@ public class Account
     {
         Email = email,
         Password = password,
+        Role = AccountRole.User,
         IsNewAccount = true,
         CreatedAt = DateTime.UtcNow,
         UpdatedAt = DateTime.UtcNow

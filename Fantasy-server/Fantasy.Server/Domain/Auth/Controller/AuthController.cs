@@ -1,6 +1,7 @@
 using Fantasy.Server.Domain.Auth.Dto.Request;
 using Fantasy.Server.Domain.Auth.Dto.Response;
 using Fantasy.Server.Domain.Auth.Service.Interface;
+using Gamism.SDK.Core.Network;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -24,11 +25,17 @@ public class AuthController : ControllerBase
 
     [HttpPost("login")]
     [EnableRateLimiting("login")]
-    public async Task<TokenResponse> Login([FromBody] LoginRequest request)
-        => await _loginService.ExecuteAsync(request);
+    public async Task<CommonApiResponse<TokenResponse>> Login([FromBody] LoginRequest request)
+    {
+        var result = await _loginService.ExecuteAsync(request);
+        return CommonApiResponse.Success("로그인 성공.", result);
+    }
 
     [Authorize]
     [HttpPost("logout")]
-    public async Task Logout()
-        => await _logoutService.ExecuteAsync();
+    public async Task<CommonApiResponse> Logout()
+    {
+        await _logoutService.ExecuteAsync();
+        return CommonApiResponse.Success("로그아웃 성공.");
+    }
 }
