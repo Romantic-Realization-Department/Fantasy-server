@@ -33,3 +33,6 @@ TestResults/
 .DS_Store
 Thumbs.db
 Desktop.ini
+
+# Claude Code
+PR_BODY.md
