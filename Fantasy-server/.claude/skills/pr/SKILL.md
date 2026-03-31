@@ -122,13 +122,13 @@ rm PR_BODY.md
 [full body preview]
 ```
 
-**Step 5. Ask the user** using AskUserQuestion:
-> "어떤 제목을 사용할까요? (1 / 2 / 3 또는 직접 입력)"
+**Step 5. Ask the user** using AskUserQuestion with a `choices` array:
+- Options: the 3 generated titles + "직접 입력" as the last option
+- If the user selects "직접 입력", ask a follow-up AskUserQuestion for the custom title
 
 **Step 6. Create PR to `develop`**
 
-- If the user answered 1, 2, or 3, use the corresponding suggested title
-- If the user typed a custom title, use it as-is
+- Use the selected title, or the custom title if the user chose "직접 입력"
 
 ```bash
 gh pr create --title "{chosen title}" --body-file PR_BODY.md --base develop
