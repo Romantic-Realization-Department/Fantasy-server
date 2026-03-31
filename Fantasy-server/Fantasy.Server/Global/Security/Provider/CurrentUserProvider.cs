@@ -1,3 +1,4 @@
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using Fantasy.Server.Domain.Account.Entity;
 using Fantasy.Server.Domain.Account.Repository.Interface;
@@ -28,7 +29,7 @@ public class CurrentUserProvider : ICurrentUserProvider
 
     public string GetEmail()
     {
-        return GetUser().FindFirstValue(ClaimTypes.Email)
+        return GetUser().FindFirstValue(JwtRegisteredClaimNames.Email)
                ?? throw new UnauthorizedException("이메일 클레임을 찾을 수 없습니다.");
     }
 
