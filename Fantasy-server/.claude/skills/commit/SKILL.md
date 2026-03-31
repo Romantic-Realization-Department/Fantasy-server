@@ -16,6 +16,7 @@ Create Git commits following the project's commit conventions.
 - `feat` — new feature added
 - `fix` — bug fix, missing config, or missing DI registration
 - `update` — modification to existing code
+- `chore` — tooling, CI/CD, dependency updates, config changes unrelated to app logic
 
 **Description rules**:
 - Written in **Korean**
@@ -29,6 +30,8 @@ feat: 로그인 로직 추가
 fix: 세션 DI 누락 수정
 update: Account 엔터티 수정
 ```
+
+See `.claude/skills/commit/examples/type-guide.md` for a boundary-rule table and real scenarios from this project.
 
 **Do NOT**:
 - Add Claude as co-author

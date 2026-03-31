@@ -151,6 +151,7 @@ Format: `{type}: {Korean description}`
 - `fix` — bug fix or missing configuration/DI registration
 - `update` — modification to existing code
 - `refactor` — refactoring without behavior change
+- `chore` — tooling, CI/CD, dependency updates, config changes unrelated to app logic
 
 **Rules:**
 - Description in Korean
@@ -162,32 +163,15 @@ Format: `{type}: {Korean description}`
 - `fix: Key Vault 연동 방식을 AddAzureKeyVault으로 변경`
 - `refactor: 로그인 로직 리팩토링`
 
+See `.claude/skills/pr/examples/feature-to-develop.md` for a complete example (title options + filled body) of a feature → develop PR.
+
 ---
 
 ## PR Body Template
 
 Follow this exact structure (keep the emoji headers as-is):
 
-```
-## 📚작업 내용
-
-- {change item 1}
-- {change item 2}
-
-## ◀️참고 사항
-
-{additional notes, context, before/after comparisons if relevant. Write "." if nothing to add.}
-
-## ✅체크리스트
-
-> `[ ]`안에 x를 작성하면 체크박스를 체크할 수 있습니다.
-
-- [x] 현재 의도하고자 하는 기능이 정상적으로 작동하나요?
-- [x] 변경한 기능이 다른 기능을 깨뜨리지 않나요?
-
-
-> *추후 필요한 체크리스트는 업데이트 될 예정입니다.*
-```
+!.claude/skills/pr/templates/pr-body.md
 
 **Rules:**
 - Analyze commits and diffs to fill in `작업 내용` with a concise bullet list
