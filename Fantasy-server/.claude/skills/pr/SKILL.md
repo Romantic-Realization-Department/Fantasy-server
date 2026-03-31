@@ -12,8 +12,11 @@ Generate a PR based on the current branch. Behavior differs depending on the bra
 ### Step 0. Initialize & Branch Discovery
 1. Identify the current branch using `git branch --show-current`.
 2. **Check for Arguments**:
-  - **If an argument is provided (e.g., `/pr {target}`)**: Set `{target}` as the **Base Branch** and proceed directly to **Case 3**.
-  - **If no argument is provided**: Follow the **Branch-Based Behavior** below.
+  - **If an argument is provided (e.g., `/pr {target}`)**: Set `{Base Branch}` = `{target}` and proceed directly to **Case 3**.
+  - **If no argument is provided**: Follow the **Branch-Based Behavior** below:
+    - Current branch is `develop` → **Case 1**
+    - Current branch matches `release/x.x.x` → **Case 2**
+    - Any other branch → **Case 3** with `{Base Branch}` = `develop`
 
 ---
 
@@ -98,11 +101,11 @@ rm PR_BODY.md
 
 ### Case 3: Any other branch
 
-**Step 1. Analyze changes from `develop`**
+**Step 1. Analyze changes from `{Base Branch}`**
 
-- Commits: `git log develop..HEAD --oneline`
-- Diff stats: `git diff develop...HEAD --stat`
-- Detailed diff: `git diff develop...HEAD`
+- Commits: `git log {Base Branch}..HEAD --oneline`
+- Diff stats: `git diff {Base Branch}...HEAD --stat`
+- Detailed diff: `git diff {Base Branch}...HEAD`
 
 **Step 2. Suggest three PR titles** following the PR Title Convention below
 
@@ -122,16 +125,16 @@ rm PR_BODY.md
 [full body preview]
 ```
 
-**Step 5. Ask the user** using AskUserQuestion:
-> "어떤 제목을 사용할까요? (1 / 2 / 3 또는 직접 입력)"
+**Step 5. Ask the user** using AskUserQuestion with a `choices` array:
+- Options: the 3 generated titles + "직접 입력" as the last option
+- If the user selects "직접 입력", ask a follow-up AskUserQuestion for the custom title
 
-**Step 6. Create PR to `develop`**
+**Step 6. Create PR to `{Base Branch}`**
 
-- If the user answered 1, 2, or 3, use the corresponding suggested title
-- If the user typed a custom title, use it as-is
+- Use the selected title, or the custom title if the user chose "직접 입력"
 
 ```bash
-gh pr create --title "{chosen title}" --body-file PR_BODY.md --base develop
+gh pr create --title "{chosen title}" --body-file PR_BODY.md --base {Base Branch}
 ```
 
 **Step 7. Delete PR_BODY.md**
@@ -151,6 +154,7 @@ Format: `{type}: {Korean description}`
 - `fix` — bug fix or missing configuration/DI registration
 - `update` — modification to existing code
 - `refactor` — refactoring without behavior change
+- `chore` — tooling, CI/CD, dependency updates, config changes unrelated to app logic
 
 **Rules:**
 - Description in Korean
@@ -162,32 +166,15 @@ Format: `{type}: {Korean description}`
 - `fix: Key Vault 연동 방식을 AddAzureKeyVault으로 변경`
 - `refactor: 로그인 로직 리팩토링`
 
+See `.claude/skills/pr/examples/feature-to-develop.md` for a complete example (title options + filled body) of a feature → develop PR.
+
 ---
 
 ## PR Body Template
 
 Follow this exact structure (keep the emoji headers as-is):
 
-```
-## 📚작업 내용
-
-- {change item 1}
-- {change item 2}
-
-## ◀️참고 사항
-
-{additional notes, context, before/after comparisons if relevant. Write "." if nothing to add.}
-
-## ✅체크리스트
-
-> `[ ]`안에 x를 작성하면 체크박스를 체크할 수 있습니다.
-
-- [x] 현재 의도하고자 하는 기능이 정상적으로 작동하나요?
-- [x] 변경한 기능이 다른 기능을 깨뜨리지 않나요?
-
-
-> *추후 필요한 체크리스트는 업데이트 될 예정입니다.*
-```
+!.claude/skills/pr/templates/pr-body.md
 
 **Rules:**
 - Analyze commits and diffs to fill in `작업 내용` with a concise bullet list
