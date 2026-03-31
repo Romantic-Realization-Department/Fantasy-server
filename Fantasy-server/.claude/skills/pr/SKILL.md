@@ -12,8 +12,11 @@ Generate a PR based on the current branch. Behavior differs depending on the bra
 ### Step 0. Initialize & Branch Discovery
 1. Identify the current branch using `git branch --show-current`.
 2. **Check for Arguments**:
-  - **If an argument is provided (e.g., `/pr {target}`)**: Set `{target}` as the **Base Branch** and proceed directly to **Case 3**.
-  - **If no argument is provided**: Follow the **Branch-Based Behavior** below.
+  - **If an argument is provided (e.g., `/pr {target}`)**: Set `{Base Branch}` = `{target}` and proceed directly to **Case 3**.
+  - **If no argument is provided**: Follow the **Branch-Based Behavior** below:
+    - Current branch is `develop` → **Case 1**
+    - Current branch matches `release/x.x.x` → **Case 2**
+    - Any other branch → **Case 3** with `{Base Branch}` = `develop`
 
 ---
 
@@ -98,11 +101,11 @@ rm PR_BODY.md
 
 ### Case 3: Any other branch
 
-**Step 1. Analyze changes from `develop`**
+**Step 1. Analyze changes from `{Base Branch}`**
 
-- Commits: `git log develop..HEAD --oneline`
-- Diff stats: `git diff develop...HEAD --stat`
-- Detailed diff: `git diff develop...HEAD`
+- Commits: `git log {Base Branch}..HEAD --oneline`
+- Diff stats: `git diff {Base Branch}...HEAD --stat`
+- Detailed diff: `git diff {Base Branch}...HEAD`
 
 **Step 2. Suggest three PR titles** following the PR Title Convention below
 
@@ -126,12 +129,12 @@ rm PR_BODY.md
 - Options: the 3 generated titles + "직접 입력" as the last option
 - If the user selects "직접 입력", ask a follow-up AskUserQuestion for the custom title
 
-**Step 6. Create PR to `develop`**
+**Step 6. Create PR to `{Base Branch}`**
 
 - Use the selected title, or the custom title if the user chose "직접 입력"
 
 ```bash
-gh pr create --title "{chosen title}" --body-file PR_BODY.md --base develop
+gh pr create --title "{chosen title}" --body-file PR_BODY.md --base {Base Branch}
 ```
 
 **Step 7. Delete PR_BODY.md**
