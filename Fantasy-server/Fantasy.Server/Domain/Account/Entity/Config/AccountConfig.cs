@@ -38,7 +38,6 @@ public class AccountConfig : IEntityTypeConfiguration<Account>
             .ValueGeneratedOnAdd();
 
         builder.Property(a => a.UpdatedAt)
-            .IsRequired()
-            .ValueGeneratedOnAddOrUpdate();
+            .IsRequired();
     }
 }
