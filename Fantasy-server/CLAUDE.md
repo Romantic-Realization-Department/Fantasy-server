@@ -1,5 +1,7 @@
 # Fantasy Server — Claude Code Guide
 
+**Please respond and work in Korean.**
+
 ## Solution Overview
 
 .NET 10 single-solution backend:
