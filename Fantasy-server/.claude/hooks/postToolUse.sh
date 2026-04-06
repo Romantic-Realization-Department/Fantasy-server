@@ -19,18 +19,11 @@ dotnet format --no-restore 2>/dev/null || echo "[Hook] format failed (ignored)" 
 
 CACHE_FILE=".claude/.last_build_hash"
 
-# git HEAD 대신 실제 .cs 파일 내용 해시 사용 → 편집마다 올바르게 감지
-CURRENT_HASH=$(find . -name "*.cs" -not -path "*/obj/*" | sort | xargs md5sum 2>/dev/null | md5sum | cut -d' ' -f1)
-
-LAST_HASH=""
-if [[ -f "$CACHE_FILE" ]]; then
-    LAST_HASH=$(cat "$CACHE_FILE")
-fi
-
-if [[ "$CURRENT_HASH" != "$LAST_HASH" ]]; then
+# 캐시 파일보다 새로운 .cs 파일이 있는지 타임스탬프로 비교 (전체 내용 해시보다 빠름)
+if [[ ! -f "$CACHE_FILE" ]] || find . -name "*.cs" -not -path "*/obj/*" -newer "$CACHE_FILE" 2>/dev/null | grep -q .; then
     echo "[Hook] Running dotnet build..." >&2
     if dotnet build --no-restore; then
-        echo "$CURRENT_HASH" > "$CACHE_FILE"
+        touch "$CACHE_FILE"
     else
         echo "[Hook] Build failed" >&2
         exit 2
