@@ -112,20 +112,7 @@ rm PR_BODY.md
 **Step 3. Write PR body** following the PR Body Template below
 - Save to `PR_BODY.md`
 
-**Step 4. Output** in this format:
-```
-## 추천 PR 제목
-
-1. [title1]
-2. [title2]
-3. [title3]
-
-## PR 본문 (PR_BODY.md에 저장됨)
-
-[full body preview]
-```
-
-**Step 5. Ask the user** using AskUserQuestion with a `choices` array:
+**Step 4. Ask the user** using AskUserQuestion with a `choices` array:
 - Options: the 3 generated titles + "직접 입력" as the last option
 - If the user selects "직접 입력", ask a follow-up AskUserQuestion for the custom title
 
