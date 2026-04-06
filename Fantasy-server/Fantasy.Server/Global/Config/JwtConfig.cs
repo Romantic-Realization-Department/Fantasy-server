@@ -11,11 +11,11 @@ public static class JwtConfig
         IConfiguration configuration)
     {
         var secretKey = configuration["Jwt:SecretKey"]
-            ?? throw new InvalidOperationException("JWT secret key is missing.");
+            ?? throw new InvalidOperationException("JWT 시크릿 키가 설정되지 않았습니다.");
         var issuer = configuration["Jwt:Issuer"]
-            ?? throw new InvalidOperationException("JWT issuer is missing.");
+            ?? throw new InvalidOperationException("JWT 발급자가 설정되지 않았습니다.");
         var audience = configuration["Jwt:Audience"]
-            ?? throw new InvalidOperationException("JWT audience is missing.");
+            ?? throw new InvalidOperationException("JWT 대상이 설정되지 않았습니다.");
 
         services.AddAuthentication(options =>
         {
