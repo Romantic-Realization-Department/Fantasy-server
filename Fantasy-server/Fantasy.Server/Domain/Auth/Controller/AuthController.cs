@@ -42,7 +42,6 @@ public class AuthController : ControllerBase
         return CommonApiResponse.Success("로그아웃 성공.");
     }
 
-    [Authorize]
     [HttpPost("refresh")]
     public async Task<CommonApiResponse<TokenResponse>> Refresh([FromBody] RefreshTokenRequest request)
     {
