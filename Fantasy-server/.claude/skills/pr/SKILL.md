@@ -150,10 +150,12 @@ rm PR_BODY.md
 Format: `{type}: {Korean description}`
 
 **Types:**
-- `feature` — new feature added
+- `feat` — new feature added
 - `fix` — bug fix or missing configuration/DI registration
 - `update` — modification to existing code
+- `docs` — documentation changes
 - `refactor` — refactoring without behavior change
+- `test` — adding or updating tests
 - `chore` — tooling, CI/CD, dependency updates, config changes unrelated to app logic
 
 **Rules:**
@@ -162,7 +164,7 @@ Format: `{type}: {Korean description}`
 - No trailing punctuation
 
 **Examples:**
-- `feature: 방 생성 API 추가`
+- `feat: 방 생성 API 추가`
 - `fix: Key Vault 연동 방식을 AddAzureKeyVault으로 변경`
 - `refactor: 로그인 로직 리팩토링`
 

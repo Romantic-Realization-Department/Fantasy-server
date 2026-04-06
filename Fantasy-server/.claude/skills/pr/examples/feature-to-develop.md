@@ -7,9 +7,9 @@
 
 ## Suggested PR titles (3 options)
 
-1. `feature: JWT 기반 로그인·로그아웃 API 추가`
-2. `feature: Auth 도메인 로그인·로그아웃 엔드포인트 구현`
-3. `feature: 로그인·리프레시토큰·로그아웃 서비스 추가`
+1. `feat: JWT 기반 로그인·로그아웃 API 추가`
+2. `feat: Auth 도메인 로그인·로그아웃 엔드포인트 구현`
+3. `feat: 로그인·리프레시토큰·로그아웃 서비스 추가`
 
 ## Completed PR body example
 
