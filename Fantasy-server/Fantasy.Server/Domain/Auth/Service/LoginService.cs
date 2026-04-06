@@ -15,7 +15,7 @@ public class LoginService : ILoginService
     private readonly IAccountRepository _accountRepository;
     private readonly IRefreshTokenRedisRepository _refreshTokenRepository;
     private readonly IJwtProvider _jwtProvider;
-    private readonly IConfiguration _configuration;
+    private readonly int _accessTokenExpirationMinutes;
 
     public LoginService(
         IAccountRepository accountRepository,
@@ -26,7 +26,8 @@ public class LoginService : ILoginService
         _accountRepository = accountRepository;
         _refreshTokenRepository = refreshTokenRepository;
         _jwtProvider = jwtProvider;
-        _configuration = configuration;
+        _accessTokenExpirationMinutes = int.Parse(
+            configuration["Jwt:AccessTokenExpirationMinutes"] ?? "15");
     }
 
     public async Task<TokenResponse> ExecuteAsync(LoginRequest request)
@@ -42,10 +43,8 @@ public class LoginService : ILoginService
 
         await _refreshTokenRepository.SaveAsync(account.Id, refreshToken, RefreshTokenTtl);
 
-        var expirationMinutes = int.Parse(
-            _configuration["Jwt:AccessTokenExpirationMinutes"] ?? "15");
         var accessTokenExpiresAt = DateTimeOffset.UtcNow
-            .AddMinutes(expirationMinutes)
+            .AddMinutes(_accessTokenExpirationMinutes)
             .ToUnixTimeSeconds();
 
         return new TokenResponse(accessToken, refreshToken, accessTokenExpiresAt);
