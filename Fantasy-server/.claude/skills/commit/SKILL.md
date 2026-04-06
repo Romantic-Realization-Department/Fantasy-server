@@ -6,10 +6,22 @@ allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git add:*), Bash(git c
 
 Create Git commits following the project's commit conventions.
 
+## Argument
+
+`$ARGUMENTS` — optional GitHub issue number (e.g. `/commit 42`)
+
+- If provided, append ` (#42)` to every commit message subject line.
+- If omitted, commit without any issue reference.
+
 ## Commit Message Format
 
 ```
 {type}: {Korean description}
+```
+
+If `$ARGUMENTS` is provided:
+```
+{type}: {Korean description} (#{issue})
 ```
 
 **Types**:
@@ -21,14 +33,14 @@ Create Git commits following the project's commit conventions.
 **Description rules**:
 - Written in **Korean**
 - Short and imperative (단문)
-- No trailing punctuation (`.`, `!` etc.)
+- No trailing punctuation (`.`, `!` etc.) before the issue reference
 - Avoid noun-ending style — prefer verb style
 
 **Examples**:
 ```
 feat: 로그인 로직 추가
-fix: 세션 DI 누락 수정
-update: Account 엔터티 수정
+fix: 세션 DI 누락 수정 (#12)
+update: Account 엔터티 수정 (#7)
 ```
 
 See `.claude/skills/commit/examples/type-guide.md` for a boundary-rule table and real scenarios from this project.
