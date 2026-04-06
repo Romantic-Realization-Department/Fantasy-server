@@ -1,6 +1,7 @@
 using Fantasy.Server.Domain.Account.Repository.Interface;
 using Fantasy.Server.Domain.Auth.Dto.Request;
 using Fantasy.Server.Domain.Auth.Dto.Response;
+using Fantasy.Server.Domain.Auth.Enum;
 using Fantasy.Server.Domain.Auth.Repository.Interface;
 using Fantasy.Server.Domain.Auth.Service.Interface;
 using Fantasy.Server.Global.Security.Jwt;
@@ -41,11 +42,16 @@ public class RefreshTokenService : IRefreshTokenService
         var accessToken = _jwtProvider.GenerateAccessToken(account);
         var newRefreshToken = _jwtProvider.GenerateRefreshToken();
 
-        var rotated = await _refreshTokenRepository.RotateAsync(
+        var rotateResult = await _refreshTokenRepository.RotateAsync(
             account.Id, request.RefreshToken, newRefreshToken, RefreshTokenTtl);
 
-        if (!rotated)
-            throw new UnauthorizedException("리프레시 토큰이 이미 사용되었거나 올바르지 않습니다.");
+        switch (rotateResult)
+        {
+            case RotateResult.Reused:
+                throw new UnauthorizedException("토큰 재사용이 감지되었습니다.");
+            case RotateResult.NotFound:
+                throw new UnauthorizedException("리프레시 토큰을 찾을 수 없습니다.");
+        }
 
         var accessTokenExpiresAt = DateTimeOffset.UtcNow
             .AddMinutes(_accessTokenExpirationMinutes)

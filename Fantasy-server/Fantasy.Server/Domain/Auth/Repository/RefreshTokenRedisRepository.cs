@@ -1,3 +1,4 @@
+using Fantasy.Server.Domain.Auth.Enum;
 using Fantasy.Server.Domain.Auth.Repository.Interface;
 using StackExchange.Redis;
 
@@ -20,8 +21,13 @@ public class RefreshTokenRedisRepository : IRefreshTokenRedisRepository
 
     private static readonly LuaScript RotateScript = LuaScript.Prepare(@"
         local current = redis.call('GET', @forwardKey)
-        if not current or current ~= @expectedOldToken then
+        if not current then
             return 0
+        end
+        if current ~= @expectedOldToken then
+            redis.call('DEL', @forwardKey)
+            redis.call('DEL', @reverseKeyPrefix .. current)
+            return -1
         end
         local reverseId = redis.call('GET', @oldReverseKey)
         if not reverseId or reverseId ~= @id then
@@ -65,20 +71,21 @@ public class RefreshTokenRedisRepository : IRefreshTokenRedisRepository
         });
     }
 
-    public async Task<bool> RotateAsync(long id, string expectedOldToken, string newToken, TimeSpan ttl)
+    public async Task<RotateResult> RotateAsync(long id, string expectedOldToken, string newToken, TimeSpan ttl)
     {
         var result = await _db.ScriptEvaluateAsync(RotateScript, new
         {
             forwardKey       = (RedisKey)ForwardKey(id),
             oldReverseKey    = (RedisKey)ReverseKey(expectedOldToken),
             newReverseKey    = (RedisKey)ReverseKey(newToken),
+            reverseKeyPrefix = (RedisValue)ReverseKeyPrefix,
             expectedOldToken = (RedisValue)expectedOldToken,
             newToken         = (RedisValue)newToken,
             id               = (RedisValue)id.ToString(),
             ttl              = (RedisValue)(long)ttl.TotalSeconds
         });
 
-        return (long)result == 1;
+        return (RotateResult)(int)(long)result;
     }
 
     public async Task<string?> FindByIdAsync(long id)
