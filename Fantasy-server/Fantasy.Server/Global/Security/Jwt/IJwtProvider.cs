@@ -5,5 +5,5 @@ namespace Fantasy.Server.Global.Security.Jwt;
 public interface IJwtProvider
 {
     string GenerateAccessToken(Account account);
-    string GenerateRefreshToken();
+    string GenerateRefreshToken(long accountId);
 }

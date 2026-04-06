@@ -33,14 +33,13 @@ public class RefreshTokenService : IRefreshTokenService
 
     public async Task<TokenResponse> ExecuteAsync(RefreshTokenRequest request)
     {
-        var accountId = await _refreshTokenRepository.FindIdByTokenAsync(request.RefreshToken)
-            ?? throw new UnauthorizedException("리프레시 토큰을 찾을 수 없습니다.");
+        var accountId = ParseAccountId(request.RefreshToken);
 
         var account = await _accountRepository.FindByIdAsync(accountId)
             ?? throw new UnauthorizedException("인증 정보를 찾을 수 없습니다.");
 
         var accessToken = _jwtProvider.GenerateAccessToken(account);
-        var newRefreshToken = _jwtProvider.GenerateRefreshToken();
+        var newRefreshToken = _jwtProvider.GenerateRefreshToken(account.Id);
 
         var rotateResult = await _refreshTokenRepository.RotateAsync(
             account.Id, request.RefreshToken, newRefreshToken, RefreshTokenTtl);
@@ -58,5 +57,17 @@ public class RefreshTokenService : IRefreshTokenService
             .ToUnixTimeSeconds();
 
         return new TokenResponse(accessToken, newRefreshToken, accessTokenExpiresAt);
+    }
+
+    private static long ParseAccountId(string token)
+    {
+        var separatorIndex = token.IndexOf(':');
+        if (separatorIndex <= 0)
+            throw new UnauthorizedException("유효하지 않은 리프레시 토큰입니다.");
+
+        if (!long.TryParse(token[..separatorIndex], out var accountId))
+            throw new UnauthorizedException("유효하지 않은 리프레시 토큰입니다.");
+
+        return accountId;
     }
 }

@@ -54,9 +54,9 @@ public class JwtProvider : IJwtProvider
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
 
-    public string GenerateRefreshToken()
+    public string GenerateRefreshToken(long accountId)
     {
         var bytes = RandomNumberGenerator.GetBytes(64);
-        return Convert.ToBase64String(bytes);
+        return $"{accountId}:{Convert.ToBase64String(bytes)}";
     }
 }
