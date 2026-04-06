@@ -28,7 +28,7 @@ public class LoginServiceTests
             var account = AccountEntity.Create(_request.Email, BCrypt.Net.BCrypt.HashPassword(_request.Password));
             _accountRepository.FindByEmailAsync(_request.Email).Returns(account);
             _jwtProvider.GenerateAccessToken(account).Returns("access-token");
-            _jwtProvider.GenerateRefreshToken().Returns("refresh-token");
+            _jwtProvider.GenerateRefreshToken(Arg.Any<long>()).Returns("refresh-token");
             _configuration["Jwt:AccessTokenExpirationMinutes"].Returns("15");
             _sut = new LoginService(_accountRepository, _refreshTokenRepository, _jwtProvider, _configuration);
         }
@@ -49,7 +49,7 @@ public class LoginServiceTests
             await _sut.ExecuteAsync(_request);
 
             await _refreshTokenRepository.Received(1)
-                .SaveAsync(Arg.Any<long>(), "refresh-token", TimeSpan.FromDays(30));
+                .SaveAsync(Arg.Any<long>(), Arg.Any<string>(), TimeSpan.FromDays(30));
         }
     }
 
