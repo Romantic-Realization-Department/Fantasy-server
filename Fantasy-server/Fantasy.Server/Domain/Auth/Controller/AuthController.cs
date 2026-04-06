@@ -14,13 +14,16 @@ public class AuthController : ControllerBase
 {
     private readonly ILoginService _loginService;
     private readonly ILogoutService _logoutService;
+    private readonly IRefreshTokenService _refreshTokenService;
 
     public AuthController(
         ILoginService loginService,
-        ILogoutService logoutService)
+        ILogoutService logoutService,
+        IRefreshTokenService refreshTokenService)
     {
         _loginService = loginService;
         _logoutService = logoutService;
+        _refreshTokenService = refreshTokenService;
     }
 
     [HttpPost("login")]
@@ -37,5 +40,13 @@ public class AuthController : ControllerBase
     {
         await _logoutService.ExecuteAsync();
         return CommonApiResponse.Success("로그아웃 성공.");
+    }
+
+    [Authorize]
+    [HttpPost("refresh")]
+    public async Task<CommonApiResponse<TokenResponse>> Refresh([FromBody] RefreshTokenRequest request)
+    {
+        var result = await _refreshTokenService.ExecuteAsync(request);
+        return CommonApiResponse.Success("토큰 갱신 성공.", result);
     }
 }

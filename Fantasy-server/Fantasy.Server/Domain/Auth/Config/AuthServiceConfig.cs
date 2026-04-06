@@ -12,6 +12,7 @@ public static class AuthServiceConfig
         services.AddScoped<IRefreshTokenRedisRepository, RefreshTokenRedisRepository>();
         services.AddScoped<ILoginService, LoginService>();
         services.AddScoped<ILogoutService, LogoutService>();
+        services.AddScoped<IRefreshTokenService, RefreshTokenService>();
         return services;
     }
 }
