@@ -106,6 +106,9 @@ public class RefreshTokenServiceTests
 
         public 계정이_존재하지_않을_때()
         {
+            _refreshTokenRepository
+                .RotateAsync(Arg.Any<long>(), Arg.Any<string>(), Arg.Any<string>(), TimeSpan.FromDays(30))
+                .Returns(RotateResult.Success);
             _accountRepository.FindByIdAsync(Arg.Any<long>()).Returns((AccountEntity?)null);
             _configuration["Jwt:AccessTokenExpirationMinutes"].Returns("15");
             _sut = new RefreshTokenService(_accountRepository, _refreshTokenRepository, _jwtProvider, _configuration);
@@ -128,16 +131,12 @@ public class RefreshTokenServiceTests
         private readonly IJwtProvider _jwtProvider = Substitute.For<IJwtProvider>();
         private readonly IConfiguration _configuration = Substitute.For<IConfiguration>();
         private readonly RefreshTokenService _sut;
-        private readonly AccountEntity _account = CreateAccount();
 
         public RotateAsync가_NotFound를_반환할_때()
         {
-            _accountRepository.FindByIdAsync(_account.Id).Returns(_account);
             _refreshTokenRepository
-                .RotateAsync(_account.Id, ValidRefreshToken, Arg.Any<string>(), TimeSpan.FromDays(30))
+                .RotateAsync(Arg.Any<long>(), ValidRefreshToken, Arg.Any<string>(), TimeSpan.FromDays(30))
                 .Returns(RotateResult.NotFound);
-            _jwtProvider.GenerateAccessToken(_account).Returns("new-access-token");
-            _jwtProvider.GenerateRefreshToken(Arg.Any<long>()).Returns("new-refresh-token");
             _configuration["Jwt:AccessTokenExpirationMinutes"].Returns("15");
             _sut = new RefreshTokenService(_accountRepository, _refreshTokenRepository, _jwtProvider, _configuration);
         }
@@ -159,16 +158,12 @@ public class RefreshTokenServiceTests
         private readonly IJwtProvider _jwtProvider = Substitute.For<IJwtProvider>();
         private readonly IConfiguration _configuration = Substitute.For<IConfiguration>();
         private readonly RefreshTokenService _sut;
-        private readonly AccountEntity _account = CreateAccount();
 
         public RotateAsync가_Reused를_반환할_때()
         {
-            _accountRepository.FindByIdAsync(_account.Id).Returns(_account);
             _refreshTokenRepository
-                .RotateAsync(_account.Id, ValidRefreshToken, Arg.Any<string>(), TimeSpan.FromDays(30))
+                .RotateAsync(Arg.Any<long>(), ValidRefreshToken, Arg.Any<string>(), TimeSpan.FromDays(30))
                 .Returns(RotateResult.Reused);
-            _jwtProvider.GenerateAccessToken(_account).Returns("new-access-token");
-            _jwtProvider.GenerateRefreshToken(Arg.Any<long>()).Returns("new-refresh-token");
             _configuration["Jwt:AccessTokenExpirationMinutes"].Returns("15");
             _sut = new RefreshTokenService(_accountRepository, _refreshTokenRepository, _jwtProvider, _configuration);
         }
