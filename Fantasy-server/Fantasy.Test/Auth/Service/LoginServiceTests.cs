@@ -65,6 +65,7 @@ public class LoginServiceTests
         public 존재하지_않는_이메일일_때()
         {
             _accountRepository.FindByEmailAsync(_request.Email).Returns((AccountEntity?)null);
+            _configuration["Jwt:AccessTokenExpirationMinutes"].Returns("15");
             _sut = new LoginService(_accountRepository, _refreshTokenRepository, _jwtProvider, _configuration);
         }
 
@@ -90,6 +91,7 @@ public class LoginServiceTests
         {
             var account = AccountEntity.Create(_request.Email, BCrypt.Net.BCrypt.HashPassword("correct_password"));
             _accountRepository.FindByEmailAsync(_request.Email).Returns(account);
+            _configuration["Jwt:AccessTokenExpirationMinutes"].Returns("15");
             _sut = new LoginService(_accountRepository, _refreshTokenRepository, _jwtProvider, _configuration);
         }
 
