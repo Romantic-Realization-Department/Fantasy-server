@@ -10,18 +10,21 @@ Create Git commits following the project's commit conventions.
 
 `$ARGUMENTS` — optional GitHub issue number (e.g. `/commit 42`)
 
-- If provided, append ` (#42)` to every commit message subject line.
+- If provided, add `#42` as the commit body (blank line after subject, then the reference).
 - If omitted, commit without any issue reference.
 
 ## Commit Message Format
 
+Subject line only (no issue):
 ```
 {type}: {Korean description}
 ```
 
-If `$ARGUMENTS` is provided:
+With issue number:
 ```
-{type}: {Korean description} (#{issue})
+{type}: {Korean description}
+
+#{issue}
 ```
 
 **Types**:
@@ -33,14 +36,17 @@ If `$ARGUMENTS` is provided:
 **Description rules**:
 - Written in **Korean**
 - Short and imperative (단문)
-- No trailing punctuation (`.`, `!` etc.) before the issue reference
+- No trailing punctuation (`.`, `!` etc.)
 - Avoid noun-ending style — prefer verb style
 
 **Examples**:
 ```
 feat: 로그인 로직 추가
-fix: 세션 DI 누락 수정 (#12)
-update: Account 엔터티 수정 (#7)
+```
+```
+fix: 세션 DI 누락 수정
+
+#12
 ```
 
 See `.claude/skills/commit/examples/type-guide.md` for a boundary-rule table and real scenarios from this project.
@@ -48,7 +54,6 @@ See `.claude/skills/commit/examples/type-guide.md` for a boundary-rule table and
 **Do NOT**:
 - Add Claude as co-author
 - Write descriptions in English
-- Add a commit body — subject line only
 
 ## Steps
 
@@ -61,5 +66,6 @@ See `.claude/skills/commit/examples/type-guide.md` for a boundary-rule table and
 4. For each group:
    - Stage only the relevant files with `git add <files>`
    - Write a concise commit message following the format above
-   - Execute `git commit -m "message"`
+   - If `$ARGUMENTS` is provided: `git commit -m "{subject}" -m "#{issue}"`
+   - If `$ARGUMENTS` is omitted: `git commit -m "{subject}"`
 5. Verify results with `git log --oneline -n {number of commits made}`
