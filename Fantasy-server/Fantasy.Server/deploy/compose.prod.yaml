@@ -1,0 +1,37 @@
+services:
+  fantasy-db:
+    image: postgres:17
+    container_name: fantasy-db
+    environment:
+      POSTGRES_DB: fantasy
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  fantasy-redis:
+    image: redis:7-alpine
+    container_name: fantasy-redis
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
+  fantasy-server:
+    image: ghcr.io/${GITHUB_REPOSITORY_OWNER}/fantasy-server:latest
+    container_name: fantasy-server
+    ports:
+      - "8080:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__Database=${DB_CONNECTION_STRING}
+      - ConnectionStrings__Redis=${REDIS_CONNECTION_STRING}
+      - Jwt__SecretKey=${JWT_SECRET_KEY}
+    depends_on:
+      - fantasy-db
+      - fantasy-redis
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:

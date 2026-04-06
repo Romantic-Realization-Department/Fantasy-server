@@ -1,0 +1,30 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(claude mcp:*)",
+      "mcp__context7__resolve-library-id",
+      "mcp__context7__query-docs",
+      "Bash(dotnet --version)",
+      "Bash(dotnet restore:*)",
+      "Bash(dotnet build:*)",
+      "Bash(dotnet test:*)",
+      "Bash(dotnet ef migrations:*)",
+      "Bash(dotnet ef database:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git branch:*)",
+      "Skill(db-migrate)",
+      "Bash(xargs grep:*)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Skill(build)",
+      "Skill(test)",
+      "Bash(cat /c/Users/USER/Documents/GitHub/fantasy-server/Fantasy-server/.claude/rules/*)",
+      "Skill(commit)",
+      "Bash(grep -r \"0.2.8\\\\|Gamism\" . --include=*.cs --include=*.csproj --include=*.json)"
+    ]
+  }
+}
