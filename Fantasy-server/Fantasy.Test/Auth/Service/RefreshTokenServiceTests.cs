@@ -1,5 +1,6 @@
 using Fantasy.Server.Domain.Account.Repository.Interface;
 using Fantasy.Server.Domain.Auth.Dto.Request;
+using Fantasy.Server.Domain.Auth.Enum;
 using Fantasy.Server.Domain.Auth.Repository.Interface;
 using Fantasy.Server.Domain.Auth.Service;
 using Fantasy.Server.Global.Security.Jwt;
@@ -36,7 +37,7 @@ public class RefreshTokenServiceTests
             _accountRepository.FindByIdAsync(AccountId).Returns(_account);
             _refreshTokenRepository
                 .RotateAsync(_account.Id, RefreshToken, Arg.Any<string>(), TimeSpan.FromDays(30))
-                .Returns(true);
+                .Returns(RotateResult.Success);
             _jwtProvider.GenerateAccessToken(_account).Returns("new-access-token");
             _jwtProvider.GenerateRefreshToken().Returns("new-refresh-token");
             _configuration["Jwt:AccessTokenExpirationMinutes"].Returns("15");
@@ -114,7 +115,7 @@ public class RefreshTokenServiceTests
         }
     }
 
-    public class RotateAsync가_실패할_때
+    public class RotateAsync가_NotFound를_반환할_때
     {
         private readonly IAccountRepository _accountRepository = Substitute.For<IAccountRepository>();
         private readonly IRefreshTokenRedisRepository _refreshTokenRepository = Substitute.For<IRefreshTokenRedisRepository>();
@@ -124,13 +125,13 @@ public class RefreshTokenServiceTests
         private readonly AccountEntity _account = CreateAccount();
         private readonly RefreshTokenRequest _request = new(RefreshToken);
 
-        public RotateAsync가_실패할_때()
+        public RotateAsync가_NotFound를_반환할_때()
         {
             _refreshTokenRepository.FindIdByTokenAsync(RefreshToken).Returns(AccountId);
             _accountRepository.FindByIdAsync(AccountId).Returns(_account);
             _refreshTokenRepository
                 .RotateAsync(_account.Id, RefreshToken, Arg.Any<string>(), TimeSpan.FromDays(30))
-                .Returns(false);
+                .Returns(RotateResult.NotFound);
             _jwtProvider.GenerateAccessToken(_account).Returns("new-access-token");
             _jwtProvider.GenerateRefreshToken().Returns("new-refresh-token");
             _configuration["Jwt:AccessTokenExpirationMinutes"].Returns("15");
@@ -142,7 +143,41 @@ public class RefreshTokenServiceTests
         {
             var act = async () => await _sut.ExecuteAsync(_request);
 
-            await act.Should().ThrowAsync<UnauthorizedException>();
+            await act.Should().ThrowAsync<UnauthorizedException>()
+                .WithMessage("리프레시 토큰을 찾을 수 없습니다.");
+        }
+    }
+
+    public class RotateAsync가_Reused를_반환할_때
+    {
+        private readonly IAccountRepository _accountRepository = Substitute.For<IAccountRepository>();
+        private readonly IRefreshTokenRedisRepository _refreshTokenRepository = Substitute.For<IRefreshTokenRedisRepository>();
+        private readonly IJwtProvider _jwtProvider = Substitute.For<IJwtProvider>();
+        private readonly IConfiguration _configuration = Substitute.For<IConfiguration>();
+        private readonly RefreshTokenService _sut;
+        private readonly AccountEntity _account = CreateAccount();
+        private readonly RefreshTokenRequest _request = new(RefreshToken);
+
+        public RotateAsync가_Reused를_반환할_때()
+        {
+            _refreshTokenRepository.FindIdByTokenAsync(RefreshToken).Returns(AccountId);
+            _accountRepository.FindByIdAsync(AccountId).Returns(_account);
+            _refreshTokenRepository
+                .RotateAsync(_account.Id, RefreshToken, Arg.Any<string>(), TimeSpan.FromDays(30))
+                .Returns(RotateResult.Reused);
+            _jwtProvider.GenerateAccessToken(_account).Returns("new-access-token");
+            _jwtProvider.GenerateRefreshToken().Returns("new-refresh-token");
+            _configuration["Jwt:AccessTokenExpirationMinutes"].Returns("15");
+            _sut = new RefreshTokenService(_accountRepository, _refreshTokenRepository, _jwtProvider, _configuration);
+        }
+
+        [Fact]
+        public async Task 토큰_갱신_요청_시_UnauthorizedException이_발생한다()
+        {
+            var act = async () => await _sut.ExecuteAsync(_request);
+
+            await act.Should().ThrowAsync<UnauthorizedException>()
+                .WithMessage("토큰 재사용이 감지되었습니다.");
         }
     }
 }
