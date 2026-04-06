@@ -19,6 +19,11 @@ public class AccountRepository : IAccountRepository
             .AsNoTracking()
             .FirstOrDefaultAsync(a => a.Email == email);
 
+    public async Task<AccountEntity?> FindByIdAsync(long id)
+        => await _db.Accounts
+            .AsNoTracking()
+            .FirstOrDefaultAsync(a => a.Id == id);
+
     public async Task<AccountEntity> SaveAsync(AccountEntity account)
     {
         var entry = _db.Accounts.Entry(account);

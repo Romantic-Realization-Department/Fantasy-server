@@ -10,7 +10,7 @@ public static class DatabaseConfig
         IConfiguration configuration)
     {
         var connectionString = configuration.GetConnectionString("Database")
-            ?? throw new InvalidOperationException("Database connection string is missing.");
+            ?? throw new InvalidOperationException("데이터베이스 연결 문자열이 설정되지 않았습니다.");
 
         services.AddDbContext<AppDbContext>(options =>
             options.UseNpgsql(connectionString));

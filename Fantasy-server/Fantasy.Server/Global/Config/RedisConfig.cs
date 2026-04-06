@@ -10,7 +10,7 @@ public static class RedisConfig
         string instanceName)
     {
         var connectionString = configuration.GetConnectionString("Redis")
-            ?? throw new InvalidOperationException("Redis connection string is missing.");
+            ?? throw new InvalidOperationException("Redis 연결 문자열이 설정되지 않았습니다.");
 
         services.AddSingleton<IConnectionMultiplexer>(
             ConnectionMultiplexer.Connect(connectionString));

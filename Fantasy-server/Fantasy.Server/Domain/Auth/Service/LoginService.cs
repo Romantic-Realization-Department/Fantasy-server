@@ -39,7 +39,7 @@ public class LoginService : ILoginService
             throw new UnauthorizedException("이메일 또는 비밀번호가 올바르지 않습니다.");
 
         var accessToken = _jwtProvider.GenerateAccessToken(account);
-        var refreshToken = _jwtProvider.GenerateRefreshToken();
+        var refreshToken = _jwtProvider.GenerateRefreshToken(account.Id);
 
         await _refreshTokenRepository.SaveAsync(account.Id, refreshToken, RefreshTokenTtl);
 

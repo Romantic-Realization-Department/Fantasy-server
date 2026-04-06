@@ -17,11 +17,11 @@ public class JwtProvider : IJwtProvider
     public JwtProvider(IConfiguration configuration)
     {
         var secretKey = configuration["Jwt:SecretKey"]
-            ?? throw new InvalidOperationException("JWT secret key is missing.");
+            ?? throw new InvalidOperationException("JWT 시크릿 키가 설정되지 않았습니다.");
         _issuer = configuration["Jwt:Issuer"]
-            ?? throw new InvalidOperationException("JWT issuer is missing.");
+            ?? throw new InvalidOperationException("JWT 발급자가 설정되지 않았습니다.");
         _audience = configuration["Jwt:Audience"]
-            ?? throw new InvalidOperationException("JWT audience is missing.");
+            ?? throw new InvalidOperationException("JWT 대상이 설정되지 않았습니다.");
         _accessTokenExpirationMinutes = int.Parse(
             configuration["Jwt:AccessTokenExpirationMinutes"] ?? "15");
 
@@ -54,9 +54,9 @@ public class JwtProvider : IJwtProvider
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
 
-    public string GenerateRefreshToken()
+    public string GenerateRefreshToken(long accountId)
     {
         var bytes = RandomNumberGenerator.GetBytes(64);
-        return Convert.ToBase64String(bytes);
+        return $"{accountId}:{Convert.ToBase64String(bytes)}";
     }
 }
