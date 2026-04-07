@@ -1,64 +1,34 @@
-## API Flow Diagrams
+## Request Flow
 
-### POST /v1/account/signup — 회원가입
+All API endpoints follow this layer order:
 
-```mermaid
-sequenceDiagram
-    Client->>AccountController: POST /v1/account/signup
-    AccountController->>CreateAccountService: ExecuteAsync(request)
-    CreateAccountService->>AccountRepository: ExistsByEmailAsync(email)
-    AccountRepository-->>CreateAccountService: true → ConflictException
-    AccountRepository-->>CreateAccountService: false → 계속
-    CreateAccountService->>CreateAccountService: BCrypt.HashPassword(password)
-    CreateAccountService->>AccountRepository: SaveAsync(account)
-    AccountRepository->>PostgreSQL: INSERT account
-    AccountController-->>Client: 201 Created
+```
+Client → Controller → Service → Repository → PostgreSQL / Redis
 ```
 
-### DELETE /v1/account — 회원탈퇴
+### Layer Responsibilities
 
-```mermaid
-sequenceDiagram
-    Client->>AccountController: DELETE /v1/account (JWT)
-    AccountController->>DeleteAccountService: ExecuteAsync(request)
-    DeleteAccountService->>CurrentUserProvider: GetEmail()
-    CurrentUserProvider-->>DeleteAccountService: email (from JWT claims)
-    DeleteAccountService->>AccountRepository: FindByEmailAsync(email)
-    AccountRepository-->>DeleteAccountService: null → UnauthorizedException
-    AccountRepository-->>DeleteAccountService: account
-    DeleteAccountService->>DeleteAccountService: BCrypt.Verify(password)
-    DeleteAccountService->>AccountRepository: DeleteAsync(account)
-    AccountRepository->>PostgreSQL: DELETE account
+| Layer | Responsibility |
+|---|---|
+| Controller | Receive request, call service, return `CommonApiResponse` |
+| Service | Business logic, exception handling (`NotFoundException`, `ConflictException`, etc.) |
+| Repository | Exclusive DB / Redis access (`AppDbContext`, `IConnectionMultiplexer`) |
+
+### Authenticated Endpoints
+
+Controllers or actions annotated with `[Authorize]` pass through `JwtAuthenticationFilter` on every request.
+When the service needs the current user, it extracts claims via `ICurrentUserProvider`.
+
+```
+Client → JwtAuthenticationFilter → Controller → Service → ICurrentUserProvider (claims) → Repository
 ```
 
-### POST /v1/auth/login — 로그인
+### Redis Cache Pattern
 
-```mermaid
-sequenceDiagram
-    Client->>AuthController: POST /v1/auth/login
-    Note over AuthController: RateLimit "login" (5 req/min)
-    AuthController->>LoginService: ExecuteAsync(request)
-    LoginService->>AccountRepository: FindByEmailAsync(email)
-    AccountRepository-->>LoginService: null → UnauthorizedException
-    AccountRepository-->>LoginService: account
-    LoginService->>LoginService: BCrypt.Verify(password)
-    LoginService->>JwtProvider: GenerateAccessToken(account)
-    LoginService->>JwtProvider: GenerateRefreshToken()
-    LoginService->>RefreshTokenRedisRepository: SaveAsync(id, refreshToken, 30d TTL)
-    RefreshTokenRedisRepository->>Redis: SET key value EX
-    AuthController-->>Client: TokenResponse (accessToken, refreshToken, expiresAt)
+Always check Redis first on reads; only query the DB on a cache miss, then populate the cache.
+After any write (update / delete), invalidate the relevant key.
+
 ```
-
-### POST /v1/auth/logout — 로그아웃
-
-```mermaid
-sequenceDiagram
-    Client->>AuthController: POST /v1/auth/logout (JWT)
-    Note over AuthController: [Authorize] → JwtAuthenticationFilter
-    AuthController->>LogoutService: ExecuteAsync()
-    LogoutService->>CurrentUserProvider: GetAccountAsync()
-    CurrentUserProvider->>AccountRepository: FindByEmailAsync(email from claims)
-    AccountRepository-->>CurrentUserProvider: account
-    LogoutService->>RefreshTokenRedisRepository: DeleteAsync(account.Id)
-    RefreshTokenRedisRepository->>Redis: DEL key
+Read : Redis hit → return / miss → query DB → Redis SET → return
+Write: update DB → Redis DEL
 ```
