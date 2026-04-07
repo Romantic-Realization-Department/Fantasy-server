@@ -1,5 +1,5 @@
 ---
-name: pr
+name: write-pr
 description: Generates a PR title suggestion and body based on the current branch, then creates a GitHub PR. Supports develop/release/feature branches.
 allowed-tools: Bash(git log:*), Bash(git diff:*), Bash(git branch:*), Bash(git tag:*), Bash(git checkout:*), Bash(gh pr create:*), Bash(rm:*), Write, AskUserQuestion
 context: fork
@@ -12,7 +12,7 @@ Generate a PR based on the current branch. Behavior differs depending on the bra
 ### Step 0. Initialize & Branch Discovery
 1. Identify the current branch using `git branch --show-current`.
 2. **Check for Arguments**:
-  - **If an argument is provided (e.g., `/pr {target}`)**: Set `{Base Branch}` = `{target}` and proceed directly to **Case 3**.
+  - **If an argument is provided (e.g., `/write-pr {target}`)**: Set `{Base Branch}` = `{target}` and proceed directly to **Case 3**.
   - **If no argument is provided**: Follow the **Branch-Based Behavior** below:
     - Current branch is `develop` → **Case 1**
     - Current branch matches `release/x.x.x` → **Case 2**
