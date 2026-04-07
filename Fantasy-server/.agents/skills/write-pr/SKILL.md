@@ -129,16 +129,19 @@ rm PR_BODY.md
 
 - Follow the PR Title Convention below
 
-**Step 3. Write PR body**
+**Step 3. Ask the user which title to use**
+
+Use AskUserQuestion and present exactly these choices before proceeding:
+- `1`: first generated title
+- `2`: second generated title
+- `3`: third generated title
+- Wait for the user's answer before continuing to the next step
+- Use the selected numbered option to determine the final PR title
+
+**Step 4. Write PR body**
 
 - Follow the PR Body Template below
 - Save to `PR_BODY.md`
-
-**Step 4. Ask the user**
-
-Use AskUserQuestion with a `choices` array:
-- Options: the 3 generated titles plus `직접 입력` as the last option
-- If the user selects `직접 입력`, ask a follow-up AskUserQuestion for the custom title
 
 **Step 5. Select labels**
 
@@ -147,7 +150,7 @@ Use AskUserQuestion with a `choices` array:
 
 **Step 6. Create PR to `{Base Branch}`**
 
-- Use the selected title, or the custom title if the user chose `직접 입력`
+- Use the title selected by the user from options `1` / `2` / `3`
 
 ```bash
 ./scripts/create-pr.sh "{chosen title}" PR_BODY.md "{label1,label2}"
