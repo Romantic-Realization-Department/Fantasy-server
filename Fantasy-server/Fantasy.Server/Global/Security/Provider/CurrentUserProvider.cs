@@ -33,6 +33,17 @@ public class CurrentUserProvider : ICurrentUserProvider
                ?? throw new UnauthorizedException("이메일 클레임을 찾을 수 없습니다.");
     }
 
+    public long GetAccountId()
+    {
+        var sub = GetUser().FindFirstValue(JwtRegisteredClaimNames.Sub)
+                  ?? throw new UnauthorizedException("사용자 ID 클레임을 찾을 수 없습니다.");
+
+        if (!long.TryParse(sub, out var accountId))
+            throw new UnauthorizedException("사용자 ID 클레임이 유효하지 않습니다.");
+
+        return accountId;
+    }
+
     private ClaimsPrincipal GetUser()
     {
         var context = _httpContextAccessor.HttpContext
