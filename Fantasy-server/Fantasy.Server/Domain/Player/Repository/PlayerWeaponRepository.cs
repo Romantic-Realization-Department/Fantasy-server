@@ -20,24 +20,27 @@ public class PlayerWeaponRepository : IPlayerWeaponRepository
 
     public async Task UpsertRangeAsync(long playerId, List<WeaponChangeItem> items)
     {
-        var weaponIds = items.Select(i => i.WeaponId).ToList();
-        var existing = await _db.PlayerWeapons
-            .Where(w => w.PlayerId == playerId && weaponIds.Contains(w.WeaponId))
-            .ToListAsync();
+        List<WeaponChangeItem> normalizedItems = items
+            .GroupBy(item => item.WeaponId)
+            .Select(group => group.Last())
+            .ToList();
 
-        foreach (var item in items)
+        List<int> weaponIds = normalizedItems.Select(item => item.WeaponId).ToList();
+        Dictionary<int, PlayerWeapon> existing = await _db.PlayerWeapons
+            .Where(weapon => weapon.PlayerId == playerId && weaponIds.Contains(weapon.WeaponId))
+            .ToDictionaryAsync(weapon => weapon.WeaponId);
+
+        foreach (WeaponChangeItem item in normalizedItems)
         {
-            var weapon = existing.FirstOrDefault(w => w.WeaponId == item.WeaponId);
-            if (weapon != null)
+            if (existing.TryGetValue(item.WeaponId, out PlayerWeapon? weapon))
             {
                 weapon.Update(item.Count, item.EnhancementLevel, item.AwakeningCount);
                 _db.PlayerWeapons.Update(weapon);
+                continue;
             }
-            else
-            {
-                await _db.PlayerWeapons.AddAsync(
-                    PlayerWeapon.Create(playerId, item.WeaponId, item.Count, item.EnhancementLevel, item.AwakeningCount));
-            }
+
+            await _db.PlayerWeapons.AddAsync(
+                PlayerWeapon.Create(playerId, item.WeaponId, item.Count, item.EnhancementLevel, item.AwakeningCount));
         }
 
         await _db.SaveChangesAsync();

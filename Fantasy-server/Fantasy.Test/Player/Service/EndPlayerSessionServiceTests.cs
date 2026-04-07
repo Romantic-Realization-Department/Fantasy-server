@@ -40,8 +40,20 @@ public class EndPlayerSessionServiceTests
                 .Returns(PlayerResourceEntity.Create(1L));
 
             _sut = new EndPlayerSessionService(
-                _playerRepository, _playerResourceRepository,
-                _playerSessionRepository, _playerRedisRepository, _currentUserProvider, _transactionRunner);
+                _playerRepository,
+                _playerResourceRepository,
+                _playerSessionRepository,
+                _playerRedisRepository,
+                _currentUserProvider,
+                _transactionRunner);
+        }
+
+        [Fact]
+        public async Task 트랜잭션_안에서_세션_종료를_처리한다()
+        {
+            await _sut.ExecuteAsync(_request);
+
+            await _transactionRunner.Received(1).ExecuteAsync(Arg.Any<Func<Task>>());
         }
 
         [Fact]
@@ -99,8 +111,12 @@ public class EndPlayerSessionServiceTests
                 .Returns(PlayerSession.Create(2L));
 
             _sut = new EndPlayerSessionService(
-                _playerRepository, _playerResourceRepository,
-                _playerSessionRepository, _playerRedisRepository, _currentUserProvider, _transactionRunner);
+                _playerRepository,
+                _playerResourceRepository,
+                _playerSessionRepository,
+                _playerRedisRepository,
+                _currentUserProvider,
+                _transactionRunner);
         }
 
         [Fact]
@@ -148,15 +164,17 @@ public class EndPlayerSessionServiceTests
 
         public 플레이어가_존재하지_않을_때()
         {
-            _transactionRunner.ExecuteAsync(Arg.Any<Func<Task>>())
-                .Returns(callInfo => callInfo.Arg<Func<Task>>()());
             _currentUserProvider.GetAccountId().Returns(99L);
             _playerRepository.FindByAccountAndJobAsync(Arg.Any<long>(), Arg.Any<JobType>())
                 .Returns((PlayerEntity?)null);
 
             _sut = new EndPlayerSessionService(
-                _playerRepository, _playerResourceRepository,
-                _playerSessionRepository, _playerRedisRepository, _currentUserProvider, _transactionRunner);
+                _playerRepository,
+                _playerResourceRepository,
+                _playerSessionRepository,
+                _playerRedisRepository,
+                _currentUserProvider,
+                _transactionRunner);
         }
 
         [Fact]

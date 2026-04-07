@@ -4,6 +4,7 @@ using Fantasy.Server.Domain.Player.Entity;
 using Fantasy.Server.Domain.Player.Enum;
 using Fantasy.Server.Domain.Player.Repository.Interface;
 using Fantasy.Server.Domain.Player.Service;
+using Fantasy.Server.Global.Infrastructure;
 using Fantasy.Server.Global.Security.Provider;
 using FluentAssertions;
 using NSubstitute;
@@ -25,6 +26,7 @@ public class InitPlayerServiceTests
         private readonly IPlayerSkillRepository _playerSkillRepository = Substitute.For<IPlayerSkillRepository>();
         private readonly IPlayerRedisRepository _playerRedisRepository = Substitute.For<IPlayerRedisRepository>();
         private readonly ICurrentUserProvider _currentUserProvider = Substitute.For<ICurrentUserProvider>();
+        private readonly IAppDbTransactionRunner _transactionRunner = Substitute.For<IAppDbTransactionRunner>();
         private readonly InitPlayerService _sut;
         private readonly InitPlayerRequest _request = new(JobType.Warrior);
         private readonly PlayerDataResponse _cached = new(
@@ -36,10 +38,15 @@ public class InitPlayerServiceTests
             _playerRedisRepository.GetPlayerDataAsync(1L, JobType.Warrior).Returns(_cached);
 
             _sut = new InitPlayerService(
-                _playerRepository, _playerResourceRepository,
-                _playerStageRepository, _playerSessionRepository,
-                _playerWeaponRepository, _playerSkillRepository,
-                _playerRedisRepository, _currentUserProvider);
+                _playerRepository,
+                _playerResourceRepository,
+                _playerStageRepository,
+                _playerSessionRepository,
+                _playerWeaponRepository,
+                _playerSkillRepository,
+                _playerRedisRepository,
+                _currentUserProvider,
+                _transactionRunner);
         }
 
         [Fact]
@@ -56,6 +63,15 @@ public class InitPlayerServiceTests
             await _sut.ExecuteAsync(_request);
 
             await _playerRepository.DidNotReceive().FindByAccountAndJobAsync(Arg.Any<long>(), Arg.Any<JobType>());
+        }
+
+        [Fact]
+        public async Task 트랜잭션이_실행되지_않는다()
+        {
+            await _sut.ExecuteAsync(_request);
+
+            await _transactionRunner.DidNotReceiveWithAnyArgs()
+                .ExecuteAsync(default(Func<Task<(PlayerEntity Player, PlayerResource Resource, PlayerStage Stage, PlayerSession Session)>>)!);
         }
 
         [Fact]
@@ -77,11 +93,14 @@ public class InitPlayerServiceTests
         private readonly IPlayerSkillRepository _playerSkillRepository = Substitute.For<IPlayerSkillRepository>();
         private readonly IPlayerRedisRepository _playerRedisRepository = Substitute.For<IPlayerRedisRepository>();
         private readonly ICurrentUserProvider _currentUserProvider = Substitute.For<ICurrentUserProvider>();
+        private readonly IAppDbTransactionRunner _transactionRunner = Substitute.For<IAppDbTransactionRunner>();
         private readonly InitPlayerService _sut;
         private readonly InitPlayerRequest _request = new(JobType.Warrior);
 
         public 신규_플레이어일_때()
         {
+            _transactionRunner.ExecuteAsync(Arg.Any<Func<Task<(PlayerEntity Player, PlayerResource Resource, PlayerStage Stage, PlayerSession Session)>>>())
+                .Returns(callInfo => callInfo.Arg<Func<Task<(PlayerEntity, PlayerResource, PlayerStage, PlayerSession)>>>()());
             _currentUserProvider.GetAccountId().Returns(1L);
             _playerRedisRepository.GetPlayerDataAsync(1L, JobType.Warrior).Returns((PlayerDataResponse?)null);
             _playerRepository.FindByAccountAndJobAsync(1L, JobType.Warrior).Returns((PlayerEntity?)null);
@@ -97,10 +116,24 @@ public class InitPlayerServiceTests
             _playerSkillRepository.FindAllByPlayerIdAsync(Arg.Any<long>()).Returns([]);
 
             _sut = new InitPlayerService(
-                _playerRepository, _playerResourceRepository,
-                _playerStageRepository, _playerSessionRepository,
-                _playerWeaponRepository, _playerSkillRepository,
-                _playerRedisRepository, _currentUserProvider);
+                _playerRepository,
+                _playerResourceRepository,
+                _playerStageRepository,
+                _playerSessionRepository,
+                _playerWeaponRepository,
+                _playerSkillRepository,
+                _playerRedisRepository,
+                _currentUserProvider,
+                _transactionRunner);
+        }
+
+        [Fact]
+        public async Task 트랜잭션_안에서_플레이어를_초기_생성한다()
+        {
+            await _sut.ExecuteAsync(_request);
+
+            await _transactionRunner.Received(1)
+                .ExecuteAsync(Arg.Any<Func<Task<(PlayerEntity Player, PlayerResource Resource, PlayerStage Stage, PlayerSession Session)>>>());
         }
 
         [Fact]
@@ -163,6 +196,7 @@ public class InitPlayerServiceTests
         private readonly IPlayerSkillRepository _playerSkillRepository = Substitute.For<IPlayerSkillRepository>();
         private readonly IPlayerRedisRepository _playerRedisRepository = Substitute.For<IPlayerRedisRepository>();
         private readonly ICurrentUserProvider _currentUserProvider = Substitute.For<ICurrentUserProvider>();
+        private readonly IAppDbTransactionRunner _transactionRunner = Substitute.For<IAppDbTransactionRunner>();
         private readonly InitPlayerService _sut;
         private readonly InitPlayerRequest _request = new(JobType.Warrior);
 
@@ -182,10 +216,15 @@ public class InitPlayerServiceTests
             _playerSkillRepository.FindAllByPlayerIdAsync(Arg.Any<long>()).Returns([]);
 
             _sut = new InitPlayerService(
-                _playerRepository, _playerResourceRepository,
-                _playerStageRepository, _playerSessionRepository,
-                _playerWeaponRepository, _playerSkillRepository,
-                _playerRedisRepository, _currentUserProvider);
+                _playerRepository,
+                _playerResourceRepository,
+                _playerStageRepository,
+                _playerSessionRepository,
+                _playerWeaponRepository,
+                _playerSkillRepository,
+                _playerRedisRepository,
+                _currentUserProvider,
+                _transactionRunner);
         }
 
         [Fact]
@@ -194,6 +233,15 @@ public class InitPlayerServiceTests
             await _sut.ExecuteAsync(_request);
 
             await _playerRepository.DidNotReceive().SaveAsync(Arg.Any<PlayerEntity>());
+        }
+
+        [Fact]
+        public async Task 트랜잭션이_실행되지_않는다()
+        {
+            await _sut.ExecuteAsync(_request);
+
+            await _transactionRunner.DidNotReceiveWithAnyArgs()
+                .ExecuteAsync(default(Func<Task<(PlayerEntity Player, PlayerResource Resource, PlayerStage Stage, PlayerSession Session)>>)!);
         }
 
         [Fact]

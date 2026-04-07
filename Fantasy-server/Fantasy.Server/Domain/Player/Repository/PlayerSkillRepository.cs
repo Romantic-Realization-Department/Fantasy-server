@@ -15,29 +15,32 @@ public class PlayerSkillRepository : IPlayerSkillRepository
     public async Task<List<PlayerSkill>> FindAllByPlayerIdAsync(long playerId)
         => await _db.PlayerSkills
             .AsNoTracking()
-            .Where(s => s.PlayerId == playerId)
+            .Where(skill => skill.PlayerId == playerId)
             .ToListAsync();
 
     public async Task UpsertRangeAsync(long playerId, List<SkillChangeItem> items)
     {
-        var skillIds = items.Select(i => i.SkillId).ToList();
-        var existing = await _db.PlayerSkills
-            .Where(s => s.PlayerId == playerId && skillIds.Contains(s.SkillId))
-            .ToListAsync();
+        List<SkillChangeItem> normalizedItems = items
+            .GroupBy(item => item.SkillId)
+            .Select(group => group.Last())
+            .ToList();
 
-        foreach (var item in items)
+        List<int> skillIds = normalizedItems.Select(item => item.SkillId).ToList();
+        Dictionary<int, PlayerSkill> existing = await _db.PlayerSkills
+            .Where(skill => skill.PlayerId == playerId && skillIds.Contains(skill.SkillId))
+            .ToDictionaryAsync(skill => skill.SkillId);
+
+        foreach (SkillChangeItem item in normalizedItems)
         {
-            var skill = existing.FirstOrDefault(s => s.SkillId == item.SkillId);
-            if (skill != null)
+            if (existing.TryGetValue(item.SkillId, out PlayerSkill? skill))
             {
                 skill.Update(item.IsUnlocked);
                 _db.PlayerSkills.Update(skill);
+                continue;
             }
-            else
-            {
-                await _db.PlayerSkills.AddAsync(
-                    PlayerSkill.Create(playerId, item.SkillId, item.IsUnlocked));
-            }
+
+            await _db.PlayerSkills.AddAsync(
+                PlayerSkill.Create(playerId, item.SkillId, item.IsUnlocked));
         }
 
         await _db.SaveChangesAsync();
