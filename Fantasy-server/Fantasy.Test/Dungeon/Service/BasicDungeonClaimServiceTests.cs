@@ -28,7 +28,8 @@ public class BasicDungeonClaimServiceTests
         IGameDataCacheService? cache = null,
         ILevelUpService? levelUpService = null,
         IAppDbTransactionRunner? txRunner = null,
-        ICurrentUserProvider? userProvider = null)
+        ICurrentUserProvider? userProvider = null,
+        CombatStatCalculator? calculator = null)
     {
         playerRepo ??= Substitute.For<IPlayerRepository>();
         resourceRepo ??= Substitute.For<IPlayerResourceRepository>();
@@ -41,11 +42,12 @@ public class BasicDungeonClaimServiceTests
         levelUpService ??= Substitute.For<ILevelUpService>();
         txRunner ??= Substitute.For<IAppDbTransactionRunner>();
         userProvider ??= Substitute.For<ICurrentUserProvider>();
+        calculator ??= new CombatStatCalculator();
 
         return new BasicDungeonClaimService(
             playerRepo, resourceRepo, stageRepo, sessionRepo,
             weaponRepo, skillRepo, redisRepo, cache,
-            levelUpService, txRunner, userProvider);
+            levelUpService, txRunner, userProvider, calculator);
     }
 
     public class 플레이어가_없을_때
