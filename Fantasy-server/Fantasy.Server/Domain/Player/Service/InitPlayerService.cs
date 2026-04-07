@@ -88,11 +88,11 @@ public class InitPlayerService : IInitPlayerService
         }
 
         PlayerResource existingResource = await _playerResourceRepository.FindByPlayerIdAsync(player.Id)
-            ?? throw new NotFoundException("?뚮젅?댁뼱 ?ы솕 ?곗씠?곕? 李얠쓣 ???놁뒿?덈떎.");
+            ?? throw new NotFoundException("플레이어 재화 데이터를 찾을 수 없습니다.");
         PlayerStage existingStage = await _playerStageRepository.FindByPlayerIdAsync(player.Id)
-            ?? throw new NotFoundException("?뚮젅?댁뼱 ?ㅽ뀒?댁? ?곗씠?곕? 李얠쓣 ???놁뒿?덈떎.");
+            ?? throw new NotFoundException("플레이어 스테이지 데이터를 찾을 수 없습니다.");
         PlayerSession existingSession = await _playerSessionRepository.FindByPlayerIdAsync(player.Id)
-            ?? throw new NotFoundException("?뚮젅?댁뼱 ?몄뀡 ?곗씠?곕? 李얠쓣 ???놁뒿?덈떎.");
+            ?? throw new NotFoundException("플레이어 세션 데이터를 찾을 수 없습니다.");
 
         List<Entity.PlayerWeapon> weapons = await _playerWeaponRepository.FindAllByPlayerIdAsync(player.Id);
         List<Entity.PlayerSkill> skills = await _playerSkillRepository.FindAllByPlayerIdAsync(player.Id);
