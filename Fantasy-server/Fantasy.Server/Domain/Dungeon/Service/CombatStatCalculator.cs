@@ -22,6 +22,9 @@ public class CombatStatCalculator
         if (weapon is not null)
             atk += weapon.BaseAtk + weapon.AtkPerEnhancement * weaponEnhancementLevel;
 
+        double totalAtkPercent = 0;
+        double totalHpPercent = 0;
+
         foreach (var (skill, _) in unlockedSkills)
         {
             switch (skill.EffectType)
@@ -30,13 +33,13 @@ public class CombatStatCalculator
                     atk += (long)skill.EffectValue;
                     break;
                 case SkillEffectType.AtkPercent:
-                    atk = (long)(atk * (1 + skill.EffectValue / 100.0));
+                    totalAtkPercent += skill.EffectValue;
                     break;
                 case SkillEffectType.HpFlat:
                     hp += (long)skill.EffectValue;
                     break;
                 case SkillEffectType.HpPercent:
-                    hp = (long)(hp * (1 + skill.EffectValue / 100.0));
+                    totalHpPercent += skill.EffectValue;
                     break;
                 case SkillEffectType.CritRate:
                     critRate += skill.EffectValue;
@@ -46,6 +49,11 @@ public class CombatStatCalculator
                     break;
             }
         }
+
+        if (totalAtkPercent != 0)
+            atk = (long)(atk * (1 + totalAtkPercent / 100.0));
+        if (totalHpPercent != 0)
+            hp = (long)(hp * (1 + totalHpPercent / 100.0));
 
         return new CombatStat(atk, hp, critRate, critDmg);
     }

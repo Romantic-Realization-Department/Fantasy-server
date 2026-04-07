@@ -29,6 +29,7 @@ public class BossDungeonService : IBossDungeonService
     private readonly ILevelUpService _levelUpService;
     private readonly IAppDbTransactionRunner _transactionRunner;
     private readonly ICurrentUserProvider _currentUserProvider;
+    private readonly CombatStatCalculator _calculator;
 
     public BossDungeonService(
         IPlayerRepository playerRepository,
@@ -41,7 +42,8 @@ public class BossDungeonService : IBossDungeonService
         IGameDataCacheService gameDataCacheService,
         ILevelUpService levelUpService,
         IAppDbTransactionRunner transactionRunner,
-        ICurrentUserProvider currentUserProvider)
+        ICurrentUserProvider currentUserProvider,
+        CombatStatCalculator calculator)
     {
         _playerRepository = playerRepository;
         _playerResourceRepository = playerResourceRepository;
@@ -54,6 +56,7 @@ public class BossDungeonService : IBossDungeonService
         _levelUpService = levelUpService;
         _transactionRunner = transactionRunner;
         _currentUserProvider = currentUserProvider;
+        _calculator = calculator;
     }
 
     public async Task<BossDungeonResponse> ExecuteAsync(JobType jobType)
@@ -94,8 +97,7 @@ public class BossDungeonService : IBossDungeonService
             .Where(sd => sd is not null && !sd.IsActive)
             .Select(sd => (Skill: sd!, IsPassive: true));
 
-        var calculator = new CombatStatCalculator();
-        var combatStat = calculator.Calculate(player.Level, jobStat, weaponData, weaponEnhancement, unlockedPassiveSkills);
+        var combatStat = _calculator.Calculate(player.Level, jobStat, weaponData, weaponEnhancement, unlockedPassiveSkills);
 
         var stageData = await _gameDataCacheService.GetStageDataAsync(stage.MaxStage);
         if (stageData is null)
@@ -103,8 +105,8 @@ public class BossDungeonService : IBossDungeonService
 
         // 보스는 일반 몬스터의 5배 체력
         var bossHp = stageData.MonsterHp * 5;
-        var dps = calculator.CalculateDps(combatStat);
-        var cleared = dps > bossHp;
+        var dps = _calculator.CalculateDps(combatStat);
+        var cleared = dps * 30 > bossHp;
 
         if (!cleared)
             return new BossDungeonResponse(false, 0, null, 0, []);

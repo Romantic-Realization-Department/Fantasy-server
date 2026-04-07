@@ -27,6 +27,7 @@ public class BasicDungeonClaimService : IBasicDungeonClaimService
     private readonly ILevelUpService _levelUpService;
     private readonly IAppDbTransactionRunner _transactionRunner;
     private readonly ICurrentUserProvider _currentUserProvider;
+    private readonly CombatStatCalculator _calculator;
 
     public BasicDungeonClaimService(
         IPlayerRepository playerRepository,
@@ -39,7 +40,8 @@ public class BasicDungeonClaimService : IBasicDungeonClaimService
         IGameDataCacheService gameDataCacheService,
         ILevelUpService levelUpService,
         IAppDbTransactionRunner transactionRunner,
-        ICurrentUserProvider currentUserProvider)
+        ICurrentUserProvider currentUserProvider,
+        CombatStatCalculator calculator)
     {
         _playerRepository = playerRepository;
         _playerResourceRepository = playerResourceRepository;
@@ -52,6 +54,7 @@ public class BasicDungeonClaimService : IBasicDungeonClaimService
         _levelUpService = levelUpService;
         _transactionRunner = transactionRunner;
         _currentUserProvider = currentUserProvider;
+        _calculator = calculator;
     }
 
     public async Task<BasicDungeonClaimResponse> ExecuteAsync(JobType jobType)
@@ -103,9 +106,8 @@ public class BasicDungeonClaimService : IBasicDungeonClaimService
             .Where(sd => sd is not null && !sd.IsActive)
             .Select(sd => (Skill: sd!, IsPassive: true));
 
-        var calculator = new CombatStatCalculator();
-        var combatStat = calculator.Calculate(player.Level, jobStat, weaponData, weaponEnhancement, unlockedPassiveSkills);
-        var dps = calculator.CalculateDps(combatStat);
+        var combatStat = _calculator.Calculate(player.Level, jobStat, weaponData, weaponEnhancement, unlockedPassiveSkills);
+        var dps = _calculator.CalculateDps(combatStat);
 
         var (earnedGold, earnedXp, newMaxStage) = SimulateDungeon(
             dps, combatStat.Hp, elapsedSeconds, stage.MaxStage, stageData);

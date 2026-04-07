@@ -27,6 +27,7 @@ public class WeaponDungeonService : IWeaponDungeonService
     private readonly IPlayerRedisRepository _playerRedisRepository;
     private readonly IGameDataCacheService _gameDataCacheService;
     private readonly ICurrentUserProvider _currentUserProvider;
+    private readonly CombatStatCalculator _calculator;
 
     public WeaponDungeonService(
         IPlayerRepository playerRepository,
@@ -37,7 +38,8 @@ public class WeaponDungeonService : IWeaponDungeonService
         IPlayerSkillRepository playerSkillRepository,
         IPlayerRedisRepository playerRedisRepository,
         IGameDataCacheService gameDataCacheService,
-        ICurrentUserProvider currentUserProvider)
+        ICurrentUserProvider currentUserProvider,
+        CombatStatCalculator calculator)
     {
         _playerRepository = playerRepository;
         _playerResourceRepository = playerResourceRepository;
@@ -48,6 +50,7 @@ public class WeaponDungeonService : IWeaponDungeonService
         _playerRedisRepository = playerRedisRepository;
         _gameDataCacheService = gameDataCacheService;
         _currentUserProvider = currentUserProvider;
+        _calculator = calculator;
     }
 
     public async Task<WeaponDungeonResponse> ExecuteAsync(JobType jobType)
@@ -88,16 +91,15 @@ public class WeaponDungeonService : IWeaponDungeonService
             .Where(sd => sd is not null && !sd.IsActive)
             .Select(sd => (Skill: sd!, IsPassive: true));
 
-        var calculator = new CombatStatCalculator();
-        var combatStat = calculator.Calculate(player.Level, jobStat, weaponData, weaponEnhancement, unlockedPassiveSkills);
+        var combatStat = _calculator.Calculate(player.Level, jobStat, weaponData, weaponEnhancement, unlockedPassiveSkills);
 
         // 던전 몬스터 스탯: 현재 MaxStage 기준
         var stageData = await _gameDataCacheService.GetStageDataAsync(stage.MaxStage);
         if (stageData is null)
             throw new NotFoundException("스테이지 데이터를 찾을 수 없습니다.");
 
-        var dps = calculator.CalculateDps(combatStat);
-        var cleared = dps > stageData.MonsterHp;
+        var dps = _calculator.CalculateDps(combatStat);
+        var cleared = dps * 30 > stageData.MonsterHp;
 
         var droppedWeapons = new List<DroppedWeaponInfo>();
         long droppedScrolls = 0;
