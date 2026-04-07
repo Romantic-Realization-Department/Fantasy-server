@@ -183,9 +183,9 @@ Format: `{type}: {Korean description}`
 - No trailing punctuation
 
 **Examples:**
-- `feat: 怨꾩젙 ?앹꽦 API 異붽?`
-- `fix: Key Vault ?곕룞 諛⑹떇??AddAzureKeyVault濡?蹂寃?`
-- `refactor: 濡쒓렇 泥섎━ 濡쒖쭅 遺꾨━`
+- `feat: 계정 생성 API 추가`
+- `fix: Key Vault 설정 누락된 AddAzureKeyVault로 변경`
+- `refactor: 로그 처리 로직 개선`
 
 See `examples/feature-to-develop.md` for a complete example of a feature -> develop PR.
 
