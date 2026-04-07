@@ -3,6 +3,7 @@ using System;
 using Fantasy.Server.Global.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Fantasy.Server.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260406154118_AddPlayerTables")]
+    partial class AddPlayerTables
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -74,19 +77,28 @@ namespace Fantasy.Server.Migrations
                     b.Property<long>("AccountId")
                         .HasColumnType("bigint");
 
+                    b.PrimitiveCollection<int[]>("ActiveSkills")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer[]")
+                        .HasDefaultValueSql("ARRAY[]::integer[]");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
-
-                    b.Property<long>("Exp")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasDefaultValue(0L);
 
                     b.Property<string>("JobType")
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<int?>("LastWeaponId")
+                        .HasColumnType("integer");
+
                     b.Property<long>("Level")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasDefaultValue(1L);
+
+                    b.Property<long>("MaxStage")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint")
                         .HasDefaultValue(1L);
@@ -111,6 +123,11 @@ namespace Fantasy.Server.Migrations
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<long>("EnhancementScroll")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasDefaultValue(0L);
+
+                    b.Property<long>("Exp")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint")
                         .HasDefaultValue(0L);
@@ -144,37 +161,6 @@ namespace Fantasy.Server.Migrations
                     b.ToTable("player_resource", "player");
                 });
 
-            modelBuilder.Entity("Fantasy.Server.Domain.Player.Entity.PlayerSession", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
-
-                    b.PrimitiveCollection<int[]>("ActiveSkills")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer[]")
-                        .HasDefaultValueSql("ARRAY[]::integer[]");
-
-                    b.Property<int?>("LastWeaponId")
-                        .HasColumnType("integer");
-
-                    b.Property<long>("PlayerId")
-                        .HasColumnType("bigint");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PlayerId")
-                        .IsUnique();
-
-                    b.ToTable("player_session", "player");
-                });
-
             modelBuilder.Entity("Fantasy.Server.Domain.Player.Entity.PlayerSkill", b =>
                 {
                     b.Property<long>("Id")
@@ -200,30 +186,6 @@ namespace Fantasy.Server.Migrations
                         .IsUnique();
 
                     b.ToTable("player_skill", "player");
-                });
-
-            modelBuilder.Entity("Fantasy.Server.Domain.Player.Entity.PlayerStage", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
-
-                    b.Property<long>("MaxStage")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasDefaultValue(1L);
-
-                    b.Property<long>("PlayerId")
-                        .HasColumnType("bigint");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PlayerId")
-                        .IsUnique();
-
-                    b.ToTable("player_stage", "player");
                 });
 
             modelBuilder.Entity("Fantasy.Server.Domain.Player.Entity.PlayerWeapon", b =>
@@ -272,29 +234,11 @@ namespace Fantasy.Server.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Fantasy.Server.Domain.Player.Entity.PlayerSession", b =>
-                {
-                    b.HasOne("Fantasy.Server.Domain.Player.Entity.Player", null)
-                        .WithOne()
-                        .HasForeignKey("Fantasy.Server.Domain.Player.Entity.PlayerSession", "PlayerId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("Fantasy.Server.Domain.Player.Entity.PlayerSkill", b =>
                 {
                     b.HasOne("Fantasy.Server.Domain.Player.Entity.Player", null)
                         .WithMany()
                         .HasForeignKey("PlayerId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("Fantasy.Server.Domain.Player.Entity.PlayerStage", b =>
-                {
-                    b.HasOne("Fantasy.Server.Domain.Player.Entity.Player", null)
-                        .WithOne()
-                        .HasForeignKey("Fantasy.Server.Domain.Player.Entity.PlayerStage", "PlayerId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
