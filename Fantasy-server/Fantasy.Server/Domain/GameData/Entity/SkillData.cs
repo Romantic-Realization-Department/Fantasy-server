@@ -5,13 +5,13 @@ namespace Fantasy.Server.Domain.GameData.Entity;
 
 public class SkillData
 {
-    public int SkillId { get; private set; }
-    public JobType JobType { get; private set; }
-    public bool IsActive { get; private set; }
-    public long SpCost { get; private set; }
-    public int? PrereqSkillId { get; private set; }
-    public SkillEffectType EffectType { get; private set; }
-    public double EffectValue { get; private set; }
+    public int SkillId { get; init; }
+    public JobType JobType { get; init; }
+    public bool IsActive { get; init; }
+    public long SpCost { get; init; }
+    public int? PrereqSkillId { get; init; }
+    public SkillEffectType EffectType { get; init; }
+    public double EffectValue { get; init; }
 
     public static SkillData Create(
         int skillId,
