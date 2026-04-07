@@ -14,6 +14,7 @@ public static class DatabaseConfig
 
         services.AddDbContext<AppDbContext>(options =>
             options.UseNpgsql(connectionString));
+        services.AddScoped<IAppDbTransactionRunner, AppDbTransactionRunner>();
 
         return services;
     }

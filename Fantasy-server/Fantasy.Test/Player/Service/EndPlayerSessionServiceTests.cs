@@ -3,6 +3,7 @@ using Fantasy.Server.Domain.Player.Entity;
 using Fantasy.Server.Domain.Player.Enum;
 using Fantasy.Server.Domain.Player.Repository.Interface;
 using Fantasy.Server.Domain.Player.Service;
+using Fantasy.Server.Global.Infrastructure;
 using Fantasy.Server.Global.Security.Provider;
 using FluentAssertions;
 using Gamism.SDK.Extensions.AspNetCore.Exceptions;
@@ -22,11 +23,14 @@ public class EndPlayerSessionServiceTests
         private readonly IPlayerSessionRepository _playerSessionRepository = Substitute.For<IPlayerSessionRepository>();
         private readonly IPlayerRedisRepository _playerRedisRepository = Substitute.For<IPlayerRedisRepository>();
         private readonly ICurrentUserProvider _currentUserProvider = Substitute.For<ICurrentUserProvider>();
+        private readonly IAppDbTransactionRunner _transactionRunner = Substitute.For<IAppDbTransactionRunner>();
         private readonly EndPlayerSessionService _sut;
         private readonly EndPlayerSessionRequest _request = new(JobType.Warrior, 1, [1, 2], 5000L, 3000L);
 
         public 정상_요청일_때()
         {
+            _transactionRunner.ExecuteAsync(Arg.Any<Func<Task>>())
+                .Returns(callInfo => callInfo.Arg<Func<Task>>()());
             _currentUserProvider.GetAccountId().Returns(1L);
             _playerRepository.FindByAccountAndJobAsync(1L, JobType.Warrior)
                 .Returns(PlayerEntity.Create(1L, JobType.Warrior));
@@ -37,7 +41,7 @@ public class EndPlayerSessionServiceTests
 
             _sut = new EndPlayerSessionService(
                 _playerRepository, _playerResourceRepository,
-                _playerSessionRepository, _playerRedisRepository, _currentUserProvider);
+                _playerSessionRepository, _playerRedisRepository, _currentUserProvider, _transactionRunner);
         }
 
         [Fact]
@@ -80,11 +84,14 @@ public class EndPlayerSessionServiceTests
         private readonly IPlayerSessionRepository _playerSessionRepository = Substitute.For<IPlayerSessionRepository>();
         private readonly IPlayerRedisRepository _playerRedisRepository = Substitute.For<IPlayerRedisRepository>();
         private readonly ICurrentUserProvider _currentUserProvider = Substitute.For<ICurrentUserProvider>();
+        private readonly IAppDbTransactionRunner _transactionRunner = Substitute.For<IAppDbTransactionRunner>();
         private readonly EndPlayerSessionService _sut;
         private readonly EndPlayerSessionRequest _request = new(JobType.Archer, 1, [], null, null);
 
         public Gold_Exp가_null일_때()
         {
+            _transactionRunner.ExecuteAsync(Arg.Any<Func<Task>>())
+                .Returns(callInfo => callInfo.Arg<Func<Task>>()());
             _currentUserProvider.GetAccountId().Returns(2L);
             _playerRepository.FindByAccountAndJobAsync(2L, JobType.Archer)
                 .Returns(PlayerEntity.Create(2L, JobType.Archer));
@@ -93,7 +100,7 @@ public class EndPlayerSessionServiceTests
 
             _sut = new EndPlayerSessionService(
                 _playerRepository, _playerResourceRepository,
-                _playerSessionRepository, _playerRedisRepository, _currentUserProvider);
+                _playerSessionRepository, _playerRedisRepository, _currentUserProvider, _transactionRunner);
         }
 
         [Fact]
@@ -136,17 +143,20 @@ public class EndPlayerSessionServiceTests
         private readonly IPlayerSessionRepository _playerSessionRepository = Substitute.For<IPlayerSessionRepository>();
         private readonly IPlayerRedisRepository _playerRedisRepository = Substitute.For<IPlayerRedisRepository>();
         private readonly ICurrentUserProvider _currentUserProvider = Substitute.For<ICurrentUserProvider>();
+        private readonly IAppDbTransactionRunner _transactionRunner = Substitute.For<IAppDbTransactionRunner>();
         private readonly EndPlayerSessionService _sut;
 
         public 플레이어가_존재하지_않을_때()
         {
+            _transactionRunner.ExecuteAsync(Arg.Any<Func<Task>>())
+                .Returns(callInfo => callInfo.Arg<Func<Task>>()());
             _currentUserProvider.GetAccountId().Returns(99L);
             _playerRepository.FindByAccountAndJobAsync(Arg.Any<long>(), Arg.Any<JobType>())
                 .Returns((PlayerEntity?)null);
 
             _sut = new EndPlayerSessionService(
                 _playerRepository, _playerResourceRepository,
-                _playerSessionRepository, _playerRedisRepository, _currentUserProvider);
+                _playerSessionRepository, _playerRedisRepository, _currentUserProvider, _transactionRunner);
         }
 
         [Fact]
