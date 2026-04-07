@@ -34,6 +34,10 @@ public class PlayerResourceConfig : IEntityTypeConfiguration<PlayerResource>
             .IsRequired()
             .HasDefaultValue(0L);
 
+        builder.Property(r => r.SmithGrade)
+            .IsRequired()
+            .HasDefaultValue(0);
+
         builder.Property(r => r.UpdatedAt)
             .IsRequired();
 
