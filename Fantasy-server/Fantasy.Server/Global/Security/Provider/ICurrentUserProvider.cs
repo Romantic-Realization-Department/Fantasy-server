@@ -6,4 +6,5 @@ public interface ICurrentUserProvider
 {
     Task<Account> GetAccountAsync();
     string GetEmail();
+    long GetAccountId();
 }

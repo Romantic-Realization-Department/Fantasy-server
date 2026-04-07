@@ -1,5 +1,6 @@
 using Fantasy.Server.Domain.Account.Config;
 using Fantasy.Server.Domain.Auth.Config;
+using Fantasy.Server.Domain.Player.Config;
 using Fantasy.Server.Global.Config;
 using Fantasy.Server.Global.Security.Config;
 using Gamism.SDK.Extensions.AspNetCore;
@@ -22,6 +23,7 @@ builder.Services.AddRateLimit();
 
 builder.Services.AddAccountServices();
 builder.Services.AddAuthServices();
+builder.Services.AddPlayerServices();
 builder.Services.AddSecurityServices();
 
 var app = builder.Build();

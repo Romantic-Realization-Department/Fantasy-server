@@ -36,3 +36,5 @@ Desktop.ini
 
 # Claude Code
 PR_BODY.md
+.dotnet/
+.pr-tmp/

@@ -24,7 +24,8 @@
       "Skill(test)",
       "Bash(cat /c/Users/USER/Documents/GitHub/fantasy-server/Fantasy-server/.claude/rules/*)",
       "Skill(commit)",
-      "Bash(grep -r \"0.2.8\\\\|Gamism\" . --include=*.cs --include=*.csproj --include=*.json)"
+      "Bash(grep -r \"0.2.8\\\\|Gamism\" . --include=*.cs --include=*.csproj --include=*.json)",
+      "Bash(gh api:*)"
     ]
   }
 }
