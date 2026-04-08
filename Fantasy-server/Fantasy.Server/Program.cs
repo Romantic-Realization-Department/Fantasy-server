@@ -1,5 +1,8 @@
 using Fantasy.Server.Domain.Account.Config;
 using Fantasy.Server.Domain.Auth.Config;
+using Fantasy.Server.Domain.Dungeon.Config;
+using Fantasy.Server.Domain.GameData.Config;
+using Fantasy.Server.Domain.LevelUp.Config;
 using Fantasy.Server.Domain.Player.Config;
 using Fantasy.Server.Global.Config;
 using Fantasy.Server.Global.Security.Config;
@@ -25,6 +28,9 @@ builder.Services.AddAccountServices();
 builder.Services.AddAuthServices();
 builder.Services.AddPlayerServices();
 builder.Services.AddSecurityServices();
+builder.Services.AddGameDataServices();
+builder.Services.AddLevelUpServices();
+builder.Services.AddDungeonServices();
 
 var app = builder.Build();
 

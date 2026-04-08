@@ -8,6 +8,7 @@ public class PlayerResource
     public long EnhancementScroll { get; private set; }
     public long Mithril { get; private set; }
     public long Sp { get; private set; }
+    public int SmithGrade { get; private set; }
     public DateTime UpdatedAt { get; private set; }
 
     public static PlayerResource Create(long playerId) => new()
@@ -17,6 +18,7 @@ public class PlayerResource
         EnhancementScroll = 0,
         Mithril = 0,
         Sp = 0,
+        SmithGrade = 0,
         UpdatedAt = DateTime.UtcNow
     };
 

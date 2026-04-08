@@ -1,4 +1,5 @@
 using System.Data;
+using Fantasy.Server.Domain.GameData.Entity;
 using Fantasy.Server.Domain.Player.Entity;
 using Fantasy.Server.Domain.Player.Enum;
 using Fantasy.Server.Global.Infrastructure;
@@ -96,6 +97,12 @@ public class AppDbTransactionRunnerTests : IDisposable
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            modelBuilder.Ignore<JobBaseStat>();
+            modelBuilder.Ignore<LevelTable>();
+            modelBuilder.Ignore<StageData>();
+            modelBuilder.Ignore<WeaponData>();
+            modelBuilder.Ignore<SkillData>();
+
             modelBuilder.Entity<PlayerEntity>(entity =>
             {
                 entity.ToTable("players");

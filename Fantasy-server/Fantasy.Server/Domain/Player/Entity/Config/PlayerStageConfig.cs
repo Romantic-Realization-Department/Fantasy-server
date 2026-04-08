@@ -22,6 +22,10 @@ public class PlayerStageConfig : IEntityTypeConfiguration<PlayerStage>
             .IsRequired()
             .HasDefaultValue(1L);
 
+        builder.Property(s => s.LastCalculatedAt)
+            .IsRequired()
+            .HasDefaultValueSql("NOW()");
+
         builder.HasIndex(s => s.PlayerId)
             .IsUnique();
 

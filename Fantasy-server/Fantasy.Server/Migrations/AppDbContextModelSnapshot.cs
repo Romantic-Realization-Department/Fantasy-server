@@ -63,6 +63,136 @@ namespace Fantasy.Server.Migrations
                     b.ToTable("account", "account");
                 });
 
+            modelBuilder.Entity("Fantasy.Server.Domain.GameData.Entity.JobBaseStat", b =>
+                {
+                    b.Property<string>("JobType")
+                        .HasColumnType("text");
+
+                    b.Property<double>("AtkPerLevel")
+                        .HasColumnType("double precision");
+
+                    b.Property<long>("BaseAtk")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("BaseHp")
+                        .HasColumnType("bigint");
+
+                    b.Property<double>("CritDmgMultiplier")
+                        .HasColumnType("double precision");
+
+                    b.Property<double>("CritRate")
+                        .HasColumnType("double precision");
+
+                    b.Property<double>("HpPerLevel")
+                        .HasColumnType("double precision");
+
+                    b.HasKey("JobType");
+
+                    b.ToTable("job_base_stat", "game_data");
+                });
+
+            modelBuilder.Entity("Fantasy.Server.Domain.GameData.Entity.LevelTable", b =>
+                {
+                    b.Property<long>("Level")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("RequiredExp")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("RewardSp")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Level");
+
+                    b.ToTable("level_table", "game_data");
+                });
+
+            modelBuilder.Entity("Fantasy.Server.Domain.GameData.Entity.SkillData", b =>
+                {
+                    b.Property<int>("SkillId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("EffectType")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<double>("EffectValue")
+                        .HasColumnType("double precision");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("JobType")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int?>("PrereqSkillId")
+                        .HasColumnType("integer");
+
+                    b.Property<long>("SpCost")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("SkillId");
+
+                    b.ToTable("skill_data", "game_data");
+                });
+
+            modelBuilder.Entity("Fantasy.Server.Domain.GameData.Entity.StageData", b =>
+                {
+                    b.Property<long>("Stage")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("GoldPerSecond")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("IsBossStage")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<long>("MonsterAtk")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("MonsterHp")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("XpPerSecond")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Stage");
+
+                    b.ToTable("stage_data", "game_data");
+                });
+
+            modelBuilder.Entity("Fantasy.Server.Domain.GameData.Entity.WeaponData", b =>
+                {
+                    b.Property<int>("WeaponId")
+                        .HasColumnType("integer");
+
+                    b.Property<long>("AtkPerEnhancement")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("BaseAtk")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Grade")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("JobType")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.HasKey("WeaponId");
+
+                    b.ToTable("weapon_data", "game_data");
+                });
+
             modelBuilder.Entity("Fantasy.Server.Domain.Player.Entity.Player", b =>
                 {
                     b.Property<long>("Id")
@@ -127,6 +257,11 @@ namespace Fantasy.Server.Migrations
 
                     b.Property<long>("PlayerId")
                         .HasColumnType("bigint");
+
+                    b.Property<int>("SmithGrade")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
 
                     b.Property<long>("Sp")
                         .ValueGeneratedOnAdd()
@@ -209,6 +344,11 @@ namespace Fantasy.Server.Migrations
                         .HasColumnType("bigint");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("LastCalculatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("NOW()");
 
                     b.Property<long>("MaxStage")
                         .ValueGeneratedOnAdd()

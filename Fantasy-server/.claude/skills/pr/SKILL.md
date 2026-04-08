@@ -7,47 +7,49 @@ context: fork
 
 Generate a PR based on the current branch. Behavior differs depending on the branch.
 
+Use `references/label.md` to select 1-2 PR labels before creating the PR. Apply the selected labels when running the PR creation step.
+
 ## Steps
 
 ### Step 0. Initialize & Branch Discovery
 1. Identify the current branch using `git branch --show-current`.
-2. **Check for Arguments**:
-  - **If an argument is provided (e.g., `/pr {target}`)**: Set `{Base Branch}` = `{target}` and proceed directly to **Case 3**.
-  - **If no argument is provided**: Follow the **Branch-Based Behavior** below:
-    - Current branch is `develop` → **Case 1**
-    - Current branch matches `release/x.x.x` → **Case 2**
-    - Any other branch → **Case 3** with `{Base Branch}` = `develop`
+2. Check for arguments:
+  - If an argument is provided, for example `/pr {target}`, set `{Base Branch}` = `{target}` and proceed directly to Case 3.
+  - If no argument is provided, follow the branch-based behavior below:
+    - Current branch is `develop` -> Case 1
+    - Current branch matches `release/x.x.x` -> Case 2
+    - Any other branch -> Case 3 with `{Base Branch}` = `develop`
 
 ---
 
-## Branch-Based Behavior (Default)
+## Branch-Based Behavior
 
-### Case 1: Current branch is `develop`
+### Case 1. Current branch is `develop`
 
 **Step 1. Check the current version**
 
 - Check git tags: `git tag --sort=-v:refname | head -10`
 - Check existing release branches: `git branch -a | grep release`
-- Determine the latest version (e.g., `1.0.0`)
+- Determine the latest version, for example `1.0.0`
 
 **Step 2. Analyze changes and recommend version bump**
 
 - Commits: `git log main..HEAD --oneline`
 - Diff stats: `git diff main...HEAD --stat`
 - Recommend one of:
-  - **Major** (x.0.0): Breaking changes, incompatible API changes
-  - **Minor** (0.x.0): New backward-compatible features
-  - **Patch** (0.0.x): Bug fixes only
+  - Major (`x.0.0`): breaking changes or incompatible API changes
+  - Minor (`0.x.0`): new backward-compatible features
+  - Patch (`0.0.x`): bug fixes only
 - Briefly explain why you chose that level
 
 **Step 3. Ask the user for a version number**
 
 Use AskUserQuestion:
-> "현재 버전: {current_version}
-> 추천 버전 업: {Major/Minor/Patch} → {recommended_version}
-> 이유: {brief reason}
+> Current version: {current_version}
+> Recommended bump: {Major/Minor/Patch} -> {recommended_version}
+> Reason: {brief reason}
 >
-> 사용할 버전 번호를 입력해주세요. (예: 1.0.1)"
+> Enter the release version. Example: `1.0.1`
 
 **Step 4. Create a release branch**
 
@@ -55,17 +57,24 @@ Use AskUserQuestion:
 git checkout -b release/{version}
 ```
 
-**Step 5. Write PR body** following the PR Body Template below
-- Analyze changes from `main` branch
+**Step 5. Write PR body**
+
+- Analyze changes from `main`
+- Follow the PR Body Template below
 - Save to `PR_BODY.md`
 
-**Step 6. Create PR to `main`**
+**Step 6. Select labels**
+
+- Follow `references/label.md`
+- Select 1-2 PR-eligible labels that match the change
+
+**Step 7. Create PR to `main`**
 
 ```bash
-gh pr create --title "release/{version}" --body-file PR_BODY.md --base main
+./scripts/create-pr.sh "release/{version}" PR_BODY.md "{label1,label2}"
 ```
 
-**Step 7. Delete PR_BODY.md**
+**Step 8. Delete PR_BODY.md**
 
 ```bash
 rm PR_BODY.md
@@ -73,25 +82,34 @@ rm PR_BODY.md
 
 ---
 
-### Case 2: Current branch is `release/x.x.x`
+### Case 2. Current branch is `release/x.x.x`
 
-**Step 1. Extract version** from branch name (e.g., `release/1.2.0` → `1.2.0`)
+**Step 1. Extract version**
+
+- Extract the version from the branch name, for example `release/1.2.0` -> `1.2.0`
 
 **Step 2. Analyze changes from `main`**
 
 - Commits: `git log main..HEAD --oneline`
 - Diff stats: `git diff main...HEAD --stat`
 
-**Step 3. Write PR body** following the PR Body Template below
+**Step 3. Write PR body**
+
+- Follow the PR Body Template below
 - Save to `PR_BODY.md`
 
-**Step 4. Create PR to `main`**
+**Step 4. Select labels**
+
+- Follow `references/label.md`
+- Select 1-2 PR-eligible labels that match the change
+
+**Step 5. Create PR to `main`**
 
 ```bash
-gh pr create --title "release/{version}" --body-file PR_BODY.md --base main
+./scripts/create-pr.sh "release/{version}" PR_BODY.md "{label1,label2}"
 ```
 
-**Step 5. Delete PR_BODY.md**
+**Step 6. Delete PR_BODY.md**
 
 ```bash
 rm PR_BODY.md
@@ -99,7 +117,7 @@ rm PR_BODY.md
 
 ---
 
-### Case 3: Any other branch
+### Case 3. Any other branch
 
 **Step 1. Analyze changes from `{Base Branch}`**
 
@@ -107,21 +125,35 @@ rm PR_BODY.md
 - Diff stats: `git diff {Base Branch}...HEAD --stat`
 - Detailed diff: `git diff {Base Branch}...HEAD`
 
-**Step 2. Suggest three PR titles** following the PR Title Convention below
+**Step 2. Suggest three PR titles**
 
-**Step 3. Write PR body** following the PR Body Template below
+- Follow the PR Title Convention below
+
+**Step 3. Ask the user which title to use**
+
+Use AskUserQuestion and present exactly these choices before proceeding:
+- `1`: first generated title
+- `2`: second generated title
+- `3`: third generated title
+- Wait for the user's answer before continuing to the next step
+- Use the selected numbered option to determine the final PR title
+
+**Step 4. Write PR body**
+
+- Follow the PR Body Template below
 - Save to `PR_BODY.md`
 
-**Step 4. Ask the user** using AskUserQuestion with a `choices` array:
-- Options: the 3 generated titles + "직접 입력" as the last option
-- If the user selects "직접 입력", ask a follow-up AskUserQuestion for the custom title
+**Step 5. Select labels**
+
+- Follow `references/label.md`
+- Select 1-2 PR-eligible labels that match the change
 
 **Step 6. Create PR to `{Base Branch}`**
 
-- Use the selected title, or the custom title if the user chose "직접 입력"
+- Use the title selected by the user from options `1` / `2` / `3`
 
 ```bash
-gh pr create --title "{chosen title}" --body-file PR_BODY.md --base {Base Branch}
+./scripts/create-pr.sh "{chosen title}" PR_BODY.md "{label1,label2}"
 ```
 
 **Step 7. Delete PR_BODY.md**
@@ -137,36 +169,38 @@ rm PR_BODY.md
 Format: `{type}: {Korean description}`
 
 **Types:**
-- `feat` — new feature added
-- `fix` — bug fix or missing configuration/DI registration
-- `update` — modification to existing code
-- `docs` — documentation changes
-- `refactor` — refactoring without behavior change
-- `test` — adding or updating tests
-- `chore` — tooling, CI/CD, dependency updates, config changes unrelated to app logic
+- `feat`: new feature added
+- `fix`: bug fix or missing configuration or DI registration
+- `update`: modification to existing code
+- `docs`: documentation changes
+- `refactor`: refactoring without behavior change
+- `test`: adding or updating tests
+- `chore`: tooling, CI/CD, dependency updates, or config changes unrelated to app logic
 
 **Rules:**
 - Description in Korean
-- Short and imperative (단문)
+- Short and imperative
 - No trailing punctuation
 
 **Examples:**
-- `feat: 방 생성 API 추가`
-- `fix: Key Vault 연동 방식을 AddAzureKeyVault으로 변경`
-- `refactor: 로그인 로직 리팩토링`
+- `feat: 계정 생성 API 추가`
+- `fix: Key Vault 설정 누락된 AddAzureKeyVault로 변경`
+- `refactor: 로그 처리 로직 개선`
 
-See `.claude/skills/pr/examples/feature-to-develop.md` for a complete example (title options + filled body) of a feature → develop PR.
+See `examples/feature-to-develop.md` for a complete example of a feature -> develop PR.
 
----
+## Labels
+
+Follow `references/label.md` and select 1-2 labels before the PR creation step.
 
 ## PR Body Template
 
-Follow this exact structure (keep the emoji headers as-is):
+Follow this exact structure:
 
-!.claude/skills/pr/templates/pr-body.md
+`templates/pr-body.md`
 
 **Rules:**
-- Analyze commits and diffs to fill in `작업 내용` with a concise bullet list
+- Analyze commits and diffs to fill in the work summary with concise bullet points
 - Keep the total body under 2500 characters
 - Write in Korean
-- No emojis in text content (keep the section header emojis)
+- Do not add emojis in the body text
