@@ -14,11 +14,11 @@ Output directory: `.pr-tmp/<PR_NUMBER>/`
 
 Output files:
 - `pr_meta.json` — PR metadata (number, title, url, base/head branch, author)
-- `review_comments.json` — inline review comments (id, path, line, side, body, user, createdAt)
-- `issue_comments.json` — PR-level (non-inline) comments (id, body, user, createdAt)
-- `commits.txt` — commits in this PR
-- `changed_files.txt` — changed file paths
-- `diff.txt` — full diff
+  - `review_comments.json` — inline review comments (id, path, line, side, body, user, createdAt)
+  - `issue_comments.json` — PR-level (non-inline) comments (id, body, user, createdAt)
+  - `commits.txt` — commits in this PR
+  - `changed_files.txt` — changed file paths
+  - `diff.txt` — full diff
 
 ## Step 2 — Assess Each Comment
 
@@ -34,14 +34,14 @@ For each comment in `review_comments.json` (and `issue_comments.json` if it refe
    - `.claude/rules/domain-patterns.md` — service, repository, controller implementation patterns
    - `.claude/rules/global-patterns.md` — JWT, Redis, rate limiting infrastructure patterns
    - `.claude/rules/testing.md` — test naming, mocking with NSubstitute, FluentAssertions
-2. **Language/framework best practices** (secondary): C# / ASP.NET Core / .NET 10 official guidelines
-   - Apply only when no matching project rule exists
+   2. **Language/framework best practices** (secondary): C# / ASP.NET Core / .NET 10 official guidelines
+      - Apply only when no matching project rule exists
 
 ### Verdicts
 
 - **VALID**: reviewer is correct → attempt auto code fix
-- **INVALID**: reviewer is wrong with a clear refutation → skip, post refutation reply
-- **PARTIAL**: intent is correct but application method or scope is ambiguous → confirm with AskUserQuestion
+  - **INVALID**: reviewer is wrong with a clear refutation → skip, post refutation reply
+  - **PARTIAL**: intent is correct but application method or scope is ambiguous → confirm with AskUserQuestion
 
 Always cite a specific source in the rationale (e.g. `code-style.md §Naming`, `conventions.md §Entity Configuration`).
 
@@ -50,13 +50,13 @@ Always cite a specific source in the rationale (e.g. `code-style.md §Naming`, `
 ### VALID → Auto fix
 
 1. Read the target file with the Read tool
-2. Apply the reviewer's concern with the Edit tool
-3. Run `/test` to verify the build and tests pass; fix any failures before continuing
-4. Commit the change
-5. Record the short commit hash for use in Step 5:
-   ```bash
-   git rev-parse --short HEAD
-   ```
+   2. Apply the reviewer's concern with the Edit tool
+   3. Run `/test` to verify the build and tests pass; fix any failures before continuing
+   4. Commit the change
+   5. Record the short commit hash for use in Step 5:
+      ```bash
+      git rev-parse --short HEAD
+      ```
 
 On failure: record the reason and fall back to PARTIAL.
 
@@ -76,8 +76,8 @@ Accept? (y / n / s = skip for now)
 ```
 
 - `y`: treat as VALID, attempt code fix
-- `n`: treat as INVALID, skip
-- `s` / other: record as PENDING
+  - `n`: treat as INVALID, skip
+  - `s` / other: record as PENDING
 
 ## Step 4 — Print Report
 
