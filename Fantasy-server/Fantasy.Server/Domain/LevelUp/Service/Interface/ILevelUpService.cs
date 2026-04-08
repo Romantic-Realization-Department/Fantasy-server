@@ -6,5 +6,5 @@ namespace Fantasy.Server.Domain.LevelUp.Service.Interface;
 
 public interface ILevelUpService
 {
-    Task<List<LevelUpResult>> ApplyExpAsync(PlayerEntity player, PlayerResource resource, long earnedExp);
+    Task<List<LevelUpResult>> ExecuteAsync(PlayerEntity player, PlayerResource resource, long earnedExp);
 }

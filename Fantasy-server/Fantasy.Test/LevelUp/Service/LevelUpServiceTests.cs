@@ -46,7 +46,7 @@ public class LevelUpServiceTests
             var player = MakePlayer(level: 1, exp: 0);
             var resource = MakeResource();
 
-            var result = await _sut.ApplyExpAsync(player, resource, earnedExp: 50);
+            var result = await _sut.ExecuteAsync(player, resource, earnedExp: 50);
 
             result.Should().BeEmpty();
             player.Level.Should().Be(1);
@@ -58,7 +58,7 @@ public class LevelUpServiceTests
             var player = MakePlayer(level: 1, exp: 0);
             var resource = MakeResource();
 
-            await _sut.ApplyExpAsync(player, resource, earnedExp: 50);
+            await _sut.ExecuteAsync(player, resource, earnedExp: 50);
 
             player.Exp.Should().Be(50);
         }
@@ -81,7 +81,7 @@ public class LevelUpServiceTests
             var player = MakePlayer(level: 1, exp: 0);
             var resource = MakeResource();
 
-            await _sut.ApplyExpAsync(player, resource, earnedExp: 100);
+            await _sut.ExecuteAsync(player, resource, earnedExp: 100);
 
             player.Level.Should().Be(2);
         }
@@ -92,7 +92,7 @@ public class LevelUpServiceTests
             var player = MakePlayer(level: 1, exp: 0);
             var resource = MakeResource();
 
-            var result = await _sut.ApplyExpAsync(player, resource, earnedExp: 100);
+            var result = await _sut.ExecuteAsync(player, resource, earnedExp: 100);
 
             result.Should().HaveCount(1);
             result[0].NewLevel.Should().Be(2);
@@ -105,7 +105,7 @@ public class LevelUpServiceTests
             var player = MakePlayer(level: 1, exp: 0);
             var resource = MakeResource();
 
-            await _sut.ApplyExpAsync(player, resource, earnedExp: 100);
+            await _sut.ExecuteAsync(player, resource, earnedExp: 100);
 
             resource.Sp.Should().Be(3);
         }
@@ -116,7 +116,7 @@ public class LevelUpServiceTests
             var player = MakePlayer(level: 1, exp: 0);
             var resource = MakeResource();
 
-            await _sut.ApplyExpAsync(player, resource, earnedExp: 100);
+            await _sut.ExecuteAsync(player, resource, earnedExp: 100);
 
             player.Exp.Should().Be(0);
         }
@@ -140,7 +140,7 @@ public class LevelUpServiceTests
             var resource = MakeResource();
 
             // 레벨1 → 2 (100 XP), 레벨2 → 3 (200 XP) = 300 XP
-            await _sut.ApplyExpAsync(player, resource, earnedExp: 300);
+            await _sut.ExecuteAsync(player, resource, earnedExp: 300);
 
             player.Level.Should().Be(3);
         }
@@ -151,7 +151,7 @@ public class LevelUpServiceTests
             var player = MakePlayer(level: 1, exp: 0);
             var resource = MakeResource();
 
-            var result = await _sut.ApplyExpAsync(player, resource, earnedExp: 300);
+            var result = await _sut.ExecuteAsync(player, resource, earnedExp: 300);
 
             result.Should().HaveCount(2);
             result[0].NewLevel.Should().Be(2);
@@ -165,7 +165,7 @@ public class LevelUpServiceTests
             var resource = MakeResource();
 
             // 100 (lv1→2) + 200 (lv2→3) + 50 남음
-            await _sut.ApplyExpAsync(player, resource, earnedExp: 350);
+            await _sut.ExecuteAsync(player, resource, earnedExp: 350);
 
             player.Exp.Should().Be(50);
         }
@@ -176,7 +176,7 @@ public class LevelUpServiceTests
             var player = MakePlayer(level: 1, exp: 0);
             var resource = MakeResource();
 
-            await _sut.ApplyExpAsync(player, resource, earnedExp: 300);
+            await _sut.ExecuteAsync(player, resource, earnedExp: 300);
 
             resource.Sp.Should().Be(3 + 5); // lv1 reward + lv2 reward
         }
@@ -200,7 +200,7 @@ public class LevelUpServiceTests
             var resource = MakeResource();
 
             // 80 + 30 = 110 >= 100 → 레벨업
-            var result = await _sut.ApplyExpAsync(player, resource, earnedExp: 30);
+            var result = await _sut.ExecuteAsync(player, resource, earnedExp: 30);
 
             result.Should().HaveCount(1);
             player.Level.Should().Be(2);

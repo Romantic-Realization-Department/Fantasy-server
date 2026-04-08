@@ -112,7 +112,7 @@ public class BossDungeonService : IBossDungeonService
             return new BossDungeonResponse(false, 0, null, 0, []);
 
         var earnedXp = stageData.XpPerSecond * BossXpMultiplier;
-        var levelUps = await _levelUpService.ApplyExpAsync(player, resource, earnedXp);
+        var levelUps = await _levelUpService.ExecuteAsync(player, resource, earnedXp);
         resource.UpdateChangeData(null, resource.Mithril + BossMithrilReward, null);
 
         DroppedWeaponInfo? droppedWeapon = null;

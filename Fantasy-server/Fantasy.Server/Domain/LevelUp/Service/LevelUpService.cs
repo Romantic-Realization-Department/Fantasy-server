@@ -17,7 +17,7 @@ public class LevelUpService : ILevelUpService
         _gameDataCacheService = gameDataCacheService;
     }
 
-    public async Task<List<LevelUpResult>> ApplyExpAsync(PlayerEntity player, PlayerResource resource, long earnedExp)
+    public async Task<List<LevelUpResult>> ExecuteAsync(PlayerEntity player, PlayerResource resource, long earnedExp)
     {
         var levelTable = await _gameDataCacheService.GetLevelTableAsync();
         var levelUps = new List<LevelUpResult>();

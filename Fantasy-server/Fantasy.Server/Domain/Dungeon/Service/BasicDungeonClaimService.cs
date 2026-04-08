@@ -112,7 +112,7 @@ public class BasicDungeonClaimService : IBasicDungeonClaimService
         var (earnedGold, earnedXp, newMaxStage) = SimulateDungeon(
             dps, combatStat.Hp, elapsedSeconds, stage.MaxStage, stageData);
 
-        var levelUps = await _levelUpService.ApplyExpAsync(player, resource, earnedXp);
+        var levelUps = await _levelUpService.ExecuteAsync(player, resource, earnedXp);
         resource.UpdateGold(resource.Gold + earnedGold);
         stage.Update(newMaxStage);
         stage.UpdateLastCalculatedAt();
