@@ -96,8 +96,9 @@ public class GoldDungeonServiceTests
         {
             var request = new GoldDungeonRequest(Clicks: 1000, DurationSeconds: 30);
 
-            try { await _sut.ExecuteAsync(JobType.Warrior, request); } catch { }
+            var act = async () => await _sut.ExecuteAsync(JobType.Warrior, request);
 
+            await act.Should().ThrowAsync<BadRequestException>();
             await _playerResourceRepository.DidNotReceive().UpdateAsync(Arg.Any<PlayerResource>());
         }
     }
