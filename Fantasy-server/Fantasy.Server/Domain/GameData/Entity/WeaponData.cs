@@ -5,12 +5,12 @@ namespace Fantasy.Server.Domain.GameData.Entity;
 
 public class WeaponData
 {
-    public int WeaponId { get; init; }
-    public string Name { get; init; } = string.Empty;
-    public WeaponGrade Grade { get; init; }
-    public JobType JobType { get; init; }
-    public long BaseAtk { get; init; }
-    public long AtkPerEnhancement { get; init; }
+    public int WeaponId { get; private set; }
+    public string Name { get; private set; } = string.Empty;
+    public WeaponGrade Grade { get; private set; }
+    public JobType JobType { get; private set; }
+    public long BaseAtk { get; private set; }
+    public long AtkPerEnhancement { get; private set; }
 
     public static WeaponData Create(
         int weaponId,

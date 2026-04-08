@@ -27,7 +27,7 @@ public class WeaponDungeonService : IWeaponDungeonService
     private readonly IPlayerRedisRepository _playerRedisRepository;
     private readonly IGameDataCacheService _gameDataCacheService;
     private readonly ICurrentUserProvider _currentUserProvider;
-    private readonly CombatStatCalculator _calculator;
+    private readonly ICombatStatCalculator _calculator;
 
     public WeaponDungeonService(
         IPlayerRepository playerRepository,
@@ -39,7 +39,7 @@ public class WeaponDungeonService : IWeaponDungeonService
         IPlayerRedisRepository playerRedisRepository,
         IGameDataCacheService gameDataCacheService,
         ICurrentUserProvider currentUserProvider,
-        CombatStatCalculator calculator)
+        ICombatStatCalculator calculator)
     {
         _playerRepository = playerRepository;
         _playerResourceRepository = playerResourceRepository;
@@ -118,7 +118,7 @@ public class WeaponDungeonService : IWeaponDungeonService
                 }
             }
             // C등급 드랍 시도
-            else if (Random.Shared.Next(0, 100) < CGradeDropRatePercent)
+            if (Random.Shared.Next(0, 100) < CGradeDropRatePercent)
             {
                 var cWeapons = await _gameDataCacheService.GetWeaponDataByGradeAsync(WeaponGrade.C);
                 var cJobWeapons = cWeapons.Where(w => w.JobType == jobType).ToList();

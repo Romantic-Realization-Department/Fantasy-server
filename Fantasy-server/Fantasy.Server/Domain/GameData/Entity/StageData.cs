@@ -2,12 +2,12 @@ namespace Fantasy.Server.Domain.GameData.Entity;
 
 public class StageData
 {
-    public long Stage { get; init; }
-    public long MonsterHp { get; init; }
-    public long MonsterAtk { get; init; }
-    public long XpPerSecond { get; init; }
-    public long GoldPerSecond { get; init; }
-    public bool IsBossStage { get; init; }
+    public long Stage { get; private set; }
+    public long MonsterHp { get; private set; }
+    public long MonsterAtk { get; private set; }
+    public long XpPerSecond { get; private set; }
+    public long GoldPerSecond { get; private set; }
+    public bool IsBossStage { get; private set; }
 
     public static StageData Create(
         long stage,

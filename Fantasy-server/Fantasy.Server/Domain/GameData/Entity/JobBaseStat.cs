@@ -4,13 +4,13 @@ namespace Fantasy.Server.Domain.GameData.Entity;
 
 public class JobBaseStat
 {
-    public JobType JobType { get; init; }
-    public long BaseHp { get; init; }
-    public long BaseAtk { get; init; }
-    public double CritRate { get; init; }
-    public double CritDmgMultiplier { get; init; }
-    public double HpPerLevel { get; init; }
-    public double AtkPerLevel { get; init; }
+    public JobType JobType { get; private set; }
+    public long BaseHp { get; private set; }
+    public long BaseAtk { get; private set; }
+    public double CritRate { get; private set; }
+    public double CritDmgMultiplier { get; private set; }
+    public double HpPerLevel { get; private set; }
+    public double AtkPerLevel { get; private set; }
 
     public static JobBaseStat Create(
         JobType jobType,

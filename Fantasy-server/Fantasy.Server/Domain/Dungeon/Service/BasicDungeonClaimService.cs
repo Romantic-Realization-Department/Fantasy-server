@@ -27,7 +27,7 @@ public class BasicDungeonClaimService : IBasicDungeonClaimService
     private readonly ILevelUpService _levelUpService;
     private readonly IAppDbTransactionRunner _transactionRunner;
     private readonly ICurrentUserProvider _currentUserProvider;
-    private readonly CombatStatCalculator _calculator;
+    private readonly ICombatStatCalculator _calculator;
 
     public BasicDungeonClaimService(
         IPlayerRepository playerRepository,
@@ -41,7 +41,7 @@ public class BasicDungeonClaimService : IBasicDungeonClaimService
         ILevelUpService levelUpService,
         IAppDbTransactionRunner transactionRunner,
         ICurrentUserProvider currentUserProvider,
-        CombatStatCalculator calculator)
+        ICombatStatCalculator calculator)
     {
         _playerRepository = playerRepository;
         _playerResourceRepository = playerResourceRepository;

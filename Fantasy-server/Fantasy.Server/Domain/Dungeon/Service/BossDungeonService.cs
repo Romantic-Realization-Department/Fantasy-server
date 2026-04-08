@@ -29,7 +29,7 @@ public class BossDungeonService : IBossDungeonService
     private readonly ILevelUpService _levelUpService;
     private readonly IAppDbTransactionRunner _transactionRunner;
     private readonly ICurrentUserProvider _currentUserProvider;
-    private readonly CombatStatCalculator _calculator;
+    private readonly ICombatStatCalculator _calculator;
 
     public BossDungeonService(
         IPlayerRepository playerRepository,
@@ -43,7 +43,7 @@ public class BossDungeonService : IBossDungeonService
         ILevelUpService levelUpService,
         IAppDbTransactionRunner transactionRunner,
         ICurrentUserProvider currentUserProvider,
-        CombatStatCalculator calculator)
+        ICombatStatCalculator calculator)
     {
         _playerRepository = playerRepository;
         _playerResourceRepository = playerResourceRepository;

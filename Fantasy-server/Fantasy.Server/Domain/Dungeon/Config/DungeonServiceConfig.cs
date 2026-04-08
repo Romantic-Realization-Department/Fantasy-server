@@ -7,7 +7,7 @@ public static class DungeonServiceConfig
 {
     public static IServiceCollection AddDungeonServices(this IServiceCollection services)
     {
-        services.AddScoped<CombatStatCalculator>();
+        services.AddScoped<ICombatStatCalculator, CombatStatCalculator>();
         services.AddScoped<IBasicDungeonClaimService, BasicDungeonClaimService>();
         services.AddScoped<IGoldDungeonService, GoldDungeonService>();
         services.AddScoped<IWeaponDungeonService, WeaponDungeonService>();

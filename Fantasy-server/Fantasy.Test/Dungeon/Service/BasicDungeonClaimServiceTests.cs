@@ -1,4 +1,5 @@
 using Fantasy.Server.Domain.Dungeon.Service;
+using Fantasy.Server.Domain.Dungeon.Service.Interface;
 using Fantasy.Server.Domain.GameData.Entity;
 using Fantasy.Server.Domain.GameData.Service.Interface;
 using Fantasy.Server.Domain.LevelUp.Service.Interface;
@@ -29,7 +30,7 @@ public class BasicDungeonClaimServiceTests
         ILevelUpService? levelUpService = null,
         IAppDbTransactionRunner? txRunner = null,
         ICurrentUserProvider? userProvider = null,
-        CombatStatCalculator? calculator = null)
+        ICombatStatCalculator? calculator = null)
     {
         playerRepo ??= Substitute.For<IPlayerRepository>();
         resourceRepo ??= Substitute.For<IPlayerResourceRepository>();

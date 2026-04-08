@@ -1,3 +1,4 @@
+using Fantasy.Server.Domain.Dungeon.Service.Interface;
 using Fantasy.Server.Domain.GameData.Entity;
 using Fantasy.Server.Domain.GameData.Enum;
 
@@ -5,7 +6,7 @@ namespace Fantasy.Server.Domain.Dungeon.Service;
 
 public record CombatStat(long Atk, long Hp, double CritRate, double CritDmgMultiplier);
 
-public class CombatStatCalculator
+public class CombatStatCalculator : ICombatStatCalculator
 {
     public CombatStat Calculate(
         long level,
