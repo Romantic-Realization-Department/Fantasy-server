@@ -13,7 +13,6 @@ namespace Fantasy.Server.Domain.Dungeon.Service;
 
 public class WeaponDungeonService : IWeaponDungeonService
 {
-    private const int WeaponDungeonStage = 1; // 무기 던전 고정 스테이지 기준
     private const int BGradeDropRatePercent = 20;
     private const int CGradeDropRatePercent = 70;
     private const int ScrollDropRatePercent = 30;
@@ -93,13 +92,12 @@ public class WeaponDungeonService : IWeaponDungeonService
 
         var combatStat = _calculator.Calculate(player.Level, jobStat, weaponData, weaponEnhancement, unlockedPassiveSkills);
 
-        // 던전 몬스터 스탯: 현재 MaxStage 기준
         var stageData = await _gameDataCacheService.GetStageDataAsync(stage.MaxStage);
         if (stageData is null)
             throw new NotFoundException("스테이지 데이터를 찾을 수 없습니다.");
 
         var dps = _calculator.CalculateDps(combatStat);
-        var cleared = dps * 30 > stageData.MonsterHp;
+        var cleared = dps * 30 >= stageData.MonsterHp;
 
         var droppedWeapons = new List<DroppedWeaponInfo>();
         long droppedScrolls = 0;

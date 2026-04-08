@@ -106,7 +106,7 @@ public class BossDungeonService : IBossDungeonService
         // 보스는 일반 몬스터의 5배 체력
         var bossHp = stageData.MonsterHp * 5;
         var dps = _calculator.CalculateDps(combatStat);
-        var cleared = dps * 30 > bossHp;
+        var cleared = dps * 30 >= bossHp;
 
         if (!cleared)
             return new BossDungeonResponse(false, 0, null, 0, []);

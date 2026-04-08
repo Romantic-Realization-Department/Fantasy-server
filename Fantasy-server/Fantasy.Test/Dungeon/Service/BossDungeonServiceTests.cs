@@ -248,4 +248,68 @@ public class BossDungeonServiceTests
             await _playerRedisRepository.Received(1).DeleteAsync(1L, JobType.Warrior);
         }
     }
+
+    public class DPS_곱하기_30이_보스HP와_정확히_같을_때
+    {
+        private readonly IPlayerRepository _playerRepository = Substitute.For<IPlayerRepository>();
+        private readonly IPlayerResourceRepository _playerResourceRepository = Substitute.For<IPlayerResourceRepository>();
+        private readonly IPlayerStageRepository _playerStageRepository = Substitute.For<IPlayerStageRepository>();
+        private readonly IPlayerSessionRepository _playerSessionRepository = Substitute.For<IPlayerSessionRepository>();
+        private readonly IPlayerWeaponRepository _playerWeaponRepository = Substitute.For<IPlayerWeaponRepository>();
+        private readonly IPlayerSkillRepository _playerSkillRepository = Substitute.For<IPlayerSkillRepository>();
+        private readonly IPlayerRedisRepository _playerRedisRepository = Substitute.For<IPlayerRedisRepository>();
+        private readonly IGameDataCacheService _gameDataCacheService = Substitute.For<IGameDataCacheService>();
+        private readonly ILevelUpService _levelUpService = Substitute.For<ILevelUpService>();
+        private readonly IAppDbTransactionRunner _transactionRunner = Substitute.For<IAppDbTransactionRunner>();
+        private readonly ICurrentUserProvider _currentUserProvider = Substitute.For<ICurrentUserProvider>();
+
+        public DPS_곱하기_30이_보스HP와_정확히_같을_때()
+        {
+            // atk=100, critRate=0 → dps=100 → dps*30=3000
+            // bossHp = monsterHp * 5 = 600 * 5 = 3000 → dps*30 == bossHp → 클리어
+            _currentUserProvider.GetAccountId().Returns(1L);
+            _playerRepository.FindByAccountAndJobAsync(1L, JobType.Warrior)
+                .Returns(PlayerEntity.Create(1L, JobType.Warrior));
+            _playerResourceRepository.FindByPlayerIdAsync(Arg.Any<long>())
+                .Returns(PlayerResource.Create(1L));
+            _playerStageRepository.FindByPlayerIdAsync(Arg.Any<long>())
+                .Returns(PlayerStage.Create(1L));
+            _playerSessionRepository.FindByPlayerIdAsync(Arg.Any<long>())
+                .Returns(PlayerSession.Create(1L));
+            _playerWeaponRepository.FindAllByPlayerIdAsync(Arg.Any<long>()).Returns([]);
+            _playerSkillRepository.FindAllByPlayerIdAsync(Arg.Any<long>()).Returns([]);
+
+            var stageData = StageData.Create(1, monsterHp: 600, monsterAtk: 1, xpPerSecond: 5, goldPerSecond: 10);
+            _gameDataCacheService.GetStageDataAsync(1).Returns(stageData);
+            _gameDataCacheService.GetJobBaseStatAsync(JobType.Warrior)
+                .Returns(JobBaseStat.Create(JobType.Warrior, 1000, 100, 0, 1.5, 10, 10));
+            _gameDataCacheService.GetSkillDataByJobAsync(Arg.Any<JobType>()).Returns([]);
+            _gameDataCacheService.GetWeaponDataByGradeAsync(WeaponGrade.A).Returns([]);
+            _levelUpService.ApplyExpAsync(Arg.Any<PlayerEntity>(), Arg.Any<PlayerResource>(), Arg.Any<long>())
+                .Returns([]);
+            _transactionRunner.ExecuteAsync(Arg.Any<Func<Task>>())
+                .Returns(callInfo => callInfo.Arg<Func<Task>>()());
+        }
+
+        [Fact]
+        public async Task Cleared가_true이다()
+        {
+            var sut = BuildSut(
+                playerRepo: _playerRepository,
+                resourceRepo: _playerResourceRepository,
+                stageRepo: _playerStageRepository,
+                sessionRepo: _playerSessionRepository,
+                weaponRepo: _playerWeaponRepository,
+                skillRepo: _playerSkillRepository,
+                redisRepo: _playerRedisRepository,
+                cache: _gameDataCacheService,
+                levelUpService: _levelUpService,
+                txRunner: _transactionRunner,
+                userProvider: _currentUserProvider);
+
+            var result = await sut.ExecuteAsync(JobType.Warrior);
+
+            result.Cleared.Should().BeTrue();
+        }
+    }
 }
