@@ -60,11 +60,13 @@ See `.claude/skills/commit/examples/type-guide.md` for a boundary-rule table and
 
 Always check the current branch before staging or committing.
 
+- When creating a branch from `develop`, always use the format `{type}/{content}`
+- Do not use `{type}-{content}` or omit the slash between type and content
 - If the current branch is **not** `develop`, proceed with the normal commit flow.
 - If the current branch **is** `develop`:
   - Review the changes first with `git status` and `git diff`
   - Infer the dominant logical unit and create a new working branch before any `git add` or `git commit`
-  - Use a short branch name based on the work, such as `feat/player-resource-seed`, `fix/player-stage-config`, or `update/player-domain-cleanup`
+  - Use a short branch name based on the work, such as `feat/player-resource-seed`, `fix/player-stage-config`, `update/player-domain-cleanup`, or `chore/deploy-pipeline`
   - Run `git switch -c <branch-name>`
   - Confirm the branch changed successfully, then continue the commit flow on that new branch
 

@@ -1,0 +1,82 @@
+name: Deploy fantasy-server
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Log in to Docker Hub
+        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            -t ${{ secrets.DOCKER_USERNAME }}/fantasy-server:latest \
+            -t ${{ secrets.DOCKER_USERNAME }}/fantasy-server:${{ github.sha }} \
+            -f Fantasy-server/Fantasy.Server/deploy/prod.dockerfile \
+            Fantasy-server
+
+      - name: Push Docker image
+        run: |
+          docker push ${{ secrets.DOCKER_USERNAME }}/fantasy-server:latest
+          docker push ${{ secrets.DOCKER_USERNAME }}/fantasy-server:${{ github.sha }}
+
+      - name: Copy compose file to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          port: ${{ secrets.SSH_PORT }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "Fantasy-server/Fantasy.Server/deploy/compose.prod.yaml"
+          target: "~/deploy/"
+          strip_components: 3
+
+      - name: Deploy via Docker Compose
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          port: ${{ secrets.SSH_PORT }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            mkdir -p ~/deploy
+
+            printf 'DOCKER_USERNAME=%s\nPOSTGRES_USER=%s\nPOSTGRES_PASSWORD=%s\nDB_CONNECTION_STRING=%s\nREDIS_CONNECTION_STRING=%s\nJWT_SECRET_KEY=%s\n' \
+              "${{ secrets.DOCKER_USERNAME }}" \
+              "${{ secrets.POSTGRES_USER }}" \
+              "${{ secrets.POSTGRES_PASSWORD }}" \
+              "${{ secrets.DB_CONNECTION_STRING }}" \
+              "${{ secrets.REDIS_CONNECTION_STRING }}" \
+              "${{ secrets.JWT_SECRET_KEY }}" \
+              > ~/deploy/.env
+            chmod 600 ~/deploy/.env
+
+            docker compose -f ~/deploy/compose.prod.yaml --env-file ~/deploy/.env pull
+            docker compose -f ~/deploy/compose.prod.yaml --env-file ~/deploy/.env up -d --remove-orphans
+
+            for i in $(seq 1 12); do
+              if curl -sf http://localhost/v1/health > /dev/null 2>&1; then
+                echo "서버 정상 기동 확인"
+                break
+              fi
+              if [ "$i" -eq 12 ]; then
+                echo "::error::컨테이너 기동 실패 — 로그 확인"
+                docker logs fantasy-server --tail 50
+                exit 1
+              fi
+              echo "헬스체크 대기 중... ($i/12)"
+              sleep 5
+            done
+
+            docker logs fantasy-server --tail 20
+
+            docker image prune -f

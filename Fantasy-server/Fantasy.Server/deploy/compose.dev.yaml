@@ -27,7 +27,7 @@ services:
       - ConnectionStrings__Database=Host=fantasy-db;Port=5432;Database=fantasy;Username=fantasy;Password=fantasy
       - ConnectionStrings__Redis=fantasy-redis:6379
     volumes:
-      - .:/src
+      - ../../:/src
     depends_on:
       - fantasy-db
       - fantasy-redis
