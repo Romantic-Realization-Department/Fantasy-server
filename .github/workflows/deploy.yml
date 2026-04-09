@@ -58,17 +58,24 @@ jobs:
               "${{ secrets.REDIS_CONNECTION_STRING }}" \
               "${{ secrets.JWT_SECRET_KEY }}" \
               > ~/deploy/.env
+            chmod 600 ~/deploy/.env
 
             docker compose -f ~/deploy/compose.prod.yaml --env-file ~/deploy/.env pull
             docker compose -f ~/deploy/compose.prod.yaml --env-file ~/deploy/.env up -d --remove-orphans
 
-            sleep 5
-
-            if ! docker ps | grep -q fantasy-server; then
-              echo "::error::컨테이너 실행 실패 — 로그 확인"
-              docker logs fantasy-server --tail 50
-              exit 1
-            fi
+            for i in $(seq 1 12); do
+              if curl -sf http://localhost/v1/health > /dev/null 2>&1; then
+                echo "서버 정상 기동 확인"
+                break
+              fi
+              if [ "$i" -eq 12 ]; then
+                echo "::error::컨테이너 기동 실패 — 로그 확인"
+                docker logs fantasy-server --tail 50
+                exit 1
+              fi
+              echo "헬스체크 대기 중... ($i/12)"
+              sleep 5
+            done
 
             docker logs fantasy-server --tail 20
 
