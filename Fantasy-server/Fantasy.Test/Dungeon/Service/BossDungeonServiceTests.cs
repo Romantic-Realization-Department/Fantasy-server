@@ -179,7 +179,7 @@ public class BossDungeonServiceTests
             _gameDataCacheService.GetSkillDataByJobAsync(Arg.Any<JobType>()).Returns([]);
             _gameDataCacheService.GetWeaponDataByGradeAsync(WeaponGrade.A)
                 .Returns([WeaponData.Create(10, "A등급검", WeaponGrade.A, JobType.Warrior, 500, 20)]);
-            _levelUpService.ApplyExpAsync(Arg.Any<PlayerEntity>(), Arg.Any<PlayerResource>(), Arg.Any<long>())
+            _levelUpService.ExecuteAsync(Arg.Any<PlayerEntity>(), Arg.Any<PlayerResource>(), Arg.Any<long>())
                 .Returns([]);
             _transactionRunner.ExecuteAsync(Arg.Any<Func<Task>>())
                 .Returns(callInfo => callInfo.Arg<Func<Task>>()());
@@ -285,7 +285,7 @@ public class BossDungeonServiceTests
                 .Returns(JobBaseStat.Create(JobType.Warrior, 1000, 100, 0, 1.5, 10, 10));
             _gameDataCacheService.GetSkillDataByJobAsync(Arg.Any<JobType>()).Returns([]);
             _gameDataCacheService.GetWeaponDataByGradeAsync(WeaponGrade.A).Returns([]);
-            _levelUpService.ApplyExpAsync(Arg.Any<PlayerEntity>(), Arg.Any<PlayerResource>(), Arg.Any<long>())
+            _levelUpService.ExecuteAsync(Arg.Any<PlayerEntity>(), Arg.Any<PlayerResource>(), Arg.Any<long>())
                 .Returns([]);
             _transactionRunner.ExecuteAsync(Arg.Any<Func<Task>>())
                 .Returns(callInfo => callInfo.Arg<Func<Task>>()());

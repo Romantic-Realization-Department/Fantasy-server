@@ -150,7 +150,7 @@ public class BasicDungeonClaimServiceTests
             _gameDataCacheService.GetJobBaseStatAsync(JobType.Warrior)
                 .Returns(JobBaseStat.Create(JobType.Warrior, 1000, 200, 0.1, 1.5, 50, 10));
             _gameDataCacheService.GetSkillDataByJobAsync(Arg.Any<JobType>()).Returns([]);
-            _levelUpService.ApplyExpAsync(Arg.Any<PlayerEntity>(), Arg.Any<PlayerResource>(), Arg.Any<long>())
+            _levelUpService.ExecuteAsync(Arg.Any<PlayerEntity>(), Arg.Any<PlayerResource>(), Arg.Any<long>())
                 .Returns([]);
             _transactionRunner.ExecuteAsync(Arg.Any<Func<Task>>())
                 .Returns(callInfo => callInfo.Arg<Func<Task>>()());
