@@ -16,17 +16,20 @@ namespace Fantasy.Server.Domain.Dungeon.Controller;
 public class DungeonController : ControllerBase
 {
     private readonly IBasicDungeonClaimService _basicDungeonClaimService;
+    private readonly INormalDungeonClearService _normalDungeonClearService;
     private readonly IGoldDungeonService _goldDungeonService;
     private readonly IWeaponDungeonService _weaponDungeonService;
     private readonly IBossDungeonService _bossDungeonService;
 
     public DungeonController(
         IBasicDungeonClaimService basicDungeonClaimService,
+        INormalDungeonClearService normalDungeonClearService,
         IGoldDungeonService goldDungeonService,
         IWeaponDungeonService weaponDungeonService,
         IBossDungeonService bossDungeonService)
     {
         _basicDungeonClaimService = basicDungeonClaimService;
+        _normalDungeonClearService = normalDungeonClearService;
         _goldDungeonService = goldDungeonService;
         _weaponDungeonService = weaponDungeonService;
         _bossDungeonService = bossDungeonService;
@@ -37,6 +40,15 @@ public class DungeonController : ControllerBase
     {
         var result = await _basicDungeonClaimService.ExecuteAsync(jobType);
         return CommonApiResponse.Success("기본 던전 정산이 완료되었습니다.", result);
+    }
+
+    [HttpPost("normal/clear")]
+    public async Task<CommonApiResponse<NormalDungeonClearResponse>> NormalClear(
+        [FromQuery] JobType jobType,
+        [FromBody] NormalDungeonClearRequest request)
+    {
+        var result = await _normalDungeonClearService.ExecuteAsync(jobType, request);
+        return CommonApiResponse.Success("스테이지 클리어 보상이 지급되었습니다.", result);
     }
 
     [HttpPost("gold")]

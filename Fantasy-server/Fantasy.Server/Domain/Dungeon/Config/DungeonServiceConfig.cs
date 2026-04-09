@@ -9,6 +9,7 @@ public static class DungeonServiceConfig
     {
         services.AddScoped<ICombatStatCalculator, CombatStatCalculator>();
         services.AddScoped<IBasicDungeonClaimService, BasicDungeonClaimService>();
+        services.AddScoped<INormalDungeonClearService, NormalDungeonClearService>();
         services.AddScoped<IGoldDungeonService, GoldDungeonService>();
         services.AddScoped<IWeaponDungeonService, WeaponDungeonService>();
         services.AddScoped<IBossDungeonService, BossDungeonService>();
