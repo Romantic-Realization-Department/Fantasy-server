@@ -37,7 +37,7 @@ public class GoldDungeonServiceTests
         [Fact]
         public async Task 클릭수에_비례한_골드가_반환된다()
         {
-            var request = new GoldDungeonRequest(Clicks: 10, DurationSeconds: 30);
+            var request = new GoldDungeonRequest(Clicks: 10);
 
             var result = await _sut.ExecuteAsync(JobType.Warrior, request);
 
@@ -47,7 +47,7 @@ public class GoldDungeonServiceTests
         [Fact]
         public async Task 재화가_업데이트된다()
         {
-            var request = new GoldDungeonRequest(Clicks: 10, DurationSeconds: 30);
+            var request = new GoldDungeonRequest(Clicks: 10);
 
             await _sut.ExecuteAsync(JobType.Warrior, request);
 
@@ -57,49 +57,11 @@ public class GoldDungeonServiceTests
         [Fact]
         public async Task Redis_캐시가_무효화된다()
         {
-            var request = new GoldDungeonRequest(Clicks: 10, DurationSeconds: 30);
+            var request = new GoldDungeonRequest(Clicks: 10);
 
             await _sut.ExecuteAsync(JobType.Warrior, request);
 
             await _playerRedisRepository.Received(1).DeleteAsync(1L, JobType.Warrior);
-        }
-    }
-
-    public class CPS_한계를_초과할_때
-    {
-        private readonly IPlayerRepository _playerRepository = Substitute.For<IPlayerRepository>();
-        private readonly IPlayerResourceRepository _playerResourceRepository = Substitute.For<IPlayerResourceRepository>();
-        private readonly IPlayerRedisRepository _playerRedisRepository = Substitute.For<IPlayerRedisRepository>();
-        private readonly ICurrentUserProvider _currentUserProvider = Substitute.For<ICurrentUserProvider>();
-        private readonly GoldDungeonService _sut;
-
-        public CPS_한계를_초과할_때()
-        {
-            _currentUserProvider.GetAccountId().Returns(1L);
-            _sut = new GoldDungeonService(
-                _playerRepository, _playerResourceRepository, _playerRedisRepository, _currentUserProvider);
-        }
-
-        [Fact]
-        public async Task BadRequestException이_발생한다()
-        {
-            // MaxCPS = 15, DurationSeconds = 30 → 최대 클릭 = 450
-            var request = new GoldDungeonRequest(Clicks: 451, DurationSeconds: 30);
-
-            var act = async () => await _sut.ExecuteAsync(JobType.Warrior, request);
-
-            await act.Should().ThrowAsync<BadRequestException>();
-        }
-
-        [Fact]
-        public async Task 재화가_업데이트되지_않는다()
-        {
-            var request = new GoldDungeonRequest(Clicks: 1000, DurationSeconds: 30);
-
-            var act = () => _sut.ExecuteAsync(JobType.Warrior, request);
-
-            await act.Should().ThrowAsync<BadRequestException>();
-            await _playerResourceRepository.DidNotReceive().UpdateAsync(Arg.Any<PlayerResource>());
         }
     }
 
@@ -124,7 +86,7 @@ public class GoldDungeonServiceTests
         [Fact]
         public async Task NotFoundException이_발생한다()
         {
-            var request = new GoldDungeonRequest(Clicks: 10, DurationSeconds: 30);
+            var request = new GoldDungeonRequest(Clicks: 10);
 
             var act = async () => await _sut.ExecuteAsync(JobType.Warrior, request);
 

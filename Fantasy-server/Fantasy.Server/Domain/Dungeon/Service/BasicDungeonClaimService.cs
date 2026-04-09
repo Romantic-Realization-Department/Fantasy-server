@@ -14,7 +14,7 @@ namespace Fantasy.Server.Domain.Dungeon.Service;
 
 public class BasicDungeonClaimService : IBasicDungeonClaimService
 {
-    private const long MaxOfflineSeconds = 8 * 60 * 60; // 8시간 상한
+    private const long MaxOfflineSeconds = 12 * 60 * 60; // 12시간 상한
 
     private readonly IPlayerRepository _playerRepository;
     private readonly IPlayerResourceRepository _playerResourceRepository;

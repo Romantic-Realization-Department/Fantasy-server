@@ -10,7 +10,6 @@ namespace Fantasy.Server.Domain.Dungeon.Service;
 
 public class GoldDungeonService : IGoldDungeonService
 {
-    private const int MaxClicksPerSecond = 15;
     private const long GoldPerClick = 10;
     private const int MithrilDropRatePercent = 2;
 
@@ -33,9 +32,6 @@ public class GoldDungeonService : IGoldDungeonService
 
     public async Task<GoldDungeonResponse> ExecuteAsync(JobType jobType, GoldDungeonRequest request)
     {
-        if (request.Clicks > MaxClicksPerSecond * request.DurationSeconds)
-            throw new BadRequestException("비정상적인 클릭 횟수입니다.");
-
         var accountId = _currentUserProvider.GetAccountId();
 
         var player = await _playerRepository.FindByAccountAndJobAsync(accountId, jobType)
