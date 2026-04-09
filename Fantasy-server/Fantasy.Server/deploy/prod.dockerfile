@@ -3,7 +3,7 @@ WORKDIR /src
 COPY Fantasy-server.sln .
 COPY Fantasy.Server/Fantasy.Server.csproj Fantasy.Server/
 COPY Fantasy.Test/Fantasy.Test.csproj Fantasy.Test/
-RUN dotnet restore Fantasy.Server/Fantasy.Server.csproj
+RUN dotnet restore Fantasy-server.sln
 COPY . .
 RUN dotnet publish Fantasy.Server/Fantasy.Server.csproj \
     --configuration Release \
