@@ -34,7 +34,8 @@ TestResults/
 Thumbs.db
 Desktop.ini
 
-# Claude Code
+# LLM OutPuts
 PR_BODY.md
 .dotnet/
 .pr-tmp/
+current_plan.md
