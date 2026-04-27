@@ -115,20 +115,19 @@ jobs:
         if: matrix.lang == 'dotnet'
         run: dotnet restore ${{ env.SOLUTION }}
 
-      - name: Build Solution
-        if: matrix.lang == 'dotnet'
-        run: dotnet build ${{ env.SOLUTION }} --no-restore --configuration Release
-
       - name: Run Tests
         if: matrix.lang == 'dotnet'
         run: |
           dotnet test ${{ env.SOLUTION }} \
-            --no-build \
             --configuration Release \
             --collect:"XPlat Code Coverage" \
             --results-directory ./TestResults \
             --logger "trx;LogFileName=test_results.trx" \
             --verbosity minimal
+
+      - name: Build Solution
+        if: matrix.lang == 'dotnet'
+        run: dotnet build ${{ env.SOLUTION }} --no-restore --configuration Release
 
       - name: Upload Test Results
         if: always() && matrix.lang == 'dotnet'
