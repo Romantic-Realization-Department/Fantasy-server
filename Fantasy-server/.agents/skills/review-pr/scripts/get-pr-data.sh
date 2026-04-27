@@ -36,4 +36,4 @@ git diff "origin/$BASE...HEAD" --name-only > "$OUT_DIR/changed_files.txt"
 git diff "origin/$BASE...HEAD" > "$OUT_DIR/diff.txt"
 
 echo "PR #$PR_NUMBER | Repo: $REPO | Base: $BASE | Output: $OUT_DIR"
-echo "Review comments: $(gh api --method GET "repos/$REPO/pulls/$PR_NUMBER/comments" --jq 'length'), Issue comments: $(gh api --method GET "repos/$REPO/issues/$PR_NUMBER/comments" --jq 'length'), Changed files: $(wc -l < "$OUT_DIR/changed_files.txt" | tr -d ' ')"
+echo "Review comments: $(jq 'length' "$OUT_DIR/review_comments.json"), Issue comments: $(jq 'length' "$OUT_DIR/issue_comments.json"), Changed files: $(wc -l < "$OUT_DIR/changed_files.txt" | tr -d ' ')"

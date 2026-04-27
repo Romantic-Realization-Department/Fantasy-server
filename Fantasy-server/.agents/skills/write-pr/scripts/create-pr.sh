@@ -17,9 +17,10 @@ fi
 
 CURRENT=$(git branch --show-current)
 case "$CURRENT" in
-  feature/*)  BASE="develop" ;;
+  feature/* | fix/* | chore/* | refactor/* | docs/* | test/* | update/*) BASE="develop" ;;
+  release/*)  BASE="main" ;;
   develop)    BASE="main" ;;
-  *)          BASE=$(gh pr view --json baseRefName -q .baseRefName 2>/dev/null || echo "develop") ;;
+  *)          BASE="develop" ;;
 esac
 
 ARGS=(gh pr create --title "$TITLE" --body-file "$BODY_FILE" --base "$BASE")
