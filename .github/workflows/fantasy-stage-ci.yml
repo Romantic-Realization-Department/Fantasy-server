@@ -30,35 +30,15 @@ jobs:
         with:
           script: |
             const title = context.payload.pull_request.title;
-            const allowedScopes = [
-              'global', 'account', 'auth', 'player',
-              'server', 'test', 'deploy', 'ci/cd'
-            ];
-
             const versionPattern = /^v\d{8}\.\d+$/;
             if (versionPattern.test(title)) {
               return;
             }
 
-            const titlePattern = /^\[([^\]]+)\]\s+(.+)$/;
-            const match = title.match(titlePattern);
-            if (!match) {
-              core.setFailed('Invalid title format. Use [scope] title or vYYYYMMDD.n format');
+            const titlePattern = /^(feat|fix|update|docs|refactor|test|chore):\s+.+$/;
+            if (!titlePattern.test(title)) {
+              core.setFailed('Invalid title format. Use "{type}: {Korean description}" or vYYYYMMDD.n format. Allowed types: feat, fix, update, docs, refactor, test, chore');
               return;
-            }
-
-            const scopesPart = match[1];
-            const titlePart = match[2];
-
-            if (titlePart.includes(':')) {
-              core.setFailed('Colon (:) is not allowed in the title');
-              return;
-            }
-
-            const scopes = scopesPart.split(',').map(s => s.trim());
-            const invalidScopes = scopes.filter(scope => !allowedScopes.includes(scope));
-            if (invalidScopes.length > 0) {
-              core.setFailed(`Invalid scope(s): ${invalidScopes.join(', ')}`);
             }
 
   detect-changes:
