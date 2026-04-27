@@ -30,14 +30,14 @@ jobs:
         with:
           script: |
             const title = context.payload.pull_request.title;
-            const versionPattern = /^v\d{8}\.\d+$/;
-            if (versionPattern.test(title)) {
+            const releasePattern = /^release\/\d+\.\d+\.\d+$/;
+            if (releasePattern.test(title)) {
               return;
             }
 
             const titlePattern = /^(feat|fix|update|docs|refactor|test|chore):\s+.+$/;
             if (!titlePattern.test(title)) {
-              core.setFailed('Invalid title format. Use "{type}: {Korean description}" or vYYYYMMDD.n format. Allowed types: feat, fix, update, docs, refactor, test, chore');
+              core.setFailed('Invalid title format. Use "{type}: {Korean description}" or release/x.x.x. Allowed types: feat, fix, update, docs, refactor, test, chore');
               return;
             }
 
