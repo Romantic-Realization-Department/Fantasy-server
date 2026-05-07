@@ -1,0 +1,73 @@
+name: fantasy prod CD Workflow
+
+on:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: read
+    env:
+      DISCORD_WEBHOOK: ${{ secrets.DISCORD_INFORMATION_ALERT_CHANNEL_WEBHOOK }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Calculate Version
+        id: version
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_TITLE=$(gh api \
+            -H "Accept: application/vnd.github+json" \
+            "/repos/${{ github.repository }}/commits/${{ github.sha }}/pulls" \
+            --jq '.[0].title // ""')
+
+          if [[ "$PR_TITLE" =~ ^release/([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+            VERSION="v${BASH_REMATCH[1]}"
+          else
+            echo "::error::Release PR title must follow release/x.x.x. Current title: ${PR_TITLE:-unknown}"
+            exit 1
+          fi
+
+          if git rev-parse "$VERSION" >/dev/null 2>&1; then
+            echo "::error::Tag already exists: $VERSION"
+            exit 1
+          fi
+
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Create Tag
+        run: git tag ${{ steps.version.outputs.version }}
+
+      - name: Push Tag
+        run: git push origin ${{ steps.version.outputs.version }}
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ steps.version.outputs.version }}" \
+            --title "${{ steps.version.outputs.version }}" \
+            --notes $'## 수정내역\n\n- '
+
+      - name: Notify Discord
+        if: always() && env.DISCORD_WEBHOOK != ''
+        uses: sarisia/actions-status-discord@v1
+        with:
+          webhook: ${{ env.DISCORD_WEBHOOK }}
+          status: ${{ job.status }}
+          title: "Fantasy Server Prod CD"
+          description: |
+            Released `${{ steps.version.outputs.version }}` · by **${{ github.actor }}**
