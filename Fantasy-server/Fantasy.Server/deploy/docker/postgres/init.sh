@@ -1,0 +1,10 @@
+#!/bin/bash
+set -e
+
+database="${POSTGRES_DB:-fantasy}"
+
+psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$database" <<-EOSQL
+    CREATE SCHEMA IF NOT EXISTS account AUTHORIZATION "$POSTGRES_USER";
+    CREATE SCHEMA IF NOT EXISTS player AUTHORIZATION "$POSTGRES_USER";
+    CREATE SCHEMA IF NOT EXISTS game_data AUTHORIZATION "$POSTGRES_USER";
+EOSQL
