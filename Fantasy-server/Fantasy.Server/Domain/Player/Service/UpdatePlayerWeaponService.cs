@@ -29,11 +29,11 @@ public class UpdatePlayerWeaponService : IUpdatePlayerWeaponService
     {
         var accountId = _currentUserProvider.GetAccountId();
 
-        var player = await _playerRepository.FindByAccountAndJobAsync(accountId, request.JobType)
+        var player = await _playerRepository.FindByAccountAsync(accountId)
             ?? throw new NotFoundException("플레이어 데이터를 찾을 수 없습니다.");
 
         await _playerWeaponRepository.UpsertRangeAsync(player.Id, request.Weapons);
 
-        await _playerRedisRepository.DeleteAsync(accountId, request.JobType);
+        await _playerRedisRepository.DeleteAsync(accountId);
     }
 }

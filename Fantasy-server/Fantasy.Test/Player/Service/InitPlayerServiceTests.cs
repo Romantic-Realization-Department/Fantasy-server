@@ -7,6 +7,7 @@ using Fantasy.Server.Domain.Player.Service;
 using Fantasy.Server.Global.Infrastructure;
 using Fantasy.Server.Global.Security.Provider;
 using FluentAssertions;
+using Gamism.SDK.Extensions.AspNetCore.Exceptions;
 using NSubstitute;
 using Xunit;
 using PlayerEntity = Fantasy.Server.Domain.Player.Entity.Player;
@@ -35,7 +36,7 @@ public class InitPlayerServiceTests
         public 캐시가_있을_때()
         {
             _currentUserProvider.GetAccountId().Returns(1L);
-            _playerRedisRepository.GetPlayerDataAsync(1L, JobType.Warrior).Returns(_cached);
+            _playerRedisRepository.GetPlayerDataAsync(1L).Returns(_cached);
 
             _sut = new InitPlayerService(
                 _playerRepository,
@@ -62,7 +63,7 @@ public class InitPlayerServiceTests
         {
             await _sut.ExecuteAsync(_request);
 
-            await _playerRepository.DidNotReceive().FindByAccountAndJobAsync(Arg.Any<long>(), Arg.Any<JobType>());
+            await _playerRepository.DidNotReceive().FindByAccountAsync(Arg.Any<long>());
         }
 
         [Fact]
@@ -102,8 +103,8 @@ public class InitPlayerServiceTests
             _transactionRunner.ExecuteAsync(Arg.Any<Func<Task<(PlayerEntity Player, PlayerResource Resource, PlayerStage Stage, PlayerSession Session)>>>())
                 .Returns(callInfo => callInfo.Arg<Func<Task<(PlayerEntity, PlayerResource, PlayerStage, PlayerSession)>>>()());
             _currentUserProvider.GetAccountId().Returns(1L);
-            _playerRedisRepository.GetPlayerDataAsync(1L, JobType.Warrior).Returns((PlayerDataResponse?)null);
-            _playerRepository.FindByAccountAndJobAsync(1L, JobType.Warrior).Returns((PlayerEntity?)null);
+            _playerRedisRepository.GetPlayerDataAsync(1L).Returns((PlayerDataResponse?)null);
+            _playerRepository.FindByAccountAsync(1L).Returns((PlayerEntity?)null);
             _playerRepository.SaveAsync(Arg.Any<PlayerEntity>())
                 .Returns(callInfo => callInfo.Arg<PlayerEntity>());
             _playerResourceRepository.SaveAsync(Arg.Any<PlayerResourceEntity>())
@@ -182,7 +183,7 @@ public class InitPlayerServiceTests
             await _sut.ExecuteAsync(_request);
 
             await _playerRedisRepository.Received(1)
-                .SetPlayerDataAsync(1L, JobType.Warrior, Arg.Any<PlayerDataResponse>());
+                .SetPlayerDataAsync(1L, Arg.Any<PlayerDataResponse>());
         }
     }
 
@@ -203,8 +204,8 @@ public class InitPlayerServiceTests
         public 기존_플레이어일_때()
         {
             _currentUserProvider.GetAccountId().Returns(1L);
-            _playerRedisRepository.GetPlayerDataAsync(1L, JobType.Warrior).Returns((PlayerDataResponse?)null);
-            _playerRepository.FindByAccountAndJobAsync(1L, JobType.Warrior)
+            _playerRedisRepository.GetPlayerDataAsync(1L).Returns((PlayerDataResponse?)null);
+            _playerRepository.FindByAccountAsync(1L)
                 .Returns(PlayerEntity.Create(1L, JobType.Warrior));
             _playerResourceRepository.FindByPlayerIdAsync(Arg.Any<long>())
                 .Returns(PlayerResourceEntity.Create(1L));
@@ -267,7 +268,57 @@ public class InitPlayerServiceTests
             await _sut.ExecuteAsync(_request);
 
             await _playerRedisRepository.Received(1)
-                .SetPlayerDataAsync(1L, JobType.Warrior, Arg.Any<PlayerDataResponse>());
+                .SetPlayerDataAsync(1L, Arg.Any<PlayerDataResponse>());
+        }
+    }
+
+    public class 다른_직업으로_재초기화_요청할_때
+    {
+        private readonly IPlayerRepository _playerRepository = Substitute.For<IPlayerRepository>();
+        private readonly IPlayerResourceRepository _playerResourceRepository = Substitute.For<IPlayerResourceRepository>();
+        private readonly IPlayerStageRepository _playerStageRepository = Substitute.For<IPlayerStageRepository>();
+        private readonly IPlayerSessionRepository _playerSessionRepository = Substitute.For<IPlayerSessionRepository>();
+        private readonly IPlayerWeaponRepository _playerWeaponRepository = Substitute.For<IPlayerWeaponRepository>();
+        private readonly IPlayerSkillRepository _playerSkillRepository = Substitute.For<IPlayerSkillRepository>();
+        private readonly IPlayerRedisRepository _playerRedisRepository = Substitute.For<IPlayerRedisRepository>();
+        private readonly ICurrentUserProvider _currentUserProvider = Substitute.For<ICurrentUserProvider>();
+        private readonly IAppDbTransactionRunner _transactionRunner = Substitute.For<IAppDbTransactionRunner>();
+        private readonly InitPlayerService _sut;
+        private readonly InitPlayerRequest _request = new(JobType.Mage);
+
+        public 다른_직업으로_재초기화_요청할_때()
+        {
+            _currentUserProvider.GetAccountId().Returns(1L);
+            _playerRedisRepository.GetPlayerDataAsync(1L).Returns((PlayerDataResponse?)null);
+            _playerRepository.FindByAccountAsync(1L)
+                .Returns(PlayerEntity.Create(1L, JobType.Warrior));
+
+            _sut = new InitPlayerService(
+                _playerRepository,
+                _playerResourceRepository,
+                _playerStageRepository,
+                _playerSessionRepository,
+                _playerWeaponRepository,
+                _playerSkillRepository,
+                _playerRedisRepository,
+                _currentUserProvider,
+                _transactionRunner);
+        }
+
+        [Fact]
+        public async Task ConflictException이_발생한다()
+        {
+            Func<Task> act = () => _sut.ExecuteAsync(_request);
+
+            await act.Should().ThrowAsync<ConflictException>();
+        }
+
+        [Fact]
+        public async Task 새_플레이어가_저장되지_않는다()
+        {
+            await Assert.ThrowsAsync<ConflictException>(() => _sut.ExecuteAsync(_request));
+
+            await _playerRepository.DidNotReceive().SaveAsync(Arg.Any<PlayerEntity>());
         }
     }
 }

@@ -3,8 +3,6 @@ using Fantasy.Server.Domain.Dungeon.Service.Interface;
 using Fantasy.Server.Domain.GameData.Entity;
 using Fantasy.Server.Domain.GameData.Service.Interface;
 using Fantasy.Server.Domain.LevelUp.Service.Interface;
-using Fantasy.Server.Domain.Player.Entity;
-using Fantasy.Server.Domain.Player.Enum;
 using Fantasy.Server.Domain.Player.Repository.Interface;
 using Fantasy.Server.Global.Infrastructure;
 using Fantasy.Server.Global.Security.Provider;
@@ -57,11 +55,11 @@ public class BasicDungeonClaimService : IBasicDungeonClaimService
         _calculator = calculator;
     }
 
-    public async Task<BasicDungeonClaimResponse> ExecuteAsync(JobType jobType)
+    public async Task<BasicDungeonClaimResponse> ExecuteAsync()
     {
         var accountId = _currentUserProvider.GetAccountId();
 
-        var player = await _playerRepository.FindByAccountAndJobAsync(accountId, jobType)
+        var player = await _playerRepository.FindByAccountAsync(accountId)
             ?? throw new NotFoundException("플레이어 데이터를 찾을 수 없습니다.");
 
         var resource = await _playerResourceRepository.FindByPlayerIdAsync(player.Id)
@@ -110,7 +108,7 @@ public class BasicDungeonClaimService : IBasicDungeonClaimService
         var dps = _calculator.CalculateDps(combatStat);
 
         var (earnedGold, earnedXp, newMaxStage) = SimulateDungeon(
-            dps, combatStat.Hp, elapsedSeconds, stage.MaxStage, stageData);
+            dps, elapsedSeconds, stage.MaxStage, stageData);
 
         var levelUps = await _levelUpService.ExecuteAsync(player, resource, earnedXp);
         resource.UpdateGold(resource.Gold + earnedGold);
@@ -124,13 +122,13 @@ public class BasicDungeonClaimService : IBasicDungeonClaimService
             await _playerStageRepository.UpdateAsync(stage);
         });
 
-        await _playerRedisRepository.DeleteAsync(accountId, jobType);
+        await _playerRedisRepository.DeleteAsync(accountId);
 
         return new BasicDungeonClaimResponse(earnedGold, earnedXp, newMaxStage, player.Level, levelUps);
     }
 
     private static (long Gold, long Xp, long NewMaxStage) SimulateDungeon(
-        double dps, long hp, long elapsedSeconds, long currentMaxStage, StageData stageData)
+        double dps, long elapsedSeconds, long currentMaxStage, StageData stageData)
     {
         long earnedGold = 0;
         long earnedXp = 0;

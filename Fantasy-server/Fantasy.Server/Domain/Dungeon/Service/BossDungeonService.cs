@@ -5,7 +5,6 @@ using Fantasy.Server.Domain.GameData.Enum;
 using Fantasy.Server.Domain.GameData.Service.Interface;
 using Fantasy.Server.Domain.LevelUp.Service.Interface;
 using Fantasy.Server.Domain.Player.Dto.Request;
-using Fantasy.Server.Domain.Player.Enum;
 using Fantasy.Server.Domain.Player.Repository.Interface;
 using Fantasy.Server.Global.Infrastructure;
 using Fantasy.Server.Global.Security.Provider;
@@ -59,12 +58,14 @@ public class BossDungeonService : IBossDungeonService
         _calculator = calculator;
     }
 
-    public async Task<BossDungeonResponse> ExecuteAsync(JobType jobType)
+    public async Task<BossDungeonResponse> ExecuteAsync()
     {
         var accountId = _currentUserProvider.GetAccountId();
 
-        var player = await _playerRepository.FindByAccountAndJobAsync(accountId, jobType)
+        var player = await _playerRepository.FindByAccountAsync(accountId)
             ?? throw new NotFoundException("플레이어 데이터를 찾을 수 없습니다.");
+
+        var jobType = player.JobType;
 
         var resource = await _playerResourceRepository.FindByPlayerIdAsync(player.Id)
             ?? throw new NotFoundException("플레이어 재화 데이터를 찾을 수 없습니다.");
@@ -138,7 +139,7 @@ public class BossDungeonService : IBossDungeonService
                 await _playerWeaponRepository.UpsertRangeAsync(player.Id, weaponChanges);
         });
 
-        await _playerRedisRepository.DeleteAsync(accountId, jobType);
+        await _playerRedisRepository.DeleteAsync(accountId);
 
         return new BossDungeonResponse(true, BossMithrilReward, droppedWeapon, earnedXp, levelUps);
     }

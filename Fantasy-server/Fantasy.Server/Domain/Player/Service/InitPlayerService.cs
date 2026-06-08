@@ -48,11 +48,11 @@ public class InitPlayerService : IInitPlayerService
     {
         long accountId = _currentUserProvider.GetAccountId();
 
-        PlayerDataResponse? cached = await _playerRedisRepository.GetPlayerDataAsync(accountId, request.JobType);
+        PlayerDataResponse? cached = await _playerRedisRepository.GetPlayerDataAsync(accountId);
         if (cached != null)
             return (cached, false);
 
-        PlayerEntity? player = await _playerRepository.FindByAccountAndJobAsync(accountId, request.JobType);
+        PlayerEntity? player = await _playerRepository.FindByAccountAsync(accountId);
         if (player == null)
         {
             var created = await _transactionRunner.ExecuteAsync(async () =>
@@ -83,9 +83,12 @@ public class InitPlayerService : IInitPlayerService
                 createdWeapons,
                 createdSkills);
 
-            await _playerRedisRepository.SetPlayerDataAsync(accountId, request.JobType, createdResponse);
+            await _playerRedisRepository.SetPlayerDataAsync(accountId, createdResponse);
             return (createdResponse, true);
         }
+
+        if (player.JobType != request.JobType)
+            throw new ConflictException("이미 다른 직업의 플레이어가 존재합니다.");
 
         PlayerResource existingResource = await _playerResourceRepository.FindByPlayerIdAsync(player.Id)
             ?? throw new NotFoundException("플레이어 재화 데이터를 찾을 수 없습니다.");
@@ -105,7 +108,7 @@ public class InitPlayerService : IInitPlayerService
             weapons,
             skills);
 
-        await _playerRedisRepository.SetPlayerDataAsync(accountId, request.JobType, response);
+        await _playerRedisRepository.SetPlayerDataAsync(accountId, response);
         return (response, false);
     }
 

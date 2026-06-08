@@ -1,7 +1,6 @@
 using Fantasy.Server.Domain.Dungeon.Dto.Request;
 using Fantasy.Server.Domain.Dungeon.Dto.Response;
 using Fantasy.Server.Domain.Dungeon.Service.Interface;
-using Fantasy.Server.Domain.Player.Enum;
 using Fantasy.Server.Domain.Player.Repository.Interface;
 using Fantasy.Server.Global.Security.Provider;
 using Gamism.SDK.Extensions.AspNetCore.Exceptions;
@@ -31,14 +30,14 @@ public class GoldDungeonService : IGoldDungeonService
         _currentUserProvider = currentUserProvider;
     }
 
-    public async Task<GoldDungeonResponse> ExecuteAsync(JobType jobType, GoldDungeonRequest request)
+    public async Task<GoldDungeonResponse> ExecuteAsync(GoldDungeonRequest request)
     {
         if (request.Clicks > MaxClicksPerSecond * request.DurationSeconds)
             throw new BadRequestException("비정상적인 클릭 횟수입니다.");
 
         var accountId = _currentUserProvider.GetAccountId();
 
-        var player = await _playerRepository.FindByAccountAndJobAsync(accountId, jobType)
+        var player = await _playerRepository.FindByAccountAsync(accountId)
             ?? throw new NotFoundException("플레이어 데이터를 찾을 수 없습니다.");
 
         var resource = await _playerResourceRepository.FindByPlayerIdAsync(player.Id)
@@ -52,7 +51,7 @@ public class GoldDungeonService : IGoldDungeonService
             resource.UpdateChangeData(null, resource.Mithril + 1, null);
 
         await _playerResourceRepository.UpdateAsync(resource);
-        await _playerRedisRepository.DeleteAsync(accountId, jobType);
+        await _playerRedisRepository.DeleteAsync(accountId);
 
         return new GoldDungeonResponse(earnedGold, mithrilDropped);
     }

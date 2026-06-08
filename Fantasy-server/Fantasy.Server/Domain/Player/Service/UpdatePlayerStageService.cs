@@ -29,7 +29,7 @@ public class UpdatePlayerStageService : IUpdatePlayerStageService
     {
         var accountId = _currentUserProvider.GetAccountId();
 
-        var player = await _playerRepository.FindByAccountAndJobAsync(accountId, request.JobType)
+        var player = await _playerRepository.FindByAccountAsync(accountId)
             ?? throw new NotFoundException("플레이어 데이터를 찾을 수 없습니다.");
 
         var stage = await _playerStageRepository.FindByPlayerIdAsync(player.Id)
@@ -38,6 +38,6 @@ public class UpdatePlayerStageService : IUpdatePlayerStageService
         stage.Update(request.MaxStage);
         await _playerStageRepository.UpdateAsync(stage);
 
-        await _playerRedisRepository.DeleteAsync(accountId, request.JobType);
+        await _playerRedisRepository.DeleteAsync(accountId);
     }
 }

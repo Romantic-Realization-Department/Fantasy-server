@@ -4,7 +4,6 @@ using Fantasy.Server.Domain.GameData.Entity;
 using Fantasy.Server.Domain.GameData.Enum;
 using Fantasy.Server.Domain.GameData.Service.Interface;
 using Fantasy.Server.Domain.Player.Dto.Request;
-using Fantasy.Server.Domain.Player.Enum;
 using Fantasy.Server.Domain.Player.Repository.Interface;
 using Fantasy.Server.Global.Security.Provider;
 using Gamism.SDK.Extensions.AspNetCore.Exceptions;
@@ -52,12 +51,14 @@ public class WeaponDungeonService : IWeaponDungeonService
         _calculator = calculator;
     }
 
-    public async Task<WeaponDungeonResponse> ExecuteAsync(JobType jobType)
+    public async Task<WeaponDungeonResponse> ExecuteAsync()
     {
         var accountId = _currentUserProvider.GetAccountId();
 
-        var player = await _playerRepository.FindByAccountAndJobAsync(accountId, jobType)
+        var player = await _playerRepository.FindByAccountAsync(accountId)
             ?? throw new NotFoundException("플레이어 데이터를 찾을 수 없습니다.");
+
+        var jobType = player.JobType;
 
         var resource = await _playerResourceRepository.FindByPlayerIdAsync(player.Id)
             ?? throw new NotFoundException("플레이어 재화 데이터를 찾을 수 없습니다.");
@@ -152,7 +153,7 @@ public class WeaponDungeonService : IWeaponDungeonService
                 await _playerResourceRepository.UpdateAsync(resource);
             }
 
-            await _playerRedisRepository.DeleteAsync(accountId, jobType);
+            await _playerRedisRepository.DeleteAsync(accountId);
         }
 
         return new WeaponDungeonResponse(cleared, droppedWeapons, droppedScrolls);

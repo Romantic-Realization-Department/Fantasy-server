@@ -26,7 +26,7 @@ public class UpdatePlayerStageServiceTests
         public 정상_요청일_때()
         {
             _currentUserProvider.GetAccountId().Returns(1L);
-            _playerRepository.FindByAccountAndJobAsync(1L, JobType.Warrior)
+            _playerRepository.FindByAccountAsync(1L)
                 .Returns(PlayerEntity.Create(1L, JobType.Warrior));
             _playerStageRepository.FindByPlayerIdAsync(Arg.Any<long>())
                 .Returns(PlayerStage.Create(1L));
@@ -48,7 +48,7 @@ public class UpdatePlayerStageServiceTests
         {
             await _sut.ExecuteAsync(_request);
 
-            await _playerRedisRepository.Received(1).DeleteAsync(1L, JobType.Warrior);
+            await _playerRedisRepository.Received(1).DeleteAsync(1L);
         }
     }
 
@@ -63,7 +63,7 @@ public class UpdatePlayerStageServiceTests
         public 플레이어가_존재하지_않을_때()
         {
             _currentUserProvider.GetAccountId().Returns(1L);
-            _playerRepository.FindByAccountAndJobAsync(Arg.Any<long>(), Arg.Any<JobType>())
+            _playerRepository.FindByAccountAsync(Arg.Any<long>())
                 .Returns((PlayerEntity?)null);
 
             _sut = new UpdatePlayerStageService(
@@ -92,7 +92,7 @@ public class UpdatePlayerStageServiceTests
         public 스테이지_데이터가_존재하지_않을_때()
         {
             _currentUserProvider.GetAccountId().Returns(1L);
-            _playerRepository.FindByAccountAndJobAsync(1L, JobType.Warrior)
+            _playerRepository.FindByAccountAsync(1L)
                 .Returns(PlayerEntity.Create(1L, JobType.Warrior));
             _playerStageRepository.FindByPlayerIdAsync(Arg.Any<long>())
                 .Returns((PlayerStage?)null);
