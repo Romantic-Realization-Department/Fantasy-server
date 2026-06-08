@@ -37,7 +37,7 @@ public class PlayerConfig : IEntityTypeConfiguration<Player>
         builder.Property(p => p.UpdatedAt)
             .IsRequired();
 
-        builder.HasIndex(p => new { p.AccountId, p.JobType })
+        builder.HasIndex(p => p.AccountId)
             .IsUnique();
     }
 }

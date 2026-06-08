@@ -1,4 +1,3 @@
-using Fantasy.Server.Domain.Player.Enum;
 using Fantasy.Server.Domain.Player.Repository.Interface;
 using Fantasy.Server.Global.Infrastructure;
 using Microsoft.EntityFrameworkCore;
@@ -12,10 +11,10 @@ public class PlayerRepository : IPlayerRepository
 
     public PlayerRepository(AppDbContext db) => _db = db;
 
-    public async Task<PlayerEntity?> FindByAccountAndJobAsync(long accountId, JobType jobType)
+    public async Task<PlayerEntity?> FindByAccountAsync(long accountId)
         => await _db.Players
             .AsNoTracking()
-            .FirstOrDefaultAsync(p => p.AccountId == accountId && p.JobType == jobType);
+            .FirstOrDefaultAsync(p => p.AccountId == accountId);
 
     public async Task<PlayerEntity> SaveAsync(PlayerEntity player)
     {

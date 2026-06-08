@@ -1,6 +1,5 @@
 using System.Text.Json;
 using Fantasy.Server.Domain.Player.Dto.Response;
-using Fantasy.Server.Domain.Player.Enum;
 using Fantasy.Server.Domain.Player.Repository.Interface;
 using StackExchange.Redis;
 
@@ -17,25 +16,24 @@ public class PlayerRedisRepository : IPlayerRedisRepository
         _db = multiplexer.GetDatabase();
     }
 
-    private static string CacheKey(long accountId, JobType jobType) =>
-        $"{Prefix}{accountId}:{jobType}";
+    private static string CacheKey(long accountId) => $"{Prefix}{accountId}";
 
-    public async Task SetPlayerDataAsync(long accountId, JobType jobType, PlayerDataResponse data)
+    public async Task SetPlayerDataAsync(long accountId, PlayerDataResponse data)
     {
         var json = JsonSerializer.Serialize(data);
-        await _db.StringSetAsync(CacheKey(accountId, jobType), json, TimeSpan.FromMinutes(30));
+        await _db.StringSetAsync(CacheKey(accountId), json, TimeSpan.FromMinutes(30));
     }
 
-    public async Task<PlayerDataResponse?> GetPlayerDataAsync(long accountId, JobType jobType)
+    public async Task<PlayerDataResponse?> GetPlayerDataAsync(long accountId)
     {
-        var json = await _db.StringGetAsync(CacheKey(accountId, jobType));
+        var json = await _db.StringGetAsync(CacheKey(accountId));
         if (!json.HasValue)
             return null;
         return JsonSerializer.Deserialize<PlayerDataResponse>(json.ToString());
     }
 
-    public async Task DeleteAsync(long accountId, JobType jobType)
+    public async Task DeleteAsync(long accountId)
     {
-        await _db.KeyDeleteAsync(CacheKey(accountId, jobType));
+        await _db.KeyDeleteAsync(CacheKey(accountId));
     }
 }
