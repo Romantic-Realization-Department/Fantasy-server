@@ -61,12 +61,12 @@ public class BossDungeonServiceTests
         public async Task NotFoundException이_발생한다()
         {
             _currentUserProvider.GetAccountId().Returns(1L);
-            _playerRepository.FindByAccountAndJobAsync(Arg.Any<long>(), Arg.Any<JobType>())
+            _playerRepository.FindByAccountAsync(Arg.Any<long>())
                 .Returns((PlayerEntity?)null);
 
             var sut = BuildSut(playerRepo: _playerRepository, userProvider: _currentUserProvider);
 
-            var act = async () => await sut.ExecuteAsync(JobType.Warrior);
+            var act = async () => await sut.ExecuteAsync();
 
             await act.Should().ThrowAsync<NotFoundException>();
         }
@@ -86,7 +86,7 @@ public class BossDungeonServiceTests
         public 전투력이_부족해서_클리어_실패할_때()
         {
             _currentUserProvider.GetAccountId().Returns(1L);
-            _playerRepository.FindByAccountAndJobAsync(1L, JobType.Warrior)
+            _playerRepository.FindByAccountAsync(1L)
                 .Returns(PlayerEntity.Create(1L, JobType.Warrior)); // 레벨 1, 아무 장비 없음
             _playerResourceRepository.FindByPlayerIdAsync(Arg.Any<long>())
                 .Returns(PlayerResource.Create(1L));
@@ -118,7 +118,7 @@ public class BossDungeonServiceTests
                 cache: _gameDataCacheService,
                 userProvider: _currentUserProvider);
 
-            var result = await sut.ExecuteAsync(JobType.Warrior);
+            var result = await sut.ExecuteAsync();
 
             result.Cleared.Should().BeFalse();
         }
@@ -136,7 +136,7 @@ public class BossDungeonServiceTests
                 cache: _gameDataCacheService,
                 userProvider: _currentUserProvider);
 
-            var result = await sut.ExecuteAsync(JobType.Warrior);
+            var result = await sut.ExecuteAsync();
 
             result.EarnedMithril.Should().Be(0);
             result.DroppedWeapon.Should().BeNull();
@@ -160,7 +160,7 @@ public class BossDungeonServiceTests
         public 전투력이_충분해서_클리어_성공할_때()
         {
             _currentUserProvider.GetAccountId().Returns(1L);
-            _playerRepository.FindByAccountAndJobAsync(1L, JobType.Warrior)
+            _playerRepository.FindByAccountAsync(1L)
                 .Returns(PlayerEntity.Create(1L, JobType.Warrior));
             _playerResourceRepository.FindByPlayerIdAsync(Arg.Any<long>())
                 .Returns(PlayerResource.Create(1L));
@@ -201,7 +201,7 @@ public class BossDungeonServiceTests
                 txRunner: _transactionRunner,
                 userProvider: _currentUserProvider);
 
-            var result = await sut.ExecuteAsync(JobType.Warrior);
+            var result = await sut.ExecuteAsync();
 
             result.Cleared.Should().BeTrue();
         }
@@ -222,7 +222,7 @@ public class BossDungeonServiceTests
                 txRunner: _transactionRunner,
                 userProvider: _currentUserProvider);
 
-            var result = await sut.ExecuteAsync(JobType.Warrior);
+            var result = await sut.ExecuteAsync();
 
             result.EarnedMithril.Should().BeGreaterThan(0);
         }
@@ -243,9 +243,9 @@ public class BossDungeonServiceTests
                 txRunner: _transactionRunner,
                 userProvider: _currentUserProvider);
 
-            await sut.ExecuteAsync(JobType.Warrior);
+            await sut.ExecuteAsync();
 
-            await _playerRedisRepository.Received(1).DeleteAsync(1L, JobType.Warrior);
+            await _playerRedisRepository.Received(1).DeleteAsync(1L);
         }
     }
 
@@ -268,7 +268,7 @@ public class BossDungeonServiceTests
             // atk=100, critRate=0 → dps=100 → dps*30=3000
             // bossHp = monsterHp * 5 = 600 * 5 = 3000 → dps*30 == bossHp → 클리어
             _currentUserProvider.GetAccountId().Returns(1L);
-            _playerRepository.FindByAccountAndJobAsync(1L, JobType.Warrior)
+            _playerRepository.FindByAccountAsync(1L)
                 .Returns(PlayerEntity.Create(1L, JobType.Warrior));
             _playerResourceRepository.FindByPlayerIdAsync(Arg.Any<long>())
                 .Returns(PlayerResource.Create(1L));
@@ -307,7 +307,7 @@ public class BossDungeonServiceTests
                 txRunner: _transactionRunner,
                 userProvider: _currentUserProvider);
 
-            var result = await sut.ExecuteAsync(JobType.Warrior);
+            var result = await sut.ExecuteAsync();
 
             result.Cleared.Should().BeTrue();
         }

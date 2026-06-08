@@ -25,7 +25,7 @@ public class GoldDungeonServiceTests
         public 정상_요청일_때()
         {
             _currentUserProvider.GetAccountId().Returns(1L);
-            _playerRepository.FindByAccountAndJobAsync(1L, JobType.Warrior)
+            _playerRepository.FindByAccountAsync(1L)
                 .Returns(PlayerEntity.Create(1L, JobType.Warrior));
             _playerResourceRepository.FindByPlayerIdAsync(Arg.Any<long>())
                 .Returns(PlayerResource.Create(1L));
@@ -39,7 +39,7 @@ public class GoldDungeonServiceTests
         {
             var request = new GoldDungeonRequest(Clicks: 10, DurationSeconds: 30);
 
-            var result = await _sut.ExecuteAsync(JobType.Warrior, request);
+            var result = await _sut.ExecuteAsync(request);
 
             result.EarnedGold.Should().Be(10 * 10); // 10 clicks * GoldPerClick(10)
         }
@@ -49,7 +49,7 @@ public class GoldDungeonServiceTests
         {
             var request = new GoldDungeonRequest(Clicks: 10, DurationSeconds: 30);
 
-            await _sut.ExecuteAsync(JobType.Warrior, request);
+            await _sut.ExecuteAsync(request);
 
             await _playerResourceRepository.Received(1).UpdateAsync(Arg.Any<PlayerResource>());
         }
@@ -59,9 +59,9 @@ public class GoldDungeonServiceTests
         {
             var request = new GoldDungeonRequest(Clicks: 10, DurationSeconds: 30);
 
-            await _sut.ExecuteAsync(JobType.Warrior, request);
+            await _sut.ExecuteAsync(request);
 
-            await _playerRedisRepository.Received(1).DeleteAsync(1L, JobType.Warrior);
+            await _playerRedisRepository.Received(1).DeleteAsync(1L);
         }
     }
 
@@ -86,7 +86,7 @@ public class GoldDungeonServiceTests
             // MaxCPS = 15, DurationSeconds = 30 → 최대 클릭 = 450
             var request = new GoldDungeonRequest(Clicks: 451, DurationSeconds: 30);
 
-            var act = async () => await _sut.ExecuteAsync(JobType.Warrior, request);
+            var act = async () => await _sut.ExecuteAsync(request);
 
             await act.Should().ThrowAsync<BadRequestException>();
         }
@@ -96,7 +96,7 @@ public class GoldDungeonServiceTests
         {
             var request = new GoldDungeonRequest(Clicks: 1000, DurationSeconds: 30);
 
-            var act = () => _sut.ExecuteAsync(JobType.Warrior, request);
+            var act = () => _sut.ExecuteAsync(request);
 
             await act.Should().ThrowAsync<BadRequestException>();
             await _playerResourceRepository.DidNotReceive().UpdateAsync(Arg.Any<PlayerResource>());
@@ -114,7 +114,7 @@ public class GoldDungeonServiceTests
         public 플레이어가_없을_때()
         {
             _currentUserProvider.GetAccountId().Returns(1L);
-            _playerRepository.FindByAccountAndJobAsync(Arg.Any<long>(), Arg.Any<JobType>())
+            _playerRepository.FindByAccountAsync(Arg.Any<long>())
                 .Returns((PlayerEntity?)null);
 
             _sut = new GoldDungeonService(
@@ -126,7 +126,7 @@ public class GoldDungeonServiceTests
         {
             var request = new GoldDungeonRequest(Clicks: 10, DurationSeconds: 30);
 
-            var act = async () => await _sut.ExecuteAsync(JobType.Warrior, request);
+            var act = async () => await _sut.ExecuteAsync(request);
 
             await act.Should().ThrowAsync<NotFoundException>();
         }

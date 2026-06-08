@@ -32,7 +32,7 @@ public class EndPlayerSessionServiceTests
             _transactionRunner.ExecuteAsync(Arg.Any<Func<Task>>())
                 .Returns(callInfo => callInfo.Arg<Func<Task>>()());
             _currentUserProvider.GetAccountId().Returns(1L);
-            _playerRepository.FindByAccountAndJobAsync(1L, JobType.Warrior)
+            _playerRepository.FindByAccountAsync(1L)
                 .Returns(PlayerEntity.Create(1L, JobType.Warrior));
             _playerSessionRepository.FindByPlayerIdAsync(Arg.Any<long>())
                 .Returns(PlayerSession.Create(1L));
@@ -85,7 +85,7 @@ public class EndPlayerSessionServiceTests
         {
             await _sut.ExecuteAsync(_request);
 
-            await _playerRedisRepository.Received(1).DeleteAsync(1L, JobType.Warrior);
+            await _playerRedisRepository.Received(1).DeleteAsync(1L);
         }
     }
 
@@ -105,7 +105,7 @@ public class EndPlayerSessionServiceTests
             _transactionRunner.ExecuteAsync(Arg.Any<Func<Task>>())
                 .Returns(callInfo => callInfo.Arg<Func<Task>>()());
             _currentUserProvider.GetAccountId().Returns(2L);
-            _playerRepository.FindByAccountAndJobAsync(2L, JobType.Archer)
+            _playerRepository.FindByAccountAsync(2L)
                 .Returns(PlayerEntity.Create(2L, JobType.Archer));
             _playerSessionRepository.FindByPlayerIdAsync(Arg.Any<long>())
                 .Returns(PlayerSession.Create(2L));
@@ -148,7 +148,7 @@ public class EndPlayerSessionServiceTests
         {
             await _sut.ExecuteAsync(_request);
 
-            await _playerRedisRepository.Received(1).DeleteAsync(2L, JobType.Archer);
+            await _playerRedisRepository.Received(1).DeleteAsync(2L);
         }
     }
 
@@ -165,7 +165,7 @@ public class EndPlayerSessionServiceTests
         public 플레이어가_존재하지_않을_때()
         {
             _currentUserProvider.GetAccountId().Returns(99L);
-            _playerRepository.FindByAccountAndJobAsync(Arg.Any<long>(), Arg.Any<JobType>())
+            _playerRepository.FindByAccountAsync(Arg.Any<long>())
                 .Returns((PlayerEntity?)null);
 
             _sut = new EndPlayerSessionService(

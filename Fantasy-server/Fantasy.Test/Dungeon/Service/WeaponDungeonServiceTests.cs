@@ -55,12 +55,12 @@ public class WeaponDungeonServiceTests
         public async Task NotFoundException이_발생한다()
         {
             _currentUserProvider.GetAccountId().Returns(1L);
-            _playerRepository.FindByAccountAndJobAsync(Arg.Any<long>(), Arg.Any<JobType>())
+            _playerRepository.FindByAccountAsync(Arg.Any<long>())
                 .Returns((PlayerEntity?)null);
 
             var sut = BuildSut(playerRepo: _playerRepository, userProvider: _currentUserProvider);
 
-            var act = async () => await sut.ExecuteAsync(JobType.Warrior);
+            var act = async () => await sut.ExecuteAsync();
 
             await act.Should().ThrowAsync<NotFoundException>();
         }
@@ -81,7 +81,7 @@ public class WeaponDungeonServiceTests
         public 전투력이_부족해서_클리어_실패할_때()
         {
             _currentUserProvider.GetAccountId().Returns(1L);
-            _playerRepository.FindByAccountAndJobAsync(1L, JobType.Warrior)
+            _playerRepository.FindByAccountAsync(1L)
                 .Returns(PlayerEntity.Create(1L, JobType.Warrior)); // 레벨 1, 장비 없음
             _playerResourceRepository.FindByPlayerIdAsync(Arg.Any<long>())
                 .Returns(PlayerResource.Create(1L));
@@ -114,7 +114,7 @@ public class WeaponDungeonServiceTests
                 cache: _gameDataCacheService,
                 userProvider: _currentUserProvider);
 
-            var result = await sut.ExecuteAsync(JobType.Warrior);
+            var result = await sut.ExecuteAsync();
 
             result.Cleared.Should().BeFalse();
         }
@@ -133,7 +133,7 @@ public class WeaponDungeonServiceTests
                 cache: _gameDataCacheService,
                 userProvider: _currentUserProvider);
 
-            var result = await sut.ExecuteAsync(JobType.Warrior);
+            var result = await sut.ExecuteAsync();
 
             result.DroppedWeapons.Should().BeEmpty();
             result.DroppedScrolls.Should().Be(0);
@@ -153,9 +153,9 @@ public class WeaponDungeonServiceTests
                 cache: _gameDataCacheService,
                 userProvider: _currentUserProvider);
 
-            await sut.ExecuteAsync(JobType.Warrior);
+            await sut.ExecuteAsync();
 
-            await _playerRedisRepository.DidNotReceive().DeleteAsync(Arg.Any<long>(), Arg.Any<JobType>());
+            await _playerRedisRepository.DidNotReceive().DeleteAsync(Arg.Any<long>());
         }
     }
 
@@ -174,7 +174,7 @@ public class WeaponDungeonServiceTests
         public 전투력이_충분해서_클리어_성공할_때()
         {
             _currentUserProvider.GetAccountId().Returns(1L);
-            _playerRepository.FindByAccountAndJobAsync(1L, JobType.Warrior)
+            _playerRepository.FindByAccountAsync(1L)
                 .Returns(PlayerEntity.Create(1L, JobType.Warrior));
             _playerResourceRepository.FindByPlayerIdAsync(Arg.Any<long>())
                 .Returns(PlayerResource.Create(1L));
@@ -208,7 +208,7 @@ public class WeaponDungeonServiceTests
                 cache: _gameDataCacheService,
                 userProvider: _currentUserProvider);
 
-            var result = await sut.ExecuteAsync(JobType.Warrior);
+            var result = await sut.ExecuteAsync();
 
             result.Cleared.Should().BeTrue();
         }
@@ -230,7 +230,7 @@ public class WeaponDungeonServiceTests
         {
             // atk=100, critRate=0 → dps=100 → dps*30=3000 == monsterHp=3000 → 클리어
             _currentUserProvider.GetAccountId().Returns(1L);
-            _playerRepository.FindByAccountAndJobAsync(1L, JobType.Warrior)
+            _playerRepository.FindByAccountAsync(1L)
                 .Returns(PlayerEntity.Create(1L, JobType.Warrior));
             _playerResourceRepository.FindByPlayerIdAsync(Arg.Any<long>())
                 .Returns(PlayerResource.Create(1L));
@@ -263,7 +263,7 @@ public class WeaponDungeonServiceTests
                 cache: _gameDataCacheService,
                 userProvider: _currentUserProvider);
 
-            var result = await sut.ExecuteAsync(JobType.Warrior);
+            var result = await sut.ExecuteAsync();
 
             result.Cleared.Should().BeTrue();
         }

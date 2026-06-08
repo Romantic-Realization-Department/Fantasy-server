@@ -25,7 +25,7 @@ public class UpdatePlayerResourceServiceTests
         public 정상_요청일_때()
         {
             _currentUserProvider.GetAccountId().Returns(1L);
-            _playerRepository.FindByAccountAndJobAsync(1L, JobType.Warrior)
+            _playerRepository.FindByAccountAsync(1L)
                 .Returns(PlayerEntity.Create(1L, JobType.Warrior));
             _playerResourceRepository.FindByPlayerIdAsync(Arg.Any<long>())
                 .Returns(PlayerResourceEntity.Create(1L));
@@ -61,7 +61,7 @@ public class UpdatePlayerResourceServiceTests
 
             await _sut.ExecuteAsync(request);
 
-            await _playerRedisRepository.Received(1).DeleteAsync(1L, JobType.Warrior);
+            await _playerRedisRepository.Received(1).DeleteAsync(1L);
         }
     }
 
@@ -76,7 +76,7 @@ public class UpdatePlayerResourceServiceTests
         public 플레이어가_존재하지_않을_때()
         {
             _currentUserProvider.GetAccountId().Returns(1L);
-            _playerRepository.FindByAccountAndJobAsync(Arg.Any<long>(), Arg.Any<JobType>())
+            _playerRepository.FindByAccountAsync(Arg.Any<long>())
                 .Returns((PlayerEntity?)null);
 
             _sut = new UpdatePlayerResourceService(

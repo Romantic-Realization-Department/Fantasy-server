@@ -60,12 +60,12 @@ public class BasicDungeonClaimServiceTests
         public async Task NotFoundException이_발생한다()
         {
             _currentUserProvider.GetAccountId().Returns(1L);
-            _playerRepository.FindByAccountAndJobAsync(Arg.Any<long>(), Arg.Any<JobType>())
+            _playerRepository.FindByAccountAsync(Arg.Any<long>())
                 .Returns((PlayerEntity?)null);
 
             var sut = BuildSut(playerRepo: _playerRepository, userProvider: _currentUserProvider);
 
-            var act = async () => await sut.ExecuteAsync(JobType.Warrior);
+            var act = async () => await sut.ExecuteAsync();
 
             await act.Should().ThrowAsync<NotFoundException>();
         }
@@ -84,7 +84,7 @@ public class BasicDungeonClaimServiceTests
         public 경과_시간이_0일_때()
         {
             _currentUserProvider.GetAccountId().Returns(1L);
-            _playerRepository.FindByAccountAndJobAsync(1L, JobType.Warrior)
+            _playerRepository.FindByAccountAsync(1L)
                 .Returns(PlayerEntity.Create(1L, JobType.Warrior));
             _playerResourceRepository.FindByPlayerIdAsync(Arg.Any<long>())
                 .Returns(PlayerResource.Create(1L));
@@ -109,7 +109,7 @@ public class BasicDungeonClaimServiceTests
                 skillRepo: _playerSkillRepository,
                 userProvider: _currentUserProvider);
 
-            var result = await sut.ExecuteAsync(JobType.Warrior);
+            var result = await sut.ExecuteAsync();
 
             result.EarnedGold.Should().Be(0);
             result.EarnedXp.Should().Be(0);
@@ -133,7 +133,7 @@ public class BasicDungeonClaimServiceTests
         public 오프라인_시간이_있을_때()
         {
             _currentUserProvider.GetAccountId().Returns(1L);
-            _playerRepository.FindByAccountAndJobAsync(1L, JobType.Warrior)
+            _playerRepository.FindByAccountAsync(1L)
                 .Returns(PlayerEntity.Create(1L, JobType.Warrior));
             _playerResourceRepository.FindByPlayerIdAsync(Arg.Any<long>())
                 .Returns(PlayerResource.Create(1L));
@@ -172,7 +172,7 @@ public class BasicDungeonClaimServiceTests
                 txRunner: _transactionRunner,
                 userProvider: _currentUserProvider);
 
-            var result = await sut.ExecuteAsync(JobType.Warrior);
+            var result = await sut.ExecuteAsync();
 
             result.EarnedGold.Should().BeGreaterThan(0);
             result.EarnedXp.Should().BeGreaterThan(0);
@@ -194,10 +194,10 @@ public class BasicDungeonClaimServiceTests
                 txRunner: _transactionRunner,
                 userProvider: _currentUserProvider);
 
-            await sut.ExecuteAsync(JobType.Warrior);
+            await sut.ExecuteAsync();
 
             await _transactionRunner.Received(1).ExecuteAsync(Arg.Any<Func<Task>>());
-            await _playerRedisRepository.Received(1).DeleteAsync(1L, JobType.Warrior);
+            await _playerRedisRepository.Received(1).DeleteAsync(1L);
         }
     }
 }
