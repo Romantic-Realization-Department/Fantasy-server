@@ -10,7 +10,6 @@ namespace Fantasy.Server.Domain.Player.Service;
 public class EndPlayerSessionService : IEndPlayerSessionService
 {
     private readonly IPlayerRepository _playerRepository;
-    private readonly IPlayerResourceRepository _playerResourceRepository;
     private readonly IPlayerSessionRepository _playerSessionRepository;
     private readonly IPlayerRedisRepository _playerRedisRepository;
     private readonly ICurrentUserProvider _currentUserProvider;
@@ -18,14 +17,12 @@ public class EndPlayerSessionService : IEndPlayerSessionService
 
     public EndPlayerSessionService(
         IPlayerRepository playerRepository,
-        IPlayerResourceRepository playerResourceRepository,
         IPlayerSessionRepository playerSessionRepository,
         IPlayerRedisRepository playerRedisRepository,
         ICurrentUserProvider currentUserProvider,
         IAppDbTransactionRunner transactionRunner)
     {
         _playerRepository = playerRepository;
-        _playerResourceRepository = playerResourceRepository;
         _playerSessionRepository = playerSessionRepository;
         _playerRedisRepository = playerRedisRepository;
         _currentUserProvider = currentUserProvider;
@@ -46,20 +43,6 @@ public class EndPlayerSessionService : IEndPlayerSessionService
         {
             session.Update(request.LastWeaponId, request.ActiveSkills);
             await _playerSessionRepository.UpdateAsync(session);
-
-            if (request.Exp.HasValue)
-            {
-                player.UpdateExp(request.Exp.Value);
-                await _playerRepository.UpdateAsync(player);
-            }
-
-            if (request.Gold.HasValue)
-            {
-                var resource = await _playerResourceRepository.FindByPlayerIdAsync(player.Id)
-                    ?? throw new NotFoundException("플레이어 재화 데이터를 찾을 수 없습니다.");
-                resource.UpdateGold(request.Gold.Value);
-                await _playerResourceRepository.UpdateAsync(resource);
-            }
         });
 
         await _playerRedisRepository.DeleteAsync(accountId);

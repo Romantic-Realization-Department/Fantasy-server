@@ -19,11 +19,6 @@ public static class PlayerServiceConfig
 
         services.AddScoped<IInitPlayerService, InitPlayerService>();
         services.AddScoped<IEndPlayerSessionService, EndPlayerSessionService>();
-        services.AddScoped<IUpdatePlayerLevelService, UpdatePlayerLevelService>();
-        services.AddScoped<IUpdatePlayerStageService, UpdatePlayerStageService>();
-        services.AddScoped<IUpdatePlayerResourceService, UpdatePlayerResourceService>();
-        services.AddScoped<IUpdatePlayerWeaponService, UpdatePlayerWeaponService>();
-        services.AddScoped<IUpdatePlayerSkillService, UpdatePlayerSkillService>();
 
         return services;
     }
