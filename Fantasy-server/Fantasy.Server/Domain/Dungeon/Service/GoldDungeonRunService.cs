@@ -69,7 +69,7 @@ public class GoldDungeonRunService : IGoldDungeonRunService
         var weapons = await _playerWeaponRepository.FindAllByPlayerIdAsync(player.Id);
         var skills = await _playerSkillRepository.FindAllByPlayerIdAsync(player.Id);
 
-        var ticket = await GetOrCreateTicketWithLazyGrantAsync(accountId);
+        var (ticket, isNew) = await GetOrCreateTicketWithLazyGrantAsync(accountId);
 
         if (ticket.TicketCount <= 0)
             throw new BadRequestException("골드 던전 티켓이 부족합니다.");
@@ -80,7 +80,11 @@ public class GoldDungeonRunService : IGoldDungeonRunService
 
         await _transactionRunner.ExecuteAsync(async () =>
         {
-            await _accountDungeonTicketRepository.UpdateAsync(ticket);
+            if (isNew)
+                await _accountDungeonTicketRepository.SaveAsync(ticket);
+            else
+                await _accountDungeonTicketRepository.UpdateAsync(ticket);
+
             await _goldDungeonRunRepository.SaveAsync(run);
         });
 
@@ -96,7 +100,7 @@ public class GoldDungeonRunService : IGoldDungeonRunService
         );
     }
 
-    private async Task<AccountDungeonTicket> GetOrCreateTicketWithLazyGrantAsync(long accountId)
+    private async Task<(AccountDungeonTicket Ticket, bool IsNew)> GetOrCreateTicketWithLazyGrantAsync(long accountId)
     {
         var todayKst = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(9));
         var ticket = await _accountDungeonTicketRepository.FindByAccountIdAsync(accountId);
@@ -104,16 +108,14 @@ public class GoldDungeonRunService : IGoldDungeonRunService
         if (ticket is null)
         {
             ticket = AccountDungeonTicket.Create(accountId, todayKst);
-            await _accountDungeonTicketRepository.SaveAsync(ticket);
-            return ticket;
+            return (ticket, true);
         }
 
         if (ticket.LastDailyGrantDate < todayKst)
         {
             ticket.GrantDaily(todayKst);
-            await _accountDungeonTicketRepository.UpdateAsync(ticket);
         }
 
-        return ticket;
+        return (ticket, false);
     }
 }
