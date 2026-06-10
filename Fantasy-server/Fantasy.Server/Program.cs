@@ -5,8 +5,10 @@ using Fantasy.Server.Domain.GameData.Config;
 using Fantasy.Server.Domain.LevelUp.Config;
 using Fantasy.Server.Domain.Player.Config;
 using Fantasy.Server.Global.Config;
+using Fantasy.Server.Global.Infrastructure;
 using Fantasy.Server.Global.Security.Config;
 using Gamism.SDK.Extensions.AspNetCore;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -33,6 +35,12 @@ builder.Services.AddLevelUpServices();
 builder.Services.AddDungeonServices();
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    await db.Database.MigrateAsync();
+}
 
 app.UseGamismSdk();
 app.UseRateLimiter();
