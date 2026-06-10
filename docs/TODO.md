@@ -27,26 +27,26 @@
 - ~~**[BLOCKER]** 현재 DB unique index는 `(AccountId, JobType)`라서 같은 계정이 여러 직업을 만들 수 있다. → *마이그레이션 및 시드* 섹션 및 구현 순서 1단계에서 해결~~
 - ~~**[HIGH]** 현재 Redis 플레이어 캐시도 `accountId + jobType` 키라서 단일 플레이어 정책과 맞지 않는다. → *계정과 직업 모델* 섹션 및 구현 순서 1단계에서 해결~~
 - ~~**[HIGH]** 기존 `PATCH /v1/player/*` 삭제는 controller만 지우면 끝나지 않는다. request DTO, service, interface, tests, DI 등록까지 같이 정리해야 한다. → *삭제 또는 교체할 API* 섹션 및 구현 순서 2단계에서 해결~~
-- **[HIGH]** `POST /v1/dungeons/basic/claim`을 기본 던전 정산으로 유지하면서 `GET /v1/dungeons/basic/state`를 추가하면, 클라이언트가 어떤 주기로 state와 claim을 호출해야 하는지 계약이 필요하다. → *기본 던전* 섹션 및 구현 순서 5단계에서 해결
-- **[HIGH]** `POST /v1/player/loadout`에서 방치 보상 정산과 loadout 저장이 같은 트랜잭션이어야 하는데, unit-of-work 경계 정리 전에는 정산 성공 후 loadout 저장 실패 시 보상이 누락될 수 있다. → 구현 순서 6단계에서 해결 *(누락)*
-- **[HIGH]** 일일 골드 던전 티켓 지급 책임자가 불명확하다. `last_daily_grant_date`를 갱신하는 주체가 cron인지 lazy grant(다음 API 호출 시 자동 지급)인지 결정하지 않으면 구현이 분산된다. → 구현 순서 7단계에서 결정 *(누락)*
-- **[HIGH]** 골드 던전 run/claim은 `Random.Shared`를 그대로 쓰면 테스트가 불안정하고 재시도 멱등 응답 재현이 어렵다. → *골드 던전* 섹션 및 구현 순서 7단계에서 해결
-- **[HIGH]** Redis 캐시 삭제 실패 정책이 없으면 DB는 갱신됐는데 클라이언트는 오래된 `PlayerDataResponse`를 받을 수 있다. → *동시성 및 트랜잭션* 섹션 및 구현 순서 9단계에서 해결
-- **[MEDIUM]** 공통 응답의 `changes` 예시가 아직 티켓, 스테이지, 장착 변경, run 정보를 담지 못한다. → *응답 계약* 섹션 및 구현 순서 3단계에서 해결
-- **[MEDIUM]** 모든 상태변경 API가 전체 `PlayerDataResponse`를 반환하면 무기·스킬이 쌓일수록 응답이 과도하게 커진다. payload 크기 상한을 3단계 DTO 설계 시 함께 결정해야 한다. → 구현 순서 3단계에서 결정 *(누락)*
-- **[MEDIUM]** rate limit이 전역 fixed window면 한 유저의 던전 연타가 다른 유저에게 영향을 줄 수 있다. → *보안 및 남용 방지* 섹션 및 구현 순서 9단계에서 해결
+- ~~**[HIGH]** `POST /v1/dungeons/basic/claim`을 기본 던전 정산으로 유지하면서 `GET /v1/dungeons/basic/state`를 추가하면, 클라이언트가 어떤 주기로 state와 claim을 호출해야 하는지 계약이 필요하다. → *기본 던전* 섹션 및 구현 순서 5단계에서 해결~~
+- ~~**[HIGH]** `POST /v1/player/loadout`에서 방치 보상 정산과 loadout 저장이 같은 트랜잭션이어야 하는데, unit-of-work 경계 정리 전에는 정산 성공 후 loadout 저장 실패 시 보상이 누락될 수 있다. → 구현 순서 6단계에서 해결 *(누락)*~~
+- ~~**[HIGH]** 일일 골드 던전 티켓 지급 책임자가 불명확하다. `last_daily_grant_date`를 갱신하는 주체가 cron인지 lazy grant(다음 API 호출 시 자동 지급)인지 결정하지 않으면 구현이 분산된다. → 구현 순서 7단계에서 결정 *(누락)*~~
+- ~~**[HIGH]** 골드 던전 run/claim은 `Random.Shared`를 그대로 쓰면 테스트가 불안정하고 재시도 멱등 응답 재현이 어렵다. → *골드 던전* 섹션 및 구현 순서 7단계에서 해결~~
+- ~~**[HIGH]** Redis 캐시 삭제 실패 정책이 없으면 DB는 갱신됐는데 클라이언트는 오래된 `PlayerDataResponse`를 받을 수 있다. → *동시성 및 트랜잭션* 섹션 및 구현 순서 9단계에서 해결~~
+- ~~**[MEDIUM]** 공통 응답의 `changes` 예시가 아직 티켓, 스테이지, 장착 변경, run 정보를 담지 못한다. → *응답 계약* 섹션 및 구현 순서 3단계에서 해결~~
+- ~~**[MEDIUM]** 모든 상태변경 API가 전체 `PlayerDataResponse`를 반환하면 무기·스킬이 쌓일수록 응답이 과도하게 커진다. payload 크기 상한을 3단계 DTO 설계 시 함께 결정해야 한다. → 구현 순서 3단계에서 결정 *(누락)*~~
+- ~~**[MEDIUM]** rate limit이 전역 fixed window면 한 유저의 던전 연타가 다른 유저에게 영향을 줄 수 있다. → *보안 및 남용 방지* 섹션 및 구현 순서 9단계에서 해결~~
 
 추천 구현 순서:
 
 1. ~~계정당 단일 플레이어 모델 전환 — `FindByAccountAsync` 교체, Redis 캐시 키 단순화, `players.account_id` unique constraint 추가, 다른 jobType init 409 처리~~
 2. ~~PATCH 클라이언트 쓰기 API 전부 삭제 — `PATCH /v1/player/level|resource|weapon|skill|stage` 5개 및 관련 DTO, Service, Interface, DI 등록, 테스트 함께 정리~~
-3. `ChangesDto` 공통 DTO 정의 — `changes` + `player` 구조, API별 타입 응답으로 기존 던전 응답 교체. `PlayerDataResponse` payload 크기 상한도 이 시점에 결정한다.
-4. DB 마이그레이션 — `account_dungeon_ticket`, `gold_dungeon_run` 테이블 추가
-5. 기본 던전 API 리팩터 — 라우트 `/dungeon` → `/dungeons` 복수화, 응답 `StateChangeResponse`로 교체, `GET /v1/dungeons/basic/state` 추가
-6. Loadout + 스킬 해금 — `POST /v1/player/loadout` (변경 전 방치 보상 먼저 정산), `POST /v1/player/skill/unlock`. 방치 보상 정산과 loadout 저장을 하나의 트랜잭션으로 묶는다.
-7. 골드 던전 run/claim 구조로 재작성 — `POST /v1/dungeons/gold-runs`, `POST /v1/dungeons/gold-runs/{runId}/claim` (멱등), 티켓 시스템, `IRandomProvider` 추상화. 일일 티켓 지급을 lazy grant로 구현할지 cron으로 구현할지 이 단계에서 결정한다.
-8. 게임 데이터 조회 API — `GET /v1/jobs/{jobType}/skills|weapons`, `GET /v1/levels`, `GET /v1/stages`
-9. 동시성, rate limit, 캐시 실패 정책 — optimistic concurrency (`xmin`), account ID 기준 rate limit partition, Redis 삭제 실패 재시도, unit-of-work 경계 정리
+3. ~~`ChangesDto` 공통 DTO 정의 — `changes` + `player` 구조, API별 타입 응답으로 기존 던전 응답 교체. `PlayerDataResponse` payload 크기 상한도 이 시점에 결정한다.~~
+4. ~~DB 마이그레이션 — `account_dungeon_ticket`, `gold_dungeon_run` 테이블 추가~~
+5. ~~기본 던전 API 리팩터 — 라우트 `/dungeon` → `/dungeons` 복수화, 응답 `StateChangeResponse`로 교체, `GET /v1/dungeons/basic/state` 추가~~
+6. ~~Loadout + 스킬 해금 — `POST /v1/player/loadout` (변경 전 방치 보상 먼저 정산), `POST /v1/player/skill/unlock`. 방치 보상 정산과 loadout 저장을 하나의 트랜잭션으로 묶는다.~~
+7. ~~골드 던전 run/claim 구조로 재작성 — `POST /v1/dungeons/gold-runs`, `POST /v1/dungeons/gold-runs/{runId}/claim` (멱등), 티켓 시스템, `IRandomProvider` 추상화. 일일 티켓 지급을 lazy grant로 구현할지 cron으로 구현할지 이 단계에서 결정한다.~~
+8. ~~게임 데이터 조회 API — `GET /v1/jobs/{jobType}/skills|weapons`, `GET /v1/levels`, `GET /v1/stages`~~
+9. ~~동시성, rate limit, 캐시 실패 정책 — optimistic concurrency (`xmin`), account ID 기준 rate limit partition, Redis 삭제 실패 재시도, unit-of-work 경계 정리~~
 
 ### 계정과 직업 모델
 
@@ -388,9 +388,9 @@ public record SkillUnlockResponse(bool WasAlreadyUnlocked, ChangesDto Changes, P
 - 방치 보상 0초, 음수 시간, 8시간 초과, 레벨업 포함 정산 테스트
 - 기본 던전 state가 서버 시간, 전투력, 초당 보상, 정예 웨이브 기준을 반환하는지 테스트
 - loadout 변경 전에 미정산 보상이 이전 장착 상태 기준으로 지급되는지 테스트
-- 스킬 해금 성공, SP 부족, 선행 스킬 부족, 중복 해금, 타 직업 스킬 거부 테스트
-- 골드 던전 시작 시 티켓 차감, 티켓 부족, 일일 지급, 광고 보상 1일 1회 테스트
-- 골드 던전 claim 소유자 불일치, 클릭 상한 초과, 만료, 중복 claim 테스트
+- ~~스킬 해금 성공, SP 부족, 선행 스킬 부족, 중복 해금, 타 직업 스킬 거부 테스트~~
+- ~~골드 던전 시작 시 티켓 차감, 티켓 부족, 일일 지급, 광고 보상 1일 1회 테스트~~
+- ~~골드 던전 claim 소유자 불일치, 클릭 상한 초과, 만료, 중복 claim 테스트~~
 - 동시 claim/동시 보상 정산에서 재화가 중복 지급되지 않는지 통합 테스트
 - Redis 캐시 hit/miss와 캐시 DTO 역직렬화 테스트
 
@@ -398,7 +398,7 @@ public record SkillUnlockResponse(bool WasAlreadyUnlocked, ChangesDto Changes, P
 
 1. ~~클라이언트가 핵심 성장 값을 직접 쓰는 API 제거~~
 2. ~~게임 데이터 Redis 캐시의 private setter JSON 역직렬화 문제 수정~~
-3. 재화/보상 갱신의 read-modify-write 동시성 문제 해결
-4. 회원 삭제 시 플레이어 데이터와 refresh token 정리
-5. rate limit을 전역이 아니라 IP 또는 account 기준으로 partition
-6. 배포 DB migration 및 seed 경로 추가
+3. ~~재화/보상 갱신의 read-modify-write 동시성 문제 해결~~
+4. ~~회원 삭제 시 플레이어 데이터와 refresh token 정리~~
+5. ~~rate limit을 전역이 아니라 IP 또는 account 기준으로 partition~~
+6. ~~배포 DB migration 및 seed 경로 추가~~
