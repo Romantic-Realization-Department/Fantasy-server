@@ -207,4 +207,60 @@ public class GoldDungeonClaimServiceTest
             await _redisRepository.Received(1).SetPlayerDataAsync(1L, Arg.Any<PlayerDataResponse>());
         }
     }
+
+    public class 동시_claim으로_저장_트랜잭션이_충돌할_때
+    {
+        private readonly IPlayerRepository _playerRepository = Substitute.For<IPlayerRepository>();
+        private readonly IPlayerResourceRepository _resourceRepository = Substitute.For<IPlayerResourceRepository>();
+        private readonly IPlayerStageRepository _stageRepository = Substitute.For<IPlayerStageRepository>();
+        private readonly IPlayerSessionRepository _sessionRepository = Substitute.For<IPlayerSessionRepository>();
+        private readonly IPlayerWeaponRepository _weaponRepository = Substitute.For<IPlayerWeaponRepository>();
+        private readonly IPlayerSkillRepository _skillRepository = Substitute.For<IPlayerSkillRepository>();
+        private readonly IPlayerRedisRepository _redisRepository = Substitute.For<IPlayerRedisRepository>();
+        private readonly IGoldDungeonRunRepository _runRepository = Substitute.For<IGoldDungeonRunRepository>();
+        private readonly IRandomProvider _randomProvider = Substitute.For<IRandomProvider>();
+        private readonly IAppDbTransactionRunner _txRunner = Substitute.For<IAppDbTransactionRunner>();
+        private readonly ICurrentUserProvider _currentUserProvider = Substitute.For<ICurrentUserProvider>();
+        private readonly GoldDungeonRun _run;
+
+        public 동시_claim으로_저장_트랜잭션이_충돌할_때()
+        {
+            _currentUserProvider.GetAccountId().Returns(1L);
+            _run = GoldDungeonRun.Create(accountId: 1L, durationSeconds: 30, maxClicksPerSecond: 15);
+            _runRepository.FindByIdAsync(_run.Id).Returns(_run);
+            _randomProvider.Next(0, 100).Returns(50);
+            SetupPlayerData(_playerRepository, _resourceRepository, _stageRepository,
+                _sessionRepository, _weaponRepository, _skillRepository);
+            // xmin 충돌 → AppDbTransactionRunner가 ConflictException으로 변환한 상황
+            _txRunner.When(x => x.ExecuteAsync(Arg.Any<Func<Task>>()))
+                .Do(_ => throw new ConflictException("동시 요청으로 인해 충돌이 발생했습니다."));
+        }
+
+        private GoldDungeonClaimService BuildConflictSut() => BuildSut(
+            playerRepo: _playerRepository, resourceRepo: _resourceRepository,
+            stageRepo: _stageRepository, sessionRepo: _sessionRepository,
+            weaponRepo: _weaponRepository, skillRepo: _skillRepository,
+            redisRepo: _redisRepository, runRepo: _runRepository,
+            randomProvider: _randomProvider, txRunner: _txRunner, userProvider: _currentUserProvider);
+
+        [Fact]
+        public async Task ConflictException이_전파된다()
+        {
+            var sut = BuildConflictSut();
+
+            await ((Func<Task>)(() => sut.ExecuteAsync(_run.Id, new GoldDungeonClaimRequest(100)))).Should()
+                .ThrowAsync<ConflictException>();
+        }
+
+        [Fact]
+        public async Task 캐시가_갱신되지_않아_보상이_중복되지_않는다()
+        {
+            var sut = BuildConflictSut();
+
+            await ((Func<Task>)(() => sut.ExecuteAsync(_run.Id, new GoldDungeonClaimRequest(100)))).Should()
+                .ThrowAsync<ConflictException>();
+
+            await _redisRepository.DidNotReceive().SetPlayerDataAsync(Arg.Any<long>(), Arg.Any<PlayerDataResponse>());
+        }
+    }
 }

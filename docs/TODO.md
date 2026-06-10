@@ -391,7 +391,7 @@ public record SkillUnlockResponse(bool WasAlreadyUnlocked, ChangesDto Changes, P
 - ~~스킬 해금 성공, SP 부족, 선행 스킬 부족, 중복 해금, 타 직업 스킬 거부 테스트~~
 - ~~골드 던전 시작 시 티켓 차감, 티켓 부족, 일일 지급, 광고 보상 1일 1회 테스트~~
 - ~~골드 던전 claim 소유자 불일치, 클릭 상한 초과, 만료, 중복 claim 테스트~~
-- 동시 claim/동시 보상 정산에서 재화가 중복 지급되지 않는지 통합 테스트
+- ~~동시 claim/동시 보상 정산에서 재화가 중복 지급되지 않는지 통합 테스트~~ → *`GoldDungeonClaimServiceTest` / `BasicDungeonClaimServiceTests`의 충돌 시 캐시 미갱신 검증. xmin→ConflictException 변환 자체는 Postgres 전용이라 단위 테스트에서 미재현*
 - ~~Redis 캐시 hit/miss와 캐시 DTO 역직렬화 테스트~~
 
 ### 기존 Findings 후속 작업

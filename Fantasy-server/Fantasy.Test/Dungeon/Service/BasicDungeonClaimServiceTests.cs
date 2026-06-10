@@ -155,4 +155,59 @@ public class BasicDungeonClaimServiceTests
             await _redisRepository.Received(1).SetPlayerDataAsync(1L, Arg.Any<PlayerDataResponse>());
         }
     }
+
+    public class 동시_요청으로_저장_트랜잭션이_충돌할_때
+    {
+        private readonly IPlayerRepository _playerRepository = Substitute.For<IPlayerRepository>();
+        private readonly IPlayerResourceRepository _resourceRepository = Substitute.For<IPlayerResourceRepository>();
+        private readonly IPlayerStageRepository _stageRepository = Substitute.For<IPlayerStageRepository>();
+        private readonly IPlayerSessionRepository _sessionRepository = Substitute.For<IPlayerSessionRepository>();
+        private readonly IPlayerWeaponRepository _weaponRepository = Substitute.For<IPlayerWeaponRepository>();
+        private readonly IPlayerSkillRepository _skillRepository = Substitute.For<IPlayerSkillRepository>();
+        private readonly IPlayerRedisRepository _redisRepository = Substitute.For<IPlayerRedisRepository>();
+        private readonly IIdleRewardSettler _settler = Substitute.For<IIdleRewardSettler>();
+        private readonly IAppDbTransactionRunner _txRunner = Substitute.For<IAppDbTransactionRunner>();
+        private readonly ICurrentUserProvider _currentUserProvider = Substitute.For<ICurrentUserProvider>();
+
+        public 동시_요청으로_저장_트랜잭션이_충돌할_때()
+        {
+            _currentUserProvider.GetAccountId().Returns(1L);
+            _playerRepository.FindByAccountAsync(1L).Returns(PlayerEntity.Create(1L, JobType.Warrior));
+            _resourceRepository.FindByPlayerIdAsync(Arg.Any<long>()).Returns(PlayerResource.Create(1L));
+            _stageRepository.FindByPlayerIdAsync(Arg.Any<long>()).Returns(PlayerStage.Create(1L));
+            _sessionRepository.FindByPlayerIdAsync(Arg.Any<long>()).Returns(PlayerSession.Create(1L));
+            _weaponRepository.FindAllByPlayerIdAsync(Arg.Any<long>()).Returns([]);
+            _skillRepository.FindAllByPlayerIdAsync(Arg.Any<long>()).Returns([]);
+            _settler.SettleAsync(
+                    Arg.Any<PlayerEntity>(), Arg.Any<PlayerResource>(), Arg.Any<PlayerStage>(),
+                    Arg.Any<PlayerSession>(), Arg.Any<List<PlayerWeapon>>(), Arg.Any<List<PlayerSkill>>())
+                .Returns(new IdleRewardResult(3600L, 1800L, 2L, []));
+            // xmin 충돌 → AppDbTransactionRunner가 ConflictException으로 변환한 상황
+            _txRunner.When(x => x.ExecuteAsync(Arg.Any<Func<Task>>()))
+                .Do(_ => throw new ConflictException("동시 요청으로 인해 충돌이 발생했습니다."));
+        }
+
+        private BasicDungeonClaimService BuildConflictSut() => new(
+            _playerRepository, _resourceRepository, _stageRepository, _sessionRepository,
+            _weaponRepository, _skillRepository, _redisRepository, _settler,
+            _txRunner, _currentUserProvider);
+
+        [Fact]
+        public async Task ConflictException이_전파된다()
+        {
+            var sut = BuildConflictSut();
+
+            await ((Func<Task>)(() => sut.ExecuteAsync())).Should().ThrowAsync<ConflictException>();
+        }
+
+        [Fact]
+        public async Task 캐시가_갱신되지_않아_보상이_중복되지_않는다()
+        {
+            var sut = BuildConflictSut();
+
+            await ((Func<Task>)(() => sut.ExecuteAsync())).Should().ThrowAsync<ConflictException>();
+
+            await _redisRepository.DidNotReceive().SetPlayerDataAsync(Arg.Any<long>(), Arg.Any<PlayerDataResponse>());
+        }
+    }
 }
