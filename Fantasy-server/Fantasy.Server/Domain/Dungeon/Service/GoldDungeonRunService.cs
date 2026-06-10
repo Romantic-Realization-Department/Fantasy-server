@@ -1,4 +1,6 @@
 using Fantasy.Server.Domain.Dungeon.Dto.Response;
+using Fantasy.Server.Domain.Dungeon.Entity;
+using Fantasy.Server.Domain.Dungeon.Repository.Interface;
 using Fantasy.Server.Domain.Dungeon.Service.Interface;
 using Fantasy.Server.Domain.Player.Dto.Response;
 using Fantasy.Server.Domain.Player.Repository.Interface;
@@ -8,28 +10,31 @@ using Gamism.SDK.Extensions.AspNetCore.Exceptions;
 
 namespace Fantasy.Server.Domain.Dungeon.Service;
 
-public class BasicDungeonClaimService : IBasicDungeonClaimService
+public class GoldDungeonRunService : IGoldDungeonRunService
 {
+    private const int DurationSeconds = 30;
+    private const int MaxClicksPerSecond = 15;
+
     private readonly IPlayerRepository _playerRepository;
     private readonly IPlayerResourceRepository _playerResourceRepository;
     private readonly IPlayerStageRepository _playerStageRepository;
     private readonly IPlayerSessionRepository _playerSessionRepository;
     private readonly IPlayerWeaponRepository _playerWeaponRepository;
     private readonly IPlayerSkillRepository _playerSkillRepository;
-    private readonly IPlayerRedisRepository _playerRedisRepository;
-    private readonly IIdleRewardSettler _idleRewardSettler;
+    private readonly IAccountDungeonTicketRepository _accountDungeonTicketRepository;
+    private readonly IGoldDungeonRunRepository _goldDungeonRunRepository;
     private readonly IAppDbTransactionRunner _transactionRunner;
     private readonly ICurrentUserProvider _currentUserProvider;
 
-    public BasicDungeonClaimService(
+    public GoldDungeonRunService(
         IPlayerRepository playerRepository,
         IPlayerResourceRepository playerResourceRepository,
         IPlayerStageRepository playerStageRepository,
         IPlayerSessionRepository playerSessionRepository,
         IPlayerWeaponRepository playerWeaponRepository,
         IPlayerSkillRepository playerSkillRepository,
-        IPlayerRedisRepository playerRedisRepository,
-        IIdleRewardSettler idleRewardSettler,
+        IAccountDungeonTicketRepository accountDungeonTicketRepository,
+        IGoldDungeonRunRepository goldDungeonRunRepository,
         IAppDbTransactionRunner transactionRunner,
         ICurrentUserProvider currentUserProvider)
     {
@@ -39,13 +44,13 @@ public class BasicDungeonClaimService : IBasicDungeonClaimService
         _playerSessionRepository = playerSessionRepository;
         _playerWeaponRepository = playerWeaponRepository;
         _playerSkillRepository = playerSkillRepository;
-        _playerRedisRepository = playerRedisRepository;
-        _idleRewardSettler = idleRewardSettler;
+        _accountDungeonTicketRepository = accountDungeonTicketRepository;
+        _goldDungeonRunRepository = goldDungeonRunRepository;
         _transactionRunner = transactionRunner;
         _currentUserProvider = currentUserProvider;
     }
 
-    public async Task<BasicDungeonClaimResponse> ExecuteAsync()
+    public async Task<StartGoldDungeonResponse> ExecuteAsync()
     {
         var accountId = _currentUserProvider.GetAccountId();
 
@@ -64,31 +69,51 @@ public class BasicDungeonClaimService : IBasicDungeonClaimService
         var weapons = await _playerWeaponRepository.FindAllByPlayerIdAsync(player.Id);
         var skills = await _playerSkillRepository.FindAllByPlayerIdAsync(player.Id);
 
-        var reward = await _idleRewardSettler.SettleAsync(player, resource, stage, session, weapons, skills);
+        var ticket = await GetOrCreateTicketWithLazyGrantAsync(accountId);
+
+        if (ticket.TicketCount <= 0)
+            throw new BadRequestException("골드 던전 티켓이 부족합니다.");
+
+        ticket.Consume();
+
+        var run = GoldDungeonRun.Create(accountId, DurationSeconds, MaxClicksPerSecond);
 
         await _transactionRunner.ExecuteAsync(async () =>
         {
-            await _playerRepository.UpdateAsync(player);
-            await _playerResourceRepository.UpdateAsync(resource);
-            await _playerStageRepository.UpdateAsync(stage);
+            await _accountDungeonTicketRepository.UpdateAsync(ticket);
+            await _goldDungeonRunRepository.SaveAsync(run);
         });
 
         var playerResponse = PlayerDataResponseBuilder.Build(player, resource, stage, session, weapons, skills);
-        await _playerRedisRepository.SetPlayerDataAsync(accountId, playerResponse);
 
-        var changes = new ChangesDto(
-            Gold: reward.EarnedGold,
-            Exp: reward.EarnedXp,
-            Sp: reward.LevelUps.Sum(l => l.EarnedSp),
-            Mithril: 0,
-            EnhancementScroll: 0,
-            DungeonTickets: 0,
-            LevelUps: reward.LevelUps.Select(l => l.NewLevel).ToList(),
-            UnlockedSkillIds: [],
-            AcquiredWeaponIds: [],
-            MaxStage: reward.NewMaxStage
+        return new StartGoldDungeonResponse(
+            RunId: run.Id,
+            StartedAt: run.StartedAt,
+            DurationSeconds: run.DurationSeconds,
+            ExpiresAt: run.ExpiresAt,
+            MaxClicks: run.MaxClicks,
+            Player: playerResponse
         );
+    }
 
-        return new BasicDungeonClaimResponse(changes, playerResponse);
+    private async Task<AccountDungeonTicket> GetOrCreateTicketWithLazyGrantAsync(long accountId)
+    {
+        var todayKst = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(9));
+        var ticket = await _accountDungeonTicketRepository.FindByAccountIdAsync(accountId);
+
+        if (ticket is null)
+        {
+            ticket = AccountDungeonTicket.Create(accountId, todayKst);
+            await _accountDungeonTicketRepository.SaveAsync(ticket);
+            return ticket;
+        }
+
+        if (ticket.LastDailyGrantDate < todayKst)
+        {
+            ticket.GrantDaily(todayKst);
+            await _accountDungeonTicketRepository.UpdateAsync(ticket);
+        }
+
+        return ticket;
     }
 }

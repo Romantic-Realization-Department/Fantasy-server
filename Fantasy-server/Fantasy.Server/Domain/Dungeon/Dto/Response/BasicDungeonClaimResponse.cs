@@ -1,11 +1,5 @@
-using Fantasy.Server.Domain.LevelUp.Dto.Response;
+using Fantasy.Server.Domain.Player.Dto.Response;
 
 namespace Fantasy.Server.Domain.Dungeon.Dto.Response;
 
-public record BasicDungeonClaimResponse(
-    long EarnedGold,
-    long EarnedXp,
-    long NewMaxStage,
-    long NewLevel,
-    List<LevelUpResult> LevelUps
-);
+public record BasicDungeonClaimResponse(ChangesDto Changes, PlayerDataResponse Player);
