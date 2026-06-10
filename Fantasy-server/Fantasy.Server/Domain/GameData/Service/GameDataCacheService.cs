@@ -75,6 +75,9 @@ public class GameDataCacheService : IGameDataCacheService
         return all.FirstOrDefault(s => s.Stage == stage);
     }
 
+    public async Task<List<StageData>> GetAllStageDataAsync()
+        => await GetAllStageDatasAsync();
+
     public async Task<JobBaseStat?> GetJobBaseStatAsync(JobType jobType)
     {
         var all = await GetAllJobBaseStatsAsync();
