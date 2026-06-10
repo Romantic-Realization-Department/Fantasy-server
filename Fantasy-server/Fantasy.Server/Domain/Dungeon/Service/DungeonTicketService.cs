@@ -33,12 +33,12 @@ public class DungeonTicketService : IDungeonTicketService
         if (ticket is null)
         {
             ticket = AccountDungeonTicket.Create(accountId, todayKst);
-            await _accountDungeonTicketRepository.SaveAsync(ticket);
+            await _transactionRunner.ExecuteAsync(async () => await _accountDungeonTicketRepository.SaveAsync(ticket));
         }
         else if (ticket.LastDailyGrantDate < todayKst)
         {
             ticket.GrantDaily(todayKst);
-            await _accountDungeonTicketRepository.UpdateAsync(ticket);
+            await _transactionRunner.ExecuteAsync(async () => await _accountDungeonTicketRepository.UpdateAsync(ticket));
         }
 
         return new DungeonTicketResponse(ticket.TicketCount, ticket.LastDailyGrantDate, ticket.DailyAdRewardClaimedDate);

@@ -14,11 +14,20 @@ public class DungeonTicketServiceTest
     private static DungeonTicketService BuildSut(
         IAccountDungeonTicketRepository? ticketRepo = null,
         IAppDbTransactionRunner? txRunner = null,
-        ICurrentUserProvider? userProvider = null) =>
-        new(
+        ICurrentUserProvider? userProvider = null)
+    {
+        if (txRunner is null)
+        {
+            txRunner = Substitute.For<IAppDbTransactionRunner>();
+            txRunner.ExecuteAsync(Arg.Any<Func<Task>>())
+                .Returns(callInfo => callInfo.Arg<Func<Task>>()());
+        }
+
+        return new(
             ticketRepo ?? Substitute.For<IAccountDungeonTicketRepository>(),
-            txRunner ?? Substitute.For<IAppDbTransactionRunner>(),
+            txRunner,
             userProvider ?? Substitute.For<ICurrentUserProvider>());
+    }
 
     public class 티켓_레코드가_없을_때
     {
