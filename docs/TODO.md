@@ -384,7 +384,7 @@ public record SkillUnlockResponse(bool WasAlreadyUnlocked, ChangesDto Changes, P
 - ~~계정당 플레이어 1개만 생성되는지, 다른 직업 재초기화가 409로 거부되는지 테스트~~
 - ~~`IPlayerRepository`가 `jobType` 없이 계정 플레이어를 찾는지 테스트~~
 - ~~Redis 플레이어 캐시 키가 `accountId` 기준으로 바뀌었는지 테스트~~
-- 삭제된 `PATCH /v1/player/*` 라우트가 더 이상 노출되지 않는지 controller/route 테스트
+- ~~삭제된 `PATCH /v1/player/*` 라우트가 더 이상 노출되지 않는지 controller/route 테스트~~ → *`PlayerControllerRouteTests` (리플렉션 기반)*
 - ~~방치 보상 0초, 음수 시간, 8시간 초과, 레벨업 포함 정산 테스트~~
 - ~~기본 던전 state가 서버 시간, 전투력, 초당 보상, 정예 웨이브 기준을 반환하는지 테스트~~
 - ~~loadout 변경 전에 미정산 보상이 이전 장착 상태 기준으로 지급되는지 테스트~~
