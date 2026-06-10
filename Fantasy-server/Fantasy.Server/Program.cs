@@ -2,6 +2,7 @@ using Fantasy.Server.Domain.Account.Config;
 using Fantasy.Server.Domain.Auth.Config;
 using Fantasy.Server.Domain.Dungeon.Config;
 using Fantasy.Server.Domain.GameData.Config;
+using Fantasy.Server.Domain.GameData.Seed;
 using Fantasy.Server.Domain.LevelUp.Config;
 using Fantasy.Server.Domain.Player.Config;
 using Fantasy.Server.Global.Config;
@@ -36,10 +37,12 @@ builder.Services.AddDungeonServices();
 
 var app = builder.Build();
 
-using (var scope = app.Services.CreateScope())
+await using (var scope = app.Services.CreateAsyncScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger(nameof(GameDataSeeder));
     await db.Database.MigrateAsync();
+    await GameDataSeeder.SeedAsync(db, logger);
 }
 
 app.UseGamismSdk();

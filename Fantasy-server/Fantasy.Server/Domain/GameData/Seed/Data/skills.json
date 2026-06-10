@@ -1,0 +1,13 @@
+[
+  { "skillId": 101, "jobType": "Warrior", "isActive": true,  "spCost": 1, "prereqSkillId": null, "effectType": "AtkFlat",    "effectValue": 20 },
+  { "skillId": 102, "jobType": "Warrior", "isActive": true,  "spCost": 2, "prereqSkillId": 101,  "effectType": "AtkPercent", "effectValue": 0.1 },
+  { "skillId": 103, "jobType": "Warrior", "isActive": false, "spCost": 2, "prereqSkillId": 101,  "effectType": "HpPercent",  "effectValue": 0.15 },
+
+  { "skillId": 201, "jobType": "Archer", "isActive": true,  "spCost": 1, "prereqSkillId": null, "effectType": "AtkFlat",  "effectValue": 25 },
+  { "skillId": 202, "jobType": "Archer", "isActive": true,  "spCost": 2, "prereqSkillId": 201,  "effectType": "CritRate", "effectValue": 0.05 },
+  { "skillId": 203, "jobType": "Archer", "isActive": false, "spCost": 2, "prereqSkillId": 201,  "effectType": "CritDmg",  "effectValue": 0.2 },
+
+  { "skillId": 301, "jobType": "Mage", "isActive": true,  "spCost": 1, "prereqSkillId": null, "effectType": "AtkFlat",        "effectValue": 30 },
+  { "skillId": 302, "jobType": "Mage", "isActive": true,  "spCost": 2, "prereqSkillId": 301,  "effectType": "AtkPercent",     "effectValue": 0.12 },
+  { "skillId": 303, "jobType": "Mage", "isActive": false, "spCost": 3, "prereqSkillId": 302,  "effectType": "ElementalBoost", "effectValue": 0.25 }
+]

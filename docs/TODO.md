@@ -373,9 +373,9 @@ public record SkillUnlockResponse(bool WasAlreadyUnlocked, ChangesDto Changes, P
 - `players.account_id` unique constraint 추가
 - `players`의 기존 `(account_id, job_type)` unique index 제거
 - `account_dungeon_ticket`, `gold_dungeon_run` 테이블 migration 추가
-- 게임 데이터 조회 API에서 필요한 표시 필드가 부족하면 `SkillData`, `WeaponData`에 이름/설명 필드 추가 여부 결정
-- seed 경로를 배포 이미지에서 실행 가능한 방식으로 정리
-- seed 데이터 중 스킬 선행 관계가 순환하지 않는지 검증 테스트 추가
+- ~~게임 데이터 조회 API에서 필요한 표시 필드가 부족하면 `SkillData`, `WeaponData`에 이름/설명 필드 추가 여부 결정~~ → *추가하지 않음으로 결정 (클라이언트가 표시 텍스트 보유)*
+- ~~seed 경로를 배포 이미지에서 실행 가능한 방식으로 정리~~ → *임베디드 JSON + `GameDataSeeder`로 구성, `docs/game-data-seeding.md` 참고*
+- ~~seed 데이터 중 스킬 선행 관계가 순환하지 않는지 검증 테스트 추가~~ → *`SkillSeedDataTests`*
 - KST 일일 보상 판정을 위해 저장 컬럼 타입을 `date`로 둘지 UTC timestamp로 둘지 확정
 - 추천 답: 판정 기준 날짜는 `LocalDate` 의미의 `date` 컬럼으로 저장하고, 계산은 서버에서 `Asia/Seoul` 기준으로 수행한다.
 
