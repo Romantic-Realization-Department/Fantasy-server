@@ -385,14 +385,14 @@ public record SkillUnlockResponse(bool WasAlreadyUnlocked, ChangesDto Changes, P
 - ~~`IPlayerRepository`가 `jobType` 없이 계정 플레이어를 찾는지 테스트~~
 - ~~Redis 플레이어 캐시 키가 `accountId` 기준으로 바뀌었는지 테스트~~
 - 삭제된 `PATCH /v1/player/*` 라우트가 더 이상 노출되지 않는지 controller/route 테스트
-- 방치 보상 0초, 음수 시간, 8시간 초과, 레벨업 포함 정산 테스트
-- 기본 던전 state가 서버 시간, 전투력, 초당 보상, 정예 웨이브 기준을 반환하는지 테스트
-- loadout 변경 전에 미정산 보상이 이전 장착 상태 기준으로 지급되는지 테스트
+- ~~방치 보상 0초, 음수 시간, 8시간 초과, 레벨업 포함 정산 테스트~~
+- ~~기본 던전 state가 서버 시간, 전투력, 초당 보상, 정예 웨이브 기준을 반환하는지 테스트~~
+- ~~loadout 변경 전에 미정산 보상이 이전 장착 상태 기준으로 지급되는지 테스트~~
 - ~~스킬 해금 성공, SP 부족, 선행 스킬 부족, 중복 해금, 타 직업 스킬 거부 테스트~~
 - ~~골드 던전 시작 시 티켓 차감, 티켓 부족, 일일 지급, 광고 보상 1일 1회 테스트~~
 - ~~골드 던전 claim 소유자 불일치, 클릭 상한 초과, 만료, 중복 claim 테스트~~
 - 동시 claim/동시 보상 정산에서 재화가 중복 지급되지 않는지 통합 테스트
-- Redis 캐시 hit/miss와 캐시 DTO 역직렬화 테스트
+- ~~Redis 캐시 hit/miss와 캐시 DTO 역직렬화 테스트~~
 
 ### 기존 Findings 후속 작업
 
