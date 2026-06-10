@@ -1,4 +1,5 @@
 using Fantasy.Server.Domain.Account.Entity;
+using Fantasy.Server.Domain.Dungeon.Entity;
 using Fantasy.Server.Domain.GameData.Entity;
 using Fantasy.Server.Domain.Player.Entity;
 using Microsoft.EntityFrameworkCore;
@@ -19,6 +20,9 @@ public class AppDbContext : DbContext
     public DbSet<PlayerSession> PlayerSessions => Set<PlayerSession>();
     public DbSet<PlayerWeapon> PlayerWeapons => Set<PlayerWeapon>();
     public DbSet<PlayerSkill> PlayerSkills => Set<PlayerSkill>();
+
+    public DbSet<AccountDungeonTicket> AccountDungeonTickets => Set<AccountDungeonTicket>();
+    public DbSet<GoldDungeonRun> GoldDungeonRuns => Set<GoldDungeonRun>();
 
     public DbSet<LevelTable> LevelTables => Set<LevelTable>();
     public DbSet<WeaponData> WeaponDatas => Set<WeaponData>();
