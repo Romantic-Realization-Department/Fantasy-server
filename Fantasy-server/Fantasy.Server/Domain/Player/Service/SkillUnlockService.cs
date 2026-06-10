@@ -92,10 +92,9 @@ public class SkillUnlockService : ISkillUnlockService
 
         existingResource.UpdateChangeData(null, null, existingResource.Sp - skillData.SpCost);
 
-        await _playerSkillRepository.UnlockAsync(player.Id, request.SkillId);
-
         await _transactionRunner.ExecuteAsync(async () =>
         {
+            await _playerSkillRepository.UnlockAsync(player.Id, request.SkillId);
             await _playerRepository.UpdateAsync(player);
             await _playerResourceRepository.UpdateAsync(existingResource);
         });
