@@ -119,18 +119,5 @@ public class InitPlayerService : IInitPlayerService
         PlayerSession session,
         List<Entity.PlayerWeapon> weapons,
         List<Entity.PlayerSkill> skills) =>
-        new(
-            player.JobType,
-            player.Level,
-            stage.MaxStage,
-            session.LastWeaponId,
-            session.ActiveSkills,
-            resource.Gold,
-            player.Exp,
-            resource.EnhancementScroll,
-            resource.Mithril,
-            resource.Sp,
-            weapons.Select(w => new WeaponInfoResponse(w.WeaponId, w.Count, w.EnhancementLevel, w.AwakeningCount)).ToList(),
-            skills.Select(s => new SkillInfoResponse(s.SkillId, s.IsUnlocked)).ToList()
-        );
+        PlayerDataResponseBuilder.Build(player, resource, stage, session, weapons, skills);
 }

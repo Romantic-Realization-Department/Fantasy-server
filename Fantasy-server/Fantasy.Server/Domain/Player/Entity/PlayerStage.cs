@@ -26,8 +26,8 @@ public class PlayerStage
         MaxStage = maxStage;
     }
 
-    public void UpdateLastCalculatedAt()
+    public void UpdateLastCalculatedAt(DateTime calculatedAt)
     {
-        LastCalculatedAt = DateTime.UtcNow;
+        LastCalculatedAt = calculatedAt;
     }
 }

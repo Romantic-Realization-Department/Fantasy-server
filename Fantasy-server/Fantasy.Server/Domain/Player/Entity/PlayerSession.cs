@@ -16,7 +16,7 @@ public class PlayerSession
         UpdatedAt = DateTime.UtcNow
     };
 
-    public void Update(int lastWeaponId, int[] activeSkills)
+    public void Update(int? lastWeaponId, int[] activeSkills)
     {
         LastWeaponId = lastWeaponId;
         ActiveSkills = activeSkills;

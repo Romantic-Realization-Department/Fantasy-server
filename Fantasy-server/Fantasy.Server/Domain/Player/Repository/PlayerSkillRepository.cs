@@ -18,6 +18,29 @@ public class PlayerSkillRepository : IPlayerSkillRepository
             .Where(skill => skill.PlayerId == playerId)
             .ToListAsync();
 
+    public async Task<PlayerSkill?> FindByPlayerIdAndSkillIdAsync(long playerId, int skillId)
+        => await _db.PlayerSkills
+            .AsNoTracking()
+            .FirstOrDefaultAsync(skill => skill.PlayerId == playerId && skill.SkillId == skillId);
+
+    public async Task UnlockAsync(long playerId, int skillId)
+    {
+        PlayerSkill? existing = await _db.PlayerSkills
+            .FirstOrDefaultAsync(skill => skill.PlayerId == playerId && skill.SkillId == skillId);
+
+        if (existing != null)
+        {
+            existing.Update(true);
+            _db.PlayerSkills.Update(existing);
+        }
+        else
+        {
+            await _db.PlayerSkills.AddAsync(PlayerSkill.Create(playerId, skillId, true));
+        }
+
+        await _db.SaveChangesAsync();
+    }
+
     public async Task UpsertRangeAsync(long playerId, List<SkillChangeItem> items)
     {
         List<SkillChangeItem> normalizedItems = items
