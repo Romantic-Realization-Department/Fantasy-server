@@ -23,7 +23,7 @@ public class EndPlayerSessionServiceTests
         private readonly ICurrentUserProvider _currentUserProvider = Substitute.For<ICurrentUserProvider>();
         private readonly IAppDbTransactionRunner _transactionRunner = Substitute.For<IAppDbTransactionRunner>();
         private readonly EndPlayerSessionService _sut;
-        private readonly EndPlayerSessionRequest _request = new(JobType.Warrior, 1, [1, 2]);
+        private readonly EndPlayerSessionRequest _request = new(1, [1, 2]);
 
         public 정상_요청일_때()
         {
@@ -94,7 +94,7 @@ public class EndPlayerSessionServiceTests
         [Fact]
         public async Task NotFoundException이_발생한다()
         {
-            var request = new EndPlayerSessionRequest(JobType.Mage, 1, []);
+            var request = new EndPlayerSessionRequest(1, []);
 
             var act = async () => await _sut.ExecuteAsync(request);
 
