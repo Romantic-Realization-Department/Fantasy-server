@@ -1,8 +1,7 @@
+using Fantasy.Server.Domain.Dungeon.Dto.Response;
 using Fantasy.Server.Domain.Dungeon.Service;
 using Fantasy.Server.Domain.Dungeon.Service.Interface;
-using Fantasy.Server.Domain.GameData.Entity;
-using Fantasy.Server.Domain.GameData.Service.Interface;
-using Fantasy.Server.Domain.LevelUp.Service.Interface;
+using Fantasy.Server.Domain.Player.Dto.Response;
 using Fantasy.Server.Domain.Player.Entity;
 using Fantasy.Server.Domain.Player.Enum;
 using Fantasy.Server.Domain.Player.Repository.Interface;
@@ -26,30 +25,20 @@ public class BasicDungeonClaimServiceTests
         IPlayerWeaponRepository? weaponRepo = null,
         IPlayerSkillRepository? skillRepo = null,
         IPlayerRedisRepository? redisRepo = null,
-        IGameDataCacheService? cache = null,
-        ILevelUpService? levelUpService = null,
+        IIdleRewardSettler? settler = null,
         IAppDbTransactionRunner? txRunner = null,
-        ICurrentUserProvider? userProvider = null,
-        ICombatStatCalculator? calculator = null)
-    {
-        playerRepo ??= Substitute.For<IPlayerRepository>();
-        resourceRepo ??= Substitute.For<IPlayerResourceRepository>();
-        stageRepo ??= Substitute.For<IPlayerStageRepository>();
-        sessionRepo ??= Substitute.For<IPlayerSessionRepository>();
-        weaponRepo ??= Substitute.For<IPlayerWeaponRepository>();
-        skillRepo ??= Substitute.For<IPlayerSkillRepository>();
-        redisRepo ??= Substitute.For<IPlayerRedisRepository>();
-        cache ??= Substitute.For<IGameDataCacheService>();
-        levelUpService ??= Substitute.For<ILevelUpService>();
-        txRunner ??= Substitute.For<IAppDbTransactionRunner>();
-        userProvider ??= Substitute.For<ICurrentUserProvider>();
-        calculator ??= new CombatStatCalculator();
-
-        return new BasicDungeonClaimService(
-            playerRepo, resourceRepo, stageRepo, sessionRepo,
-            weaponRepo, skillRepo, redisRepo, cache,
-            levelUpService, txRunner, userProvider, calculator);
-    }
+        ICurrentUserProvider? userProvider = null) =>
+        new(
+            playerRepo ?? Substitute.For<IPlayerRepository>(),
+            resourceRepo ?? Substitute.For<IPlayerResourceRepository>(),
+            stageRepo ?? Substitute.For<IPlayerStageRepository>(),
+            sessionRepo ?? Substitute.For<IPlayerSessionRepository>(),
+            weaponRepo ?? Substitute.For<IPlayerWeaponRepository>(),
+            skillRepo ?? Substitute.For<IPlayerSkillRepository>(),
+            redisRepo ?? Substitute.For<IPlayerRedisRepository>(),
+            settler ?? Substitute.For<IIdleRewardSettler>(),
+            txRunner ?? Substitute.For<IAppDbTransactionRunner>(),
+            userProvider ?? Substitute.For<ICurrentUserProvider>());
 
     public class 플레이어가_없을_때
     {
@@ -60,144 +49,165 @@ public class BasicDungeonClaimServiceTests
         public async Task NotFoundException이_발생한다()
         {
             _currentUserProvider.GetAccountId().Returns(1L);
-            _playerRepository.FindByAccountAsync(Arg.Any<long>())
-                .Returns((PlayerEntity?)null);
+            _playerRepository.FindByAccountAsync(Arg.Any<long>()).Returns((PlayerEntity?)null);
 
             var sut = BuildSut(playerRepo: _playerRepository, userProvider: _currentUserProvider);
 
-            var act = async () => await sut.ExecuteAsync();
-
-            await act.Should().ThrowAsync<NotFoundException>();
+            await ((Func<Task>)(() => sut.ExecuteAsync())).Should().ThrowAsync<NotFoundException>();
         }
     }
 
-    public class 경과_시간이_0일_때
+    public class 방치_보상이_0일_때
     {
         private readonly IPlayerRepository _playerRepository = Substitute.For<IPlayerRepository>();
-        private readonly IPlayerResourceRepository _playerResourceRepository = Substitute.For<IPlayerResourceRepository>();
-        private readonly IPlayerStageRepository _playerStageRepository = Substitute.For<IPlayerStageRepository>();
-        private readonly IPlayerSessionRepository _playerSessionRepository = Substitute.For<IPlayerSessionRepository>();
-        private readonly IPlayerWeaponRepository _playerWeaponRepository = Substitute.For<IPlayerWeaponRepository>();
-        private readonly IPlayerSkillRepository _playerSkillRepository = Substitute.For<IPlayerSkillRepository>();
+        private readonly IPlayerResourceRepository _resourceRepository = Substitute.For<IPlayerResourceRepository>();
+        private readonly IPlayerStageRepository _stageRepository = Substitute.For<IPlayerStageRepository>();
+        private readonly IPlayerSessionRepository _sessionRepository = Substitute.For<IPlayerSessionRepository>();
+        private readonly IPlayerWeaponRepository _weaponRepository = Substitute.For<IPlayerWeaponRepository>();
+        private readonly IPlayerSkillRepository _skillRepository = Substitute.For<IPlayerSkillRepository>();
+        private readonly IIdleRewardSettler _settler = Substitute.For<IIdleRewardSettler>();
         private readonly ICurrentUserProvider _currentUserProvider = Substitute.For<ICurrentUserProvider>();
 
-        public 경과_시간이_0일_때()
+        public 방치_보상이_0일_때()
         {
             _currentUserProvider.GetAccountId().Returns(1L);
-            _playerRepository.FindByAccountAsync(1L)
-                .Returns(PlayerEntity.Create(1L, JobType.Warrior));
-            _playerResourceRepository.FindByPlayerIdAsync(Arg.Any<long>())
-                .Returns(PlayerResource.Create(1L));
-            // LastCalculatedAt = UtcNow → 경과 시간 0
-            _playerStageRepository.FindByPlayerIdAsync(Arg.Any<long>())
-                .Returns(PlayerStage.Create(1L, maxStage: 1, lastCalculatedAt: DateTime.UtcNow));
-            _playerSessionRepository.FindByPlayerIdAsync(Arg.Any<long>())
-                .Returns(PlayerSession.Create(1L));
-            _playerWeaponRepository.FindAllByPlayerIdAsync(Arg.Any<long>()).Returns([]);
-            _playerSkillRepository.FindAllByPlayerIdAsync(Arg.Any<long>()).Returns([]);
+            _playerRepository.FindByAccountAsync(1L).Returns(PlayerEntity.Create(1L, JobType.Warrior));
+            _resourceRepository.FindByPlayerIdAsync(Arg.Any<long>()).Returns(PlayerResource.Create(1L));
+            _stageRepository.FindByPlayerIdAsync(Arg.Any<long>()).Returns(PlayerStage.Create(1L));
+            _sessionRepository.FindByPlayerIdAsync(Arg.Any<long>()).Returns(PlayerSession.Create(1L));
+            _weaponRepository.FindAllByPlayerIdAsync(Arg.Any<long>()).Returns([]);
+            _skillRepository.FindAllByPlayerIdAsync(Arg.Any<long>()).Returns([]);
+            _settler.SettleAsync(
+                    Arg.Any<PlayerEntity>(), Arg.Any<PlayerResource>(), Arg.Any<PlayerStage>(),
+                    Arg.Any<PlayerSession>(), Arg.Any<List<PlayerWeapon>>(), Arg.Any<List<PlayerSkill>>())
+                .Returns(new IdleRewardResult(0L, 0L, 1L, []));
         }
 
         [Fact]
-        public async Task 보상이_0으로_반환된다()
+        public async Task Changes에_Gold와_Exp가_0으로_반환된다()
         {
             var sut = BuildSut(
-                playerRepo: _playerRepository,
-                resourceRepo: _playerResourceRepository,
-                stageRepo: _playerStageRepository,
-                sessionRepo: _playerSessionRepository,
-                weaponRepo: _playerWeaponRepository,
-                skillRepo: _playerSkillRepository,
-                userProvider: _currentUserProvider);
+                playerRepo: _playerRepository, resourceRepo: _resourceRepository, stageRepo: _stageRepository,
+                sessionRepo: _sessionRepository, weaponRepo: _weaponRepository, skillRepo: _skillRepository,
+                settler: _settler, userProvider: _currentUserProvider);
 
             var result = await sut.ExecuteAsync();
 
-            result.EarnedGold.Should().Be(0);
-            result.EarnedXp.Should().Be(0);
+            result.Changes.Gold.Should().Be(0L);
+            result.Changes.Exp.Should().Be(0L);
         }
     }
 
-    public class 오프라인_시간이_있을_때
+    public class 방치_보상이_있을_때
     {
         private readonly IPlayerRepository _playerRepository = Substitute.For<IPlayerRepository>();
-        private readonly IPlayerResourceRepository _playerResourceRepository = Substitute.For<IPlayerResourceRepository>();
-        private readonly IPlayerStageRepository _playerStageRepository = Substitute.For<IPlayerStageRepository>();
-        private readonly IPlayerSessionRepository _playerSessionRepository = Substitute.For<IPlayerSessionRepository>();
-        private readonly IPlayerWeaponRepository _playerWeaponRepository = Substitute.For<IPlayerWeaponRepository>();
-        private readonly IPlayerSkillRepository _playerSkillRepository = Substitute.For<IPlayerSkillRepository>();
-        private readonly IPlayerRedisRepository _playerRedisRepository = Substitute.For<IPlayerRedisRepository>();
-        private readonly IGameDataCacheService _gameDataCacheService = Substitute.For<IGameDataCacheService>();
-        private readonly ILevelUpService _levelUpService = Substitute.For<ILevelUpService>();
-        private readonly IAppDbTransactionRunner _transactionRunner = Substitute.For<IAppDbTransactionRunner>();
+        private readonly IPlayerResourceRepository _resourceRepository = Substitute.For<IPlayerResourceRepository>();
+        private readonly IPlayerStageRepository _stageRepository = Substitute.For<IPlayerStageRepository>();
+        private readonly IPlayerSessionRepository _sessionRepository = Substitute.For<IPlayerSessionRepository>();
+        private readonly IPlayerWeaponRepository _weaponRepository = Substitute.For<IPlayerWeaponRepository>();
+        private readonly IPlayerSkillRepository _skillRepository = Substitute.For<IPlayerSkillRepository>();
+        private readonly IPlayerRedisRepository _redisRepository = Substitute.For<IPlayerRedisRepository>();
+        private readonly IIdleRewardSettler _settler = Substitute.For<IIdleRewardSettler>();
+        private readonly IAppDbTransactionRunner _txRunner = Substitute.For<IAppDbTransactionRunner>();
         private readonly ICurrentUserProvider _currentUserProvider = Substitute.For<ICurrentUserProvider>();
 
-        public 오프라인_시간이_있을_때()
+        public 방치_보상이_있을_때()
         {
             _currentUserProvider.GetAccountId().Returns(1L);
-            _playerRepository.FindByAccountAsync(1L)
-                .Returns(PlayerEntity.Create(1L, JobType.Warrior));
-            _playerResourceRepository.FindByPlayerIdAsync(Arg.Any<long>())
-                .Returns(PlayerResource.Create(1L));
-            // 1시간 전에 마지막 정산
-            _playerStageRepository.FindByPlayerIdAsync(Arg.Any<long>())
-                .Returns(PlayerStage.Create(1L, maxStage: 1, lastCalculatedAt: DateTime.UtcNow.AddHours(-1)));
-            _playerSessionRepository.FindByPlayerIdAsync(Arg.Any<long>())
-                .Returns(PlayerSession.Create(1L));
-            _playerWeaponRepository.FindAllByPlayerIdAsync(Arg.Any<long>()).Returns([]);
-            _playerSkillRepository.FindAllByPlayerIdAsync(Arg.Any<long>()).Returns([]);
-
-            var stageData = StageData.Create(1, monsterHp: 50, monsterAtk: 10, xpPerSecond: 5, goldPerSecond: 10);
-            _gameDataCacheService.GetStageDataAsync(1).Returns(stageData);
-            _gameDataCacheService.GetJobBaseStatAsync(JobType.Warrior)
-                .Returns(JobBaseStat.Create(JobType.Warrior, 1000, 200, 0.1, 1.5, 50, 10));
-            _gameDataCacheService.GetSkillDataByJobAsync(Arg.Any<JobType>()).Returns([]);
-            _levelUpService.ExecuteAsync(Arg.Any<PlayerEntity>(), Arg.Any<PlayerResource>(), Arg.Any<long>())
-                .Returns([]);
-            _transactionRunner.ExecuteAsync(Arg.Any<Func<Task>>())
+            _playerRepository.FindByAccountAsync(1L).Returns(PlayerEntity.Create(1L, JobType.Warrior));
+            _resourceRepository.FindByPlayerIdAsync(Arg.Any<long>()).Returns(PlayerResource.Create(1L));
+            _stageRepository.FindByPlayerIdAsync(Arg.Any<long>()).Returns(PlayerStage.Create(1L));
+            _sessionRepository.FindByPlayerIdAsync(Arg.Any<long>()).Returns(PlayerSession.Create(1L));
+            _weaponRepository.FindAllByPlayerIdAsync(Arg.Any<long>()).Returns([]);
+            _skillRepository.FindAllByPlayerIdAsync(Arg.Any<long>()).Returns([]);
+            _settler.SettleAsync(
+                    Arg.Any<PlayerEntity>(), Arg.Any<PlayerResource>(), Arg.Any<PlayerStage>(),
+                    Arg.Any<PlayerSession>(), Arg.Any<List<PlayerWeapon>>(), Arg.Any<List<PlayerSkill>>())
+                .Returns(new IdleRewardResult(3600L, 1800L, 2L, []));
+            _txRunner.ExecuteAsync(Arg.Any<Func<Task>>())
                 .Returns(callInfo => callInfo.Arg<Func<Task>>()());
         }
 
         [Fact]
-        public async Task 경과시간_만큼_보상이_지급된다()
+        public async Task Changes에_Gold와_Exp가_반환된다()
         {
             var sut = BuildSut(
-                playerRepo: _playerRepository,
-                resourceRepo: _playerResourceRepository,
-                stageRepo: _playerStageRepository,
-                sessionRepo: _playerSessionRepository,
-                weaponRepo: _playerWeaponRepository,
-                skillRepo: _playerSkillRepository,
-                redisRepo: _playerRedisRepository,
-                cache: _gameDataCacheService,
-                levelUpService: _levelUpService,
-                txRunner: _transactionRunner,
-                userProvider: _currentUserProvider);
+                playerRepo: _playerRepository, resourceRepo: _resourceRepository, stageRepo: _stageRepository,
+                sessionRepo: _sessionRepository, weaponRepo: _weaponRepository, skillRepo: _skillRepository,
+                redisRepo: _redisRepository, settler: _settler, txRunner: _txRunner, userProvider: _currentUserProvider);
 
             var result = await sut.ExecuteAsync();
 
-            result.EarnedGold.Should().BeGreaterThan(0);
-            result.EarnedXp.Should().BeGreaterThan(0);
+            result.Changes.Gold.Should().Be(3600L);
+            result.Changes.Exp.Should().Be(1800L);
         }
 
         [Fact]
-        public async Task DB와_Redis_캐시가_업데이트된다()
+        public async Task Redis에_플레이어_데이터가_캐싱된다()
         {
             var sut = BuildSut(
-                playerRepo: _playerRepository,
-                resourceRepo: _playerResourceRepository,
-                stageRepo: _playerStageRepository,
-                sessionRepo: _playerSessionRepository,
-                weaponRepo: _playerWeaponRepository,
-                skillRepo: _playerSkillRepository,
-                redisRepo: _playerRedisRepository,
-                cache: _gameDataCacheService,
-                levelUpService: _levelUpService,
-                txRunner: _transactionRunner,
-                userProvider: _currentUserProvider);
+                playerRepo: _playerRepository, resourceRepo: _resourceRepository, stageRepo: _stageRepository,
+                sessionRepo: _sessionRepository, weaponRepo: _weaponRepository, skillRepo: _skillRepository,
+                redisRepo: _redisRepository, settler: _settler, txRunner: _txRunner, userProvider: _currentUserProvider);
 
             await sut.ExecuteAsync();
 
-            await _transactionRunner.Received(1).ExecuteAsync(Arg.Any<Func<Task>>());
-            await _playerRedisRepository.Received(1).DeleteAsync(1L);
+            await _redisRepository.Received(1).SetPlayerDataAsync(1L, Arg.Any<PlayerDataResponse>());
+        }
+    }
+
+    public class 동시_요청으로_저장_트랜잭션이_충돌할_때
+    {
+        private readonly IPlayerRepository _playerRepository = Substitute.For<IPlayerRepository>();
+        private readonly IPlayerResourceRepository _resourceRepository = Substitute.For<IPlayerResourceRepository>();
+        private readonly IPlayerStageRepository _stageRepository = Substitute.For<IPlayerStageRepository>();
+        private readonly IPlayerSessionRepository _sessionRepository = Substitute.For<IPlayerSessionRepository>();
+        private readonly IPlayerWeaponRepository _weaponRepository = Substitute.For<IPlayerWeaponRepository>();
+        private readonly IPlayerSkillRepository _skillRepository = Substitute.For<IPlayerSkillRepository>();
+        private readonly IPlayerRedisRepository _redisRepository = Substitute.For<IPlayerRedisRepository>();
+        private readonly IIdleRewardSettler _settler = Substitute.For<IIdleRewardSettler>();
+        private readonly IAppDbTransactionRunner _txRunner = Substitute.For<IAppDbTransactionRunner>();
+        private readonly ICurrentUserProvider _currentUserProvider = Substitute.For<ICurrentUserProvider>();
+
+        public 동시_요청으로_저장_트랜잭션이_충돌할_때()
+        {
+            _currentUserProvider.GetAccountId().Returns(1L);
+            _playerRepository.FindByAccountAsync(1L).Returns(PlayerEntity.Create(1L, JobType.Warrior));
+            _resourceRepository.FindByPlayerIdAsync(Arg.Any<long>()).Returns(PlayerResource.Create(1L));
+            _stageRepository.FindByPlayerIdAsync(Arg.Any<long>()).Returns(PlayerStage.Create(1L));
+            _sessionRepository.FindByPlayerIdAsync(Arg.Any<long>()).Returns(PlayerSession.Create(1L));
+            _weaponRepository.FindAllByPlayerIdAsync(Arg.Any<long>()).Returns([]);
+            _skillRepository.FindAllByPlayerIdAsync(Arg.Any<long>()).Returns([]);
+            _settler.SettleAsync(
+                    Arg.Any<PlayerEntity>(), Arg.Any<PlayerResource>(), Arg.Any<PlayerStage>(),
+                    Arg.Any<PlayerSession>(), Arg.Any<List<PlayerWeapon>>(), Arg.Any<List<PlayerSkill>>())
+                .Returns(new IdleRewardResult(3600L, 1800L, 2L, []));
+            // xmin 충돌 → AppDbTransactionRunner가 ConflictException으로 변환한 상황
+            _txRunner.When(x => x.ExecuteAsync(Arg.Any<Func<Task>>()))
+                .Do(_ => throw new ConflictException("동시 요청으로 인해 충돌이 발생했습니다."));
+        }
+
+        private BasicDungeonClaimService BuildConflictSut() => new(
+            _playerRepository, _resourceRepository, _stageRepository, _sessionRepository,
+            _weaponRepository, _skillRepository, _redisRepository, _settler,
+            _txRunner, _currentUserProvider);
+
+        [Fact]
+        public async Task ConflictException이_전파된다()
+        {
+            var sut = BuildConflictSut();
+
+            await ((Func<Task>)(() => sut.ExecuteAsync())).Should().ThrowAsync<ConflictException>();
+        }
+
+        [Fact]
+        public async Task 캐시가_갱신되지_않아_보상이_중복되지_않는다()
+        {
+            var sut = BuildConflictSut();
+
+            await ((Func<Task>)(() => sut.ExecuteAsync())).Should().ThrowAsync<ConflictException>();
+
+            await _redisRepository.DidNotReceive().SetPlayerDataAsync(Arg.Any<long>(), Arg.Any<PlayerDataResponse>());
         }
     }
 }

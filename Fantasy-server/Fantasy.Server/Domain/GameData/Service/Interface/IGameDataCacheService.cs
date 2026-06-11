@@ -13,5 +13,6 @@ public interface IGameDataCacheService
     Task<List<SkillData>> GetSkillDataByJobAsync(JobType jobType);
     Task<SkillData?> GetSkillDataAsync(int skillId);
     Task<StageData?> GetStageDataAsync(long stage);
+    Task<List<StageData>> GetAllStageDataAsync();
     Task<JobBaseStat?> GetJobBaseStatAsync(JobType jobType);
 }

@@ -3,7 +3,7 @@ using Fantasy.Server.Domain.Dungeon.Dto.Response;
 
 namespace Fantasy.Server.Domain.Dungeon.Service.Interface;
 
-public interface IGoldDungeonService
+public interface IGoldDungeonClaimService
 {
-    Task<GoldDungeonResponse> ExecuteAsync(GoldDungeonRequest request);
+    Task<GoldDungeonClaimResponse> ExecuteAsync(Guid runId, GoldDungeonClaimRequest request);
 }

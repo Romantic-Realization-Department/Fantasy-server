@@ -63,6 +63,75 @@ namespace Fantasy.Server.Migrations
                     b.ToTable("account", "account");
                 });
 
+            modelBuilder.Entity("Fantasy.Server.Domain.Dungeon.Entity.AccountDungeonTicket", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long>("AccountId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateOnly?>("DailyAdRewardClaimedDate")
+                        .HasColumnType("date");
+
+                    b.Property<DateOnly>("LastDailyGrantDate")
+                        .HasColumnType("date");
+
+                    b.Property<int>("TicketCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AccountId")
+                        .IsUnique();
+
+                    b.ToTable("account_dungeon_ticket", "dungeon");
+                });
+
+            modelBuilder.Entity("Fantasy.Server.Domain.Dungeon.Entity.GoldDungeonRun", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<long>("AccountId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("ClaimedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("ClaimedClicks")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("DurationSeconds")
+                        .HasColumnType("integer");
+
+                    b.Property<long?>("EarnedGold")
+                        .HasColumnType("bigint");
+
+                    b.Property<int?>("EarnedMithril")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("MaxClicks")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("StartedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AccountId");
+
+                    b.ToTable("gold_dungeon_run", "dungeon");
+                });
+
             modelBuilder.Entity("Fantasy.Server.Domain.GameData.Entity.JobBaseStat", b =>
                 {
                     b.Property<string>("JobType")
@@ -401,6 +470,24 @@ namespace Fantasy.Server.Migrations
                         .IsUnique();
 
                     b.ToTable("player_weapon", "player");
+                });
+
+            modelBuilder.Entity("Fantasy.Server.Domain.Dungeon.Entity.AccountDungeonTicket", b =>
+                {
+                    b.HasOne("Fantasy.Server.Domain.Account.Entity.Account", null)
+                        .WithMany()
+                        .HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Fantasy.Server.Domain.Dungeon.Entity.GoldDungeonRun", b =>
+                {
+                    b.HasOne("Fantasy.Server.Domain.Account.Entity.Account", null)
+                        .WithMany()
+                        .HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Fantasy.Server.Domain.Player.Entity.PlayerResource", b =>

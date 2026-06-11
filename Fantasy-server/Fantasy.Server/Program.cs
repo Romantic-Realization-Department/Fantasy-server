@@ -2,11 +2,14 @@ using Fantasy.Server.Domain.Account.Config;
 using Fantasy.Server.Domain.Auth.Config;
 using Fantasy.Server.Domain.Dungeon.Config;
 using Fantasy.Server.Domain.GameData.Config;
+using Fantasy.Server.Domain.GameData.Seed;
 using Fantasy.Server.Domain.LevelUp.Config;
 using Fantasy.Server.Domain.Player.Config;
 using Fantasy.Server.Global.Config;
+using Fantasy.Server.Global.Infrastructure;
 using Fantasy.Server.Global.Security.Config;
 using Gamism.SDK.Extensions.AspNetCore;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -33,6 +36,14 @@ builder.Services.AddLevelUpServices();
 builder.Services.AddDungeonServices();
 
 var app = builder.Build();
+
+await using (var scope = app.Services.CreateAsyncScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger(nameof(GameDataSeeder));
+    await db.Database.MigrateAsync();
+    await GameDataSeeder.SeedAsync(db, logger);
+}
 
 app.UseGamismSdk();
 app.UseRateLimiter();

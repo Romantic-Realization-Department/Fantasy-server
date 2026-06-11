@@ -7,4 +7,5 @@ public interface IPlayerRepository
     Task<PlayerEntity?> FindByAccountAsync(long accountId);
     Task<PlayerEntity> SaveAsync(PlayerEntity player);
     Task UpdateAsync(PlayerEntity player);
+    Task DeleteByAccountIdAsync(long accountId);
 }

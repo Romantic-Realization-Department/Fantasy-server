@@ -11,6 +11,7 @@ public static class GameDataServiceConfig
     {
         services.AddScoped<IGameDataRepository, GameDataRepository>();
         services.AddScoped<IGameDataCacheService, GameDataCacheService>();
+        services.AddScoped<IGameDataQueryService, GameDataQueryService>();
         return services;
     }
 }

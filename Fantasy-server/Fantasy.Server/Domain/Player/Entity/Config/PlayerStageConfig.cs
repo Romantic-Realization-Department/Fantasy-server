@@ -33,5 +33,11 @@ public class PlayerStageConfig : IEntityTypeConfiguration<PlayerStage>
             .WithOne()
             .HasForeignKey<PlayerStage>(s => s.PlayerId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Property<uint>("xmin")
+            .HasColumnName("xmin")
+            .HasColumnType("xid")
+            .ValueGeneratedOnAddOrUpdate()
+            .IsConcurrencyToken();
     }
 }

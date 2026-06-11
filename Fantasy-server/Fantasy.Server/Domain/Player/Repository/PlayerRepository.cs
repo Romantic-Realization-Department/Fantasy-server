@@ -29,4 +29,12 @@ public class PlayerRepository : IPlayerRepository
         _db.Players.Update(player);
         await _db.SaveChangesAsync();
     }
+
+    public async Task DeleteByAccountIdAsync(long accountId)
+    {
+        var player = await _db.Players.FirstOrDefaultAsync(p => p.AccountId == accountId);
+        if (player == null) return;
+        _db.Players.Remove(player);
+        await _db.SaveChangesAsync();
+    }
 }

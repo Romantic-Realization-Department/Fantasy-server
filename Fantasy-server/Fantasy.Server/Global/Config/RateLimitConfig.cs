@@ -1,3 +1,4 @@
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.RateLimiting;
 
 namespace Fantasy.Server.Global.Config;
@@ -8,16 +9,29 @@ public static class RateLimitConfig
     {
         services.AddRateLimiter(options =>
         {
-            options.AddFixedWindowLimiter("login", opt =>
+            // 로그인 전 API: IP 기준 partition
+            options.AddPolicy("login", context =>
             {
-                opt.PermitLimit = 5;
-                opt.Window = TimeSpan.FromMinutes(1);
+                var ip = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+                return RateLimitPartition.GetFixedWindowLimiter(ip, _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 5,
+                    Window = TimeSpan.FromMinutes(1)
+                });
             });
 
-            options.AddFixedWindowLimiter("game", opt =>
+            // 게임 API: account ID 기준 partition (인증 후 JWT sub claim 사용)
+            options.AddPolicy("game", context =>
             {
-                opt.PermitLimit = 30;
-                opt.Window = TimeSpan.FromSeconds(1);
+                var accountId = context.User?.FindFirst("sub")?.Value
+                    ?? context.Connection.RemoteIpAddress?.ToString()
+                    ?? "unknown";
+
+                return RateLimitPartition.GetFixedWindowLimiter(accountId, _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 30,
+                    Window = TimeSpan.FromSeconds(1)
+                });
             });
 
             options.OnRejected = async (context, token) =>

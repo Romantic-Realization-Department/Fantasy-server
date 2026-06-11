@@ -7,4 +7,6 @@ public interface IPlayerSkillRepository
 {
     Task<List<PlayerSkill>> FindAllByPlayerIdAsync(long playerId);
     Task UpsertRangeAsync(long playerId, List<SkillChangeItem> items);
+    Task<PlayerSkill?> FindByPlayerIdAndSkillIdAsync(long playerId, int skillId);
+    Task UnlockAsync(long playerId, int skillId);
 }
