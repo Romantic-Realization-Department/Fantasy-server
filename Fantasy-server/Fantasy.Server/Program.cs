@@ -47,8 +47,8 @@ await using (var scope = app.Services.CreateAsyncScope())
 }
 
 app.UseGamismSdk();
-app.UseRateLimiter();
 app.UseAuthentication();
+app.UseRateLimiter();
 app.UseAuthorization();
 app.MapControllers();
 app.Run();
