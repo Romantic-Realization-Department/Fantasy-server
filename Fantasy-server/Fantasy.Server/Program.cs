@@ -17,8 +17,8 @@ builder.Services.AddControllers();
 builder.Services.AddGamismSdk(options =>
 {
     options.Swagger.Title = "Fantasy API";
-    options.Logging.NotLoggingUrls = ["/swagger/**", "/health"];
-    options.Response.NotWrappingUrls = ["/swagger/**", "/health"];
+    options.Logging.NotLoggingUrls = ["/swagger/**", "/v1/health"];
+    options.Response.NotWrappingUrls = ["/swagger/**", "/v1/health"];
 });
 
 builder.Services.AddDatabase(builder.Configuration);
