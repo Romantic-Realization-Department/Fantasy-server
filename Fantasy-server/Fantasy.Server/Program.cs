@@ -7,6 +7,7 @@ using Fantasy.Server.Domain.LevelUp.Config;
 using Fantasy.Server.Domain.Player.Config;
 using Fantasy.Server.Global.Config;
 using Fantasy.Server.Global.Infrastructure;
+using Fantasy.Server.Global.Security;
 using Fantasy.Server.Global.Security.Config;
 using Gamism.SDK.Extensions.AspNetCore;
 using Microsoft.EntityFrameworkCore;
@@ -45,6 +46,10 @@ await using (var scope = app.Services.CreateAsyncScope())
     await db.Database.MigrateAsync();
     await GameDataSeeder.SeedAsync(db, logger);
 }
+
+// Gamism SDK는 환경 구분 없이 Swagger를 노출하므로 Production에서는 Basic Auth로 보호
+if (app.Environment.IsProduction())
+    app.UseMiddleware<SwaggerBasicAuthMiddleware>();
 
 app.UseGamismSdk();
 app.UseAuthentication();

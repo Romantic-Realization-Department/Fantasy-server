@@ -110,13 +110,14 @@ jobs:
           script: |
             mkdir -p ~/deploy
 
-            printf 'POSTGRES_USER=%s\nPOSTGRES_PASSWORD=%s\nDOCKER_USERNAME=%s\nDB_CONNECTION_STRING=%s\nREDIS_CONNECTION_STRING=%s\nJWT_SECRET_KEY=%s\n' \
+            printf 'POSTGRES_USER=%s\nPOSTGRES_PASSWORD=%s\nDOCKER_USERNAME=%s\nDB_CONNECTION_STRING=%s\nREDIS_CONNECTION_STRING=%s\nJWT_SECRET_KEY=%s\nSWAGGER_PASSWORD=%s\n' \
               "${{ secrets.POSTGRES_USER }}" \
               "${{ secrets.POSTGRES_PASSWORD }}" \
               "${{ secrets.DOCKER_USERNAME }}" \
               "${{ secrets.DB_CONNECTION_STRING }}" \
               "${{ secrets.REDIS_CONNECTION_STRING }}" \
               "${{ secrets.JWT_SECRET_KEY }}" \
+              "${{ secrets.SWAGGER_PASSWORD }}" \
               > ~/deploy/.env
             chmod 600 ~/deploy/.env
 
