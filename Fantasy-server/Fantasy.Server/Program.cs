@@ -25,6 +25,7 @@ builder.Services.AddDatabase(builder.Configuration);
 builder.Services.AddRedis(builder.Configuration, "fantasy:");
 builder.Services.AddJwtAuthentication(builder.Configuration);
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddRateLimit();
 
 builder.Services.AddAccountServices();

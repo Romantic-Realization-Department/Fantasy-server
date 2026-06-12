@@ -26,6 +26,7 @@ public class GoldDungeonClaimService : IGoldDungeonClaimService
     private readonly IRandomProvider _randomProvider;
     private readonly IAppDbTransactionRunner _transactionRunner;
     private readonly ICurrentUserProvider _currentUserProvider;
+    private readonly TimeProvider _timeProvider;
 
     public GoldDungeonClaimService(
         IPlayerRepository playerRepository,
@@ -38,7 +39,8 @@ public class GoldDungeonClaimService : IGoldDungeonClaimService
         IGoldDungeonRunRepository goldDungeonRunRepository,
         IRandomProvider randomProvider,
         IAppDbTransactionRunner transactionRunner,
-        ICurrentUserProvider currentUserProvider)
+        ICurrentUserProvider currentUserProvider,
+        TimeProvider timeProvider)
     {
         _playerRepository = playerRepository;
         _playerResourceRepository = playerResourceRepository;
@@ -51,6 +53,7 @@ public class GoldDungeonClaimService : IGoldDungeonClaimService
         _randomProvider = randomProvider;
         _transactionRunner = transactionRunner;
         _currentUserProvider = currentUserProvider;
+        _timeProvider = timeProvider;
     }
 
     public async Task<GoldDungeonClaimResponse> ExecuteAsync(Guid runId, GoldDungeonClaimRequest request)
@@ -98,11 +101,18 @@ public class GoldDungeonClaimService : IGoldDungeonClaimService
             return new GoldDungeonClaimResponse(run.Id, run.EarnedGold!.Value, run.EarnedMithril!.Value, idempotentChanges, playerResponse);
         }
 
-        if (DateTime.UtcNow > run.ExpiresAt)
+        var now = _timeProvider.GetUtcNow().UtcDateTime;
+
+        if (now > run.ExpiresAt)
             throw new BadRequestException("골드 던전 제한 시간이 초과되었습니다.");
 
         if (request.Clicks > run.MaxClicks)
             throw new BadRequestException("비정상적인 클릭 횟수입니다.");
+
+        var elapsedSeconds = Math.Clamp((now - run.StartedAt).TotalSeconds, 0, run.DurationSeconds);
+        var maxAllowedClicks = (int)Math.Ceiling(elapsedSeconds * run.MaxClicks / run.DurationSeconds);
+        if (request.Clicks > maxAllowedClicks)
+            throw new BadRequestException("경과 시간 대비 비정상적인 클릭 횟수입니다.");
 
         var earnedGold = request.Clicks * GoldPerClick;
         var mithrilDropped = _randomProvider.Next(0, 100) < MithrilDropRatePercent;

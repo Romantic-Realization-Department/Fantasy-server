@@ -30,7 +30,8 @@ public class GoldDungeonClaimServiceTest
         IGoldDungeonRunRepository? runRepo = null,
         IRandomProvider? randomProvider = null,
         IAppDbTransactionRunner? txRunner = null,
-        ICurrentUserProvider? userProvider = null) =>
+        ICurrentUserProvider? userProvider = null,
+        TimeProvider? timeProvider = null) =>
         new(
             playerRepo ?? Substitute.For<IPlayerRepository>(),
             resourceRepo ?? Substitute.For<IPlayerResourceRepository>(),
@@ -42,7 +43,15 @@ public class GoldDungeonClaimServiceTest
             runRepo ?? Substitute.For<IGoldDungeonRunRepository>(),
             randomProvider ?? Substitute.For<IRandomProvider>(),
             txRunner ?? Substitute.For<IAppDbTransactionRunner>(),
-            userProvider ?? Substitute.For<ICurrentUserProvider>());
+            userProvider ?? Substitute.For<ICurrentUserProvider>(),
+            timeProvider ?? FixedTimeProvider(DateTimeOffset.UtcNow));
+
+    private static TimeProvider FixedTimeProvider(DateTimeOffset now)
+    {
+        var timeProvider = Substitute.For<TimeProvider>();
+        timeProvider.GetUtcNow().Returns(now);
+        return timeProvider;
+    }
 
     private static void SetupPlayerData(
         IPlayerRepository playerRepo,
@@ -144,11 +153,179 @@ public class GoldDungeonClaimServiceTest
             var run = GoldDungeonRun.Create(accountId: 1L, durationSeconds: 30, maxClicksPerSecond: 15);
             runRepo.FindByIdAsync(run.Id).Returns(run);
 
-            var sut = BuildSut(runRepo: runRepo, userProvider: userProvider);
+            var sut = BuildSut(runRepo: runRepo, userProvider: userProvider,
+                timeProvider: FixedTimeProvider(run.StartedAt.AddSeconds(30)));
 
             // MaxClicks = 15 * 30 = 450, request 451
             await ((Func<Task>)(() => sut.ExecuteAsync(run.Id, new GoldDungeonClaimRequest(451)))).Should()
                 .ThrowAsync<BadRequestException>();
+        }
+    }
+
+    public class 만료된_런일_때
+    {
+        [Fact]
+        public async Task BadRequestException이_발생한다()
+        {
+            var runRepo = Substitute.For<IGoldDungeonRunRepository>();
+            var userProvider = Substitute.For<ICurrentUserProvider>();
+            userProvider.GetAccountId().Returns(1L);
+            var run = GoldDungeonRun.Create(accountId: 1L, durationSeconds: 30, maxClicksPerSecond: 15);
+            runRepo.FindByIdAsync(run.Id).Returns(run);
+
+            // ExpiresAt = StartedAt + 30 + 30(유예), 그 이후 시점에 claim
+            var sut = BuildSut(runRepo: runRepo, userProvider: userProvider,
+                timeProvider: FixedTimeProvider(run.ExpiresAt.AddSeconds(1)));
+
+            await ((Func<Task>)(() => sut.ExecuteAsync(run.Id, new GoldDungeonClaimRequest(10)))).Should()
+                .ThrowAsync<BadRequestException>();
+        }
+    }
+
+    public class 경과_시간_대비_클릭이_과도할_때
+    {
+        [Fact]
+        public async Task BadRequestException이_발생한다()
+        {
+            var runRepo = Substitute.For<IGoldDungeonRunRepository>();
+            var userProvider = Substitute.For<ICurrentUserProvider>();
+            userProvider.GetAccountId().Returns(1L);
+            var run = GoldDungeonRun.Create(accountId: 1L, durationSeconds: 30, maxClicksPerSecond: 15);
+            runRepo.FindByIdAsync(run.Id).Returns(run);
+
+            // 시작 2초 후 허용 상한은 2 * 15 = 30클릭, request 100
+            var sut = BuildSut(runRepo: runRepo, userProvider: userProvider,
+                timeProvider: FixedTimeProvider(run.StartedAt.AddSeconds(2)));
+
+            await ((Func<Task>)(() => sut.ExecuteAsync(run.Id, new GoldDungeonClaimRequest(100)))).Should()
+                .ThrowAsync<BadRequestException>();
+        }
+
+        [Fact]
+        public async Task 허용_상한과_동일한_클릭은_예외가_발생하지_않는다()
+        {
+            // Arrange
+            var runRepo = Substitute.For<IGoldDungeonRunRepository>();
+            var userProvider = Substitute.For<ICurrentUserProvider>();
+            var playerRepo = Substitute.For<IPlayerRepository>();
+            var resourceRepo = Substitute.For<IPlayerResourceRepository>();
+            var stageRepo = Substitute.For<IPlayerStageRepository>();
+            var sessionRepo = Substitute.For<IPlayerSessionRepository>();
+            var weaponRepo = Substitute.For<IPlayerWeaponRepository>();
+            var skillRepo = Substitute.For<IPlayerSkillRepository>();
+            var txRunner = Substitute.For<IAppDbTransactionRunner>();
+            userProvider.GetAccountId().Returns(1L);
+            var run = GoldDungeonRun.Create(accountId: 1L, durationSeconds: 30, maxClicksPerSecond: 15);
+            runRepo.FindByIdAsync(run.Id).Returns(run);
+            // 2초 경과 → maxAllowedClicks = Ceiling(2 * 450 / 30) = 30, clicks=30 은 허용
+            SetupPlayerData(playerRepo, resourceRepo, stageRepo, sessionRepo, weaponRepo, skillRepo);
+            txRunner.ExecuteAsync(Arg.Any<Func<Task>>())
+                .Returns(callInfo => callInfo.Arg<Func<Task>>()());
+
+            var sut = BuildSut(playerRepo: playerRepo, resourceRepo: resourceRepo,
+                stageRepo: stageRepo, sessionRepo: sessionRepo,
+                weaponRepo: weaponRepo, skillRepo: skillRepo,
+                runRepo: runRepo, txRunner: txRunner, userProvider: userProvider,
+                timeProvider: FixedTimeProvider(run.StartedAt.AddSeconds(2)));
+
+            // Act
+            Func<Task> act = () => sut.ExecuteAsync(run.Id, new GoldDungeonClaimRequest(30));
+
+            // Assert
+            await act.Should().NotThrowAsync();
+        }
+
+        [Fact]
+        public async Task t0에서_클릭0은_예외가_발생하지_않는다()
+        {
+            // Arrange
+            var runRepo = Substitute.For<IGoldDungeonRunRepository>();
+            var userProvider = Substitute.For<ICurrentUserProvider>();
+            var playerRepo = Substitute.For<IPlayerRepository>();
+            var resourceRepo = Substitute.For<IPlayerResourceRepository>();
+            var stageRepo = Substitute.For<IPlayerStageRepository>();
+            var sessionRepo = Substitute.For<IPlayerSessionRepository>();
+            var weaponRepo = Substitute.For<IPlayerWeaponRepository>();
+            var skillRepo = Substitute.For<IPlayerSkillRepository>();
+            var txRunner = Substitute.For<IAppDbTransactionRunner>();
+            userProvider.GetAccountId().Returns(1L);
+            var run = GoldDungeonRun.Create(accountId: 1L, durationSeconds: 30, maxClicksPerSecond: 15);
+            runRepo.FindByIdAsync(run.Id).Returns(run);
+            // elapsedSeconds=0 → maxAllowedClicks=0, clicks=0 은 허용
+            SetupPlayerData(playerRepo, resourceRepo, stageRepo, sessionRepo, weaponRepo, skillRepo);
+            txRunner.ExecuteAsync(Arg.Any<Func<Task>>())
+                .Returns(callInfo => callInfo.Arg<Func<Task>>()());
+
+            var sut = BuildSut(playerRepo: playerRepo, resourceRepo: resourceRepo,
+                stageRepo: stageRepo, sessionRepo: sessionRepo,
+                weaponRepo: weaponRepo, skillRepo: skillRepo,
+                runRepo: runRepo, txRunner: txRunner, userProvider: userProvider,
+                timeProvider: FixedTimeProvider(run.StartedAt));
+
+            // Act
+            Func<Task> act = () => sut.ExecuteAsync(run.Id, new GoldDungeonClaimRequest(0));
+
+            // Assert
+            await act.Should().NotThrowAsync();
+        }
+
+        [Fact]
+        public async Task t0에서_클릭1은_BadRequestException이_발생한다()
+        {
+            // Arrange
+            var runRepo = Substitute.For<IGoldDungeonRunRepository>();
+            var userProvider = Substitute.For<ICurrentUserProvider>();
+            userProvider.GetAccountId().Returns(1L);
+            var run = GoldDungeonRun.Create(accountId: 1L, durationSeconds: 30, maxClicksPerSecond: 15);
+            runRepo.FindByIdAsync(run.Id).Returns(run);
+            // elapsedSeconds=0 → maxAllowedClicks=0, clicks=1 은 거부
+
+            var sut = BuildSut(runRepo: runRepo, userProvider: userProvider,
+                timeProvider: FixedTimeProvider(run.StartedAt));
+
+            // Act
+            Func<Task> act = () => sut.ExecuteAsync(run.Id, new GoldDungeonClaimRequest(1));
+
+            // Assert
+            await act.Should().ThrowAsync<BadRequestException>();
+        }
+    }
+
+    public class 만료_경계_케이스
+    {
+        [Fact]
+        public async Task ExpiresAt_정각에는_예외가_발생하지_않는다()
+        {
+            // Arrange
+            var runRepo = Substitute.For<IGoldDungeonRunRepository>();
+            var userProvider = Substitute.For<ICurrentUserProvider>();
+            var playerRepo = Substitute.For<IPlayerRepository>();
+            var resourceRepo = Substitute.For<IPlayerResourceRepository>();
+            var stageRepo = Substitute.For<IPlayerStageRepository>();
+            var sessionRepo = Substitute.For<IPlayerSessionRepository>();
+            var weaponRepo = Substitute.For<IPlayerWeaponRepository>();
+            var skillRepo = Substitute.For<IPlayerSkillRepository>();
+            var txRunner = Substitute.For<IAppDbTransactionRunner>();
+            userProvider.GetAccountId().Returns(1L);
+            var run = GoldDungeonRun.Create(accountId: 1L, durationSeconds: 30, maxClicksPerSecond: 15);
+            runRepo.FindByIdAsync(run.Id).Returns(run);
+            // now == ExpiresAt → now > ExpiresAt 은 false → 만료 아님
+            // elapsedSeconds = Clamp(60, 0, 30) = 30, maxAllowedClicks = 450, clicks=100 허용
+            SetupPlayerData(playerRepo, resourceRepo, stageRepo, sessionRepo, weaponRepo, skillRepo);
+            txRunner.ExecuteAsync(Arg.Any<Func<Task>>())
+                .Returns(callInfo => callInfo.Arg<Func<Task>>()());
+
+            var sut = BuildSut(playerRepo: playerRepo, resourceRepo: resourceRepo,
+                stageRepo: stageRepo, sessionRepo: sessionRepo,
+                weaponRepo: weaponRepo, skillRepo: skillRepo,
+                runRepo: runRepo, txRunner: txRunner, userProvider: userProvider,
+                timeProvider: FixedTimeProvider(run.ExpiresAt));
+
+            // Act
+            Func<Task> act = () => sut.ExecuteAsync(run.Id, new GoldDungeonClaimRequest(100));
+
+            // Assert
+            await act.Should().NotThrowAsync();
         }
     }
 
@@ -166,6 +343,7 @@ public class GoldDungeonClaimServiceTest
         private readonly IAppDbTransactionRunner _txRunner = Substitute.For<IAppDbTransactionRunner>();
         private readonly ICurrentUserProvider _currentUserProvider = Substitute.For<ICurrentUserProvider>();
         private readonly GoldDungeonRun _run;
+        private readonly TimeProvider _timeProvider;
 
         public 정상_클레임_요청시()
         {
@@ -173,6 +351,7 @@ public class GoldDungeonClaimServiceTest
             _run = GoldDungeonRun.Create(accountId: 1L, durationSeconds: 30, maxClicksPerSecond: 15);
             _runRepository.FindByIdAsync(_run.Id).Returns(_run);
             _randomProvider.Next(0, 100).Returns(50); // >= 2, no mithril
+            _timeProvider = FixedTimeProvider(_run.StartedAt.AddSeconds(30));
             SetupPlayerData(_playerRepository, _resourceRepository, _stageRepository,
                 _sessionRepository, _weaponRepository, _skillRepository);
             _txRunner.ExecuteAsync(Arg.Any<Func<Task>>())
@@ -186,7 +365,8 @@ public class GoldDungeonClaimServiceTest
                 stageRepo: _stageRepository, sessionRepo: _sessionRepository,
                 weaponRepo: _weaponRepository, skillRepo: _skillRepository,
                 redisRepo: _redisRepository, runRepo: _runRepository,
-                randomProvider: _randomProvider, txRunner: _txRunner, userProvider: _currentUserProvider);
+                randomProvider: _randomProvider, txRunner: _txRunner, userProvider: _currentUserProvider,
+                timeProvider: _timeProvider);
 
             var result = await sut.ExecuteAsync(_run.Id, new GoldDungeonClaimRequest(100));
 
@@ -200,7 +380,8 @@ public class GoldDungeonClaimServiceTest
                 stageRepo: _stageRepository, sessionRepo: _sessionRepository,
                 weaponRepo: _weaponRepository, skillRepo: _skillRepository,
                 redisRepo: _redisRepository, runRepo: _runRepository,
-                randomProvider: _randomProvider, txRunner: _txRunner, userProvider: _currentUserProvider);
+                randomProvider: _randomProvider, txRunner: _txRunner, userProvider: _currentUserProvider,
+                timeProvider: _timeProvider);
 
             await sut.ExecuteAsync(_run.Id, new GoldDungeonClaimRequest(100));
 
@@ -222,6 +403,7 @@ public class GoldDungeonClaimServiceTest
         private readonly IAppDbTransactionRunner _txRunner = Substitute.For<IAppDbTransactionRunner>();
         private readonly ICurrentUserProvider _currentUserProvider = Substitute.For<ICurrentUserProvider>();
         private readonly GoldDungeonRun _run;
+        private readonly TimeProvider _timeProvider;
 
         public 동시_claim으로_저장_트랜잭션이_충돌할_때()
         {
@@ -229,6 +411,7 @@ public class GoldDungeonClaimServiceTest
             _run = GoldDungeonRun.Create(accountId: 1L, durationSeconds: 30, maxClicksPerSecond: 15);
             _runRepository.FindByIdAsync(_run.Id).Returns(_run);
             _randomProvider.Next(0, 100).Returns(50);
+            _timeProvider = FixedTimeProvider(_run.StartedAt.AddSeconds(30));
             SetupPlayerData(_playerRepository, _resourceRepository, _stageRepository,
                 _sessionRepository, _weaponRepository, _skillRepository);
             // xmin 충돌 → AppDbTransactionRunner가 ConflictException으로 변환한 상황
@@ -241,7 +424,8 @@ public class GoldDungeonClaimServiceTest
             stageRepo: _stageRepository, sessionRepo: _sessionRepository,
             weaponRepo: _weaponRepository, skillRepo: _skillRepository,
             redisRepo: _redisRepository, runRepo: _runRepository,
-            randomProvider: _randomProvider, txRunner: _txRunner, userProvider: _currentUserProvider);
+            randomProvider: _randomProvider, txRunner: _txRunner, userProvider: _currentUserProvider,
+            timeProvider: _timeProvider);
 
         [Fact]
         public async Task ConflictException이_전파된다()
