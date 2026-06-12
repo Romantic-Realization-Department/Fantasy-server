@@ -118,13 +118,27 @@ jobs:
               "${{ secrets.REDIS_CONNECTION_STRING }}" \
               "${{ secrets.JWT_SECRET_KEY }}" \
               > ~/deploy/.env
+            chmod 600 ~/deploy/.env
 
             docker compose -f ~/deploy/compose.prod.yaml --env-file ~/deploy/.env pull
             docker compose -f ~/deploy/compose.prod.yaml --env-file ~/deploy/.env up -d
 
-            sleep 5
-            docker ps | grep fantasy-server
+            for i in $(seq 1 30); do
+              STATUS=$(docker inspect --format='{{.State.Health.Status}}' fantasy-server 2>/dev/null || echo "missing")
+              if [ "$STATUS" = "healthy" ]; then
+                break
+              fi
+              if [ "$i" -eq 30 ]; then
+                echo "fantasy-server did not become healthy in time (status: $STATUS)"
+                docker logs fantasy-server --tail 50
+                exit 1
+              fi
+              sleep 3
+            done
+
+            echo "fantasy-server is healthy"
             docker logs fantasy-server --tail 20
+            docker image prune -f
 
   notify:
     runs-on: ubuntu-latest
