@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using System.Text;
 
 namespace Fantasy.Server.Global.Security;
@@ -55,6 +56,11 @@ public class SwaggerBasicAuthMiddleware
 
         // "username:password" 형식 — username은 검사하지 않음
         var separatorIndex = decoded.IndexOf(':');
-        return separatorIndex >= 0 && decoded[(separatorIndex + 1)..] == _password;
+        if (separatorIndex < 0)
+            return false;
+
+        var inputPasswordBytes = Encoding.UTF8.GetBytes(decoded[(separatorIndex + 1)..]);
+        var expectedPasswordBytes = Encoding.UTF8.GetBytes(_password ?? string.Empty);
+        return CryptographicOperations.FixedTimeEquals(inputPasswordBytes, expectedPasswordBytes);
     }
 }
