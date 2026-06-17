@@ -362,21 +362,21 @@ public record SkillUnlockResponse(bool WasAlreadyUnlocked, ChangesDto Changes, P
 
 ### 보안 및 남용 방지
 
-- game API rate limit은 전역 fixed window가 아니라 account ID 기준 partition으로 적용한다.
-- 로그인 전 API는 IP 기준 partition을 사용한다.
+- ~~game API rate limit은 전역 fixed window가 아니라 account ID 기준 partition으로 적용한다.~~ → *`RateLimitConfig`의 `game` 정책 (account `sub` claim 기준)*
+- ~~로그인 전 API는 IP 기준 partition을 사용한다.~~ → *`RateLimitConfig`의 `login` 정책 (IP 기준)*
 - claim 계열 API는 같은 account에 대해 짧은 시간 중복 호출될 수 있으므로 rate limit과 멱등성 정책을 함께 설계한다.
-- gold dungeon 클릭 수 검증은 `clicks <= maxClicks`만으로 충분하지 않다. 너무 이른 claim과 run 시작/종료 시간을 같이 검증한다.
+- ~~gold dungeon 클릭 수 검증은 `clicks <= maxClicks`만으로 충분하지 않다. 너무 이른 claim과 run 시작/종료 시간을 같이 검증한다.~~ → *경과 시간 기반 클릭 상한 검증 추가 (`TimeProvider` 주입)*
 - 서버 권위 전환 후에도 클라이언트 조작 가능 값이 요청 DTO에 남아 있는지 route/request audit을 한다.
 
 ### 마이그레이션 및 시드
 
-- `players.account_id` unique constraint 추가
-- `players`의 기존 `(account_id, job_type)` unique index 제거
-- `account_dungeon_ticket`, `gold_dungeon_run` 테이블 migration 추가
+- ~~`players.account_id` unique constraint 추가~~ → *`PlayerSinglePerAccount` 마이그레이션*
+- ~~`players`의 기존 `(account_id, job_type)` unique index 제거~~ → *`PlayerSinglePerAccount` 마이그레이션*
+- ~~`account_dungeon_ticket`, `gold_dungeon_run` 테이블 migration 추가~~ → *`AddDungeonTicketAndGoldRun` 마이그레이션*
 - ~~게임 데이터 조회 API에서 필요한 표시 필드가 부족하면 `SkillData`, `WeaponData`에 이름/설명 필드 추가 여부 결정~~ → *추가하지 않음으로 결정 (클라이언트가 표시 텍스트 보유)*
 - ~~seed 경로를 배포 이미지에서 실행 가능한 방식으로 정리~~ → *임베디드 JSON + `GameDataSeeder`로 구성, `docs/game-data-seeding.md` 참고*
 - ~~seed 데이터 중 스킬 선행 관계가 순환하지 않는지 검증 테스트 추가~~ → *`SkillSeedDataTests`*
-- KST 일일 보상 판정을 위해 저장 컬럼 타입을 `date`로 둘지 UTC timestamp로 둘지 확정
+- ~~KST 일일 보상 판정을 위해 저장 컬럼 타입을 `date`로 둘지 UTC timestamp로 둘지 확정~~ → *`DateOnly`(`date` 컬럼) + `Asia/Seoul` 판정으로 구현됨*
 - 추천 답: 판정 기준 날짜는 `LocalDate` 의미의 `date` 컬럼으로 저장하고, 계산은 서버에서 `Asia/Seoul` 기준으로 수행한다.
 
 ### 테스트 체크리스트

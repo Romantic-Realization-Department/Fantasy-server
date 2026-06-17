@@ -6,14 +6,14 @@ allowed-tools: Bash(dotnet build:*), Bash(dotnet test:*)
 context: fork
 ---
 
-Build the server project, then run the test suite and report results.
+Build the test project (which also builds the server via project reference), then run the test suite and report results.
 
 ## Steps
 
 ### Step 1 — Build
 
 ```bash
-dotnet build Fantasy.Server/Fantasy.Server.csproj
+dotnet build Fantasy-server/Fantasy.Test/Fantasy.Test.csproj
 ```
 
 - Build **fails**: list each error with its file path and line number, explain the likely cause, then stop.
@@ -24,13 +24,13 @@ dotnet build Fantasy.Server/Fantasy.Server.csproj
 If `$ARGUMENTS` is empty, run all tests:
 
 ```bash
-dotnet test Fantasy.Test/Fantasy.Test.csproj --no-build
+dotnet test Fantasy-server/Fantasy.Test/Fantasy.Test.csproj --no-build
 ```
 
 If `$ARGUMENTS` is provided, filter by class or method name:
 
 ```bash
-dotnet test Fantasy.Test/Fantasy.Test.csproj --no-build --filter "FullyQualifiedName~$ARGUMENTS"
+dotnet test Fantasy-server/Fantasy.Test/Fantasy.Test.csproj --no-build --filter "FullyQualifiedName~$ARGUMENTS"
 ```
 
 ### Step 3 — Report Results
