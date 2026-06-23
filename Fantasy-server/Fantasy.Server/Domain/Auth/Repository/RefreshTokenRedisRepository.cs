@@ -1,5 +1,6 @@
 using Fantasy.Server.Domain.Auth.Enum;
 using Fantasy.Server.Domain.Auth.Repository.Interface;
+using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
 
 namespace Fantasy.Server.Domain.Auth.Repository;
@@ -27,10 +28,12 @@ public class RefreshTokenRedisRepository : IRefreshTokenRedisRepository
     ");
 
     private readonly IDatabase _db;
+    private readonly ILogger<RefreshTokenRedisRepository> _logger;
 
-    public RefreshTokenRedisRepository(IConnectionMultiplexer multiplexer)
+    public RefreshTokenRedisRepository(IConnectionMultiplexer multiplexer, ILogger<RefreshTokenRedisRepository> logger)
     {
         _db = multiplexer.GetDatabase();
+        _logger = logger;
     }
 
     private static string ForwardKey(long id) => $"{Prefix}refresh:{id}";
@@ -59,5 +62,24 @@ public class RefreshTokenRedisRepository : IRefreshTokenRedisRepository
     }
 
     public async Task DeleteAsync(long id)
-        => await _db.KeyDeleteAsync(ForwardKey(id));
+    {
+        var key = ForwardKey(id);
+        for (var attempt = 1; attempt <= 3; attempt++)
+        {
+            try
+            {
+                await _db.KeyDeleteAsync(key);
+                return;
+            }
+            catch (RedisException ex) when (attempt < 3)
+            {
+                _logger.LogWarning(ex, "RefreshToken 캐시 삭제 실패 (시도 {Attempt}/3, key={Key})", attempt, key);
+                await Task.Delay(100 * attempt);
+            }
+            catch (RedisException ex)
+            {
+                _logger.LogError(ex, "RefreshToken 캐시 삭제 최종 실패 (key={Key}). DB가 정상 업데이트됐으므로 계속 진행.", key);
+            }
+        }
+    }
 }
