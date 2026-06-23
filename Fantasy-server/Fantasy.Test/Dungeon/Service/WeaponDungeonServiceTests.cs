@@ -6,6 +6,7 @@ using Fantasy.Server.Domain.GameData.Service.Interface;
 using Fantasy.Server.Domain.Player.Entity;
 using Fantasy.Server.Domain.Player.Enum;
 using Fantasy.Server.Domain.Player.Repository.Interface;
+using Fantasy.Server.Global.Infrastructure;
 using Fantasy.Server.Global.Security.Provider;
 using FluentAssertions;
 using Gamism.SDK.Extensions.AspNetCore.Exceptions;
@@ -26,6 +27,8 @@ public class WeaponDungeonServiceTests
         IPlayerSkillRepository? skillRepo = null,
         IPlayerRedisRepository? redisRepo = null,
         IGameDataCacheService? cache = null,
+        IAppDbTransactionRunner? txRunner = null,
+        IRandomProvider? randomProvider = null,
         ICurrentUserProvider? userProvider = null,
         ICombatStatCalculator? calculator = null)
     {
@@ -37,13 +40,23 @@ public class WeaponDungeonServiceTests
         skillRepo ??= Substitute.For<IPlayerSkillRepository>();
         redisRepo ??= Substitute.For<IPlayerRedisRepository>();
         cache ??= Substitute.For<IGameDataCacheService>();
+        txRunner ??= CreateTxRunner();
+        randomProvider ??= Substitute.For<IRandomProvider>();
         userProvider ??= Substitute.For<ICurrentUserProvider>();
         calculator ??= new CombatStatCalculator();
 
         return new WeaponDungeonService(
             playerRepo, resourceRepo, stageRepo, sessionRepo,
             weaponRepo, skillRepo, redisRepo, cache,
-            userProvider, calculator);
+            txRunner, randomProvider, userProvider, calculator);
+    }
+
+    private static IAppDbTransactionRunner CreateTxRunner()
+    {
+        var txRunner = Substitute.For<IAppDbTransactionRunner>();
+        txRunner.ExecuteAsync(Arg.Any<Func<Task>>())
+            .Returns(ci => ci.Arg<Func<Task>>()());
+        return txRunner;
     }
 
     public class 플레이어가_없을_때

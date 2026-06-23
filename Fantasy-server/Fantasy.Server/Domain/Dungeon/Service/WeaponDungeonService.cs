@@ -5,6 +5,7 @@ using Fantasy.Server.Domain.GameData.Enum;
 using Fantasy.Server.Domain.GameData.Service.Interface;
 using Fantasy.Server.Domain.Player.Dto.Request;
 using Fantasy.Server.Domain.Player.Repository.Interface;
+using Fantasy.Server.Global.Infrastructure;
 using Fantasy.Server.Global.Security.Provider;
 using Gamism.SDK.Extensions.AspNetCore.Exceptions;
 
@@ -24,6 +25,8 @@ public class WeaponDungeonService : IWeaponDungeonService
     private readonly IPlayerSkillRepository _playerSkillRepository;
     private readonly IPlayerRedisRepository _playerRedisRepository;
     private readonly IGameDataCacheService _gameDataCacheService;
+    private readonly IAppDbTransactionRunner _transactionRunner;
+    private readonly IRandomProvider _randomProvider;
     private readonly ICurrentUserProvider _currentUserProvider;
     private readonly ICombatStatCalculator _calculator;
 
@@ -36,6 +39,8 @@ public class WeaponDungeonService : IWeaponDungeonService
         IPlayerSkillRepository playerSkillRepository,
         IPlayerRedisRepository playerRedisRepository,
         IGameDataCacheService gameDataCacheService,
+        IAppDbTransactionRunner transactionRunner,
+        IRandomProvider randomProvider,
         ICurrentUserProvider currentUserProvider,
         ICombatStatCalculator calculator)
     {
@@ -47,6 +52,8 @@ public class WeaponDungeonService : IWeaponDungeonService
         _playerSkillRepository = playerSkillRepository;
         _playerRedisRepository = playerRedisRepository;
         _gameDataCacheService = gameDataCacheService;
+        _transactionRunner = transactionRunner;
+        _randomProvider = randomProvider;
         _currentUserProvider = currentUserProvider;
         _calculator = calculator;
     }
@@ -106,30 +113,30 @@ public class WeaponDungeonService : IWeaponDungeonService
         if (cleared)
         {
             // B등급 드랍 시도
-            if (Random.Shared.Next(0, 100) < BGradeDropRatePercent)
+            if (_randomProvider.Next(0, 100) < BGradeDropRatePercent)
             {
                 var bWeapons = await _gameDataCacheService.GetWeaponDataByGradeAsync(WeaponGrade.B);
                 var bJobWeapons = bWeapons.Where(w => w.JobType == jobType).ToList();
                 if (bJobWeapons.Count > 0)
                 {
-                    var dropped = bJobWeapons[Random.Shared.Next(bJobWeapons.Count)];
+                    var dropped = bJobWeapons[_randomProvider.Next(0, bJobWeapons.Count)];
                     droppedWeapons.Add(new DroppedWeaponInfo(dropped.WeaponId, dropped.Name, dropped.Grade));
                 }
             }
             // C등급 드랍 시도
-            if (Random.Shared.Next(0, 100) < CGradeDropRatePercent)
+            if (_randomProvider.Next(0, 100) < CGradeDropRatePercent)
             {
                 var cWeapons = await _gameDataCacheService.GetWeaponDataByGradeAsync(WeaponGrade.C);
                 var cJobWeapons = cWeapons.Where(w => w.JobType == jobType).ToList();
                 if (cJobWeapons.Count > 0)
                 {
-                    var dropped = cJobWeapons[Random.Shared.Next(cJobWeapons.Count)];
+                    var dropped = cJobWeapons[_randomProvider.Next(0, cJobWeapons.Count)];
                     droppedWeapons.Add(new DroppedWeaponInfo(dropped.WeaponId, dropped.Name, dropped.Grade));
                 }
             }
 
             // 스크롤 드랍 시도
-            if (Random.Shared.Next(0, 100) < ScrollDropRatePercent)
+            if (_randomProvider.Next(0, 100) < ScrollDropRatePercent)
                 droppedScrolls = 1;
         }
 
@@ -144,14 +151,17 @@ public class WeaponDungeonService : IWeaponDungeonService
                 })
                 .ToList();
 
-            if (weaponChanges.Count > 0)
-                await _playerWeaponRepository.UpsertRangeAsync(player.Id, weaponChanges);
-
             if (droppedScrolls > 0)
-            {
                 resource.UpdateChangeData(resource.EnhancementScroll + droppedScrolls, null, null);
-                await _playerResourceRepository.UpdateAsync(resource);
-            }
+
+            await _transactionRunner.ExecuteAsync(async () =>
+            {
+                if (weaponChanges.Count > 0)
+                    await _playerWeaponRepository.UpsertRangeAsync(player.Id, weaponChanges);
+
+                if (droppedScrolls > 0)
+                    await _playerResourceRepository.UpdateAsync(resource);
+            });
 
             await _playerRedisRepository.DeleteAsync(accountId);
         }

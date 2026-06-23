@@ -27,6 +27,7 @@ public class BossDungeonService : IBossDungeonService
     private readonly IGameDataCacheService _gameDataCacheService;
     private readonly ILevelUpService _levelUpService;
     private readonly IAppDbTransactionRunner _transactionRunner;
+    private readonly IRandomProvider _randomProvider;
     private readonly ICurrentUserProvider _currentUserProvider;
     private readonly ICombatStatCalculator _calculator;
 
@@ -41,6 +42,7 @@ public class BossDungeonService : IBossDungeonService
         IGameDataCacheService gameDataCacheService,
         ILevelUpService levelUpService,
         IAppDbTransactionRunner transactionRunner,
+        IRandomProvider randomProvider,
         ICurrentUserProvider currentUserProvider,
         ICombatStatCalculator calculator)
     {
@@ -54,6 +56,7 @@ public class BossDungeonService : IBossDungeonService
         _gameDataCacheService = gameDataCacheService;
         _levelUpService = levelUpService;
         _transactionRunner = transactionRunner;
+        _randomProvider = randomProvider;
         _currentUserProvider = currentUserProvider;
         _calculator = calculator;
     }
@@ -123,7 +126,7 @@ public class BossDungeonService : IBossDungeonService
 
         if (aJobWeapons.Count > 0)
         {
-            var dropped = aJobWeapons[Random.Shared.Next(aJobWeapons.Count)];
+            var dropped = aJobWeapons[_randomProvider.Next(0, aJobWeapons.Count)];
             droppedWeapon = new DroppedWeaponInfo(dropped.WeaponId, dropped.Name, dropped.Grade);
 
             var existing = weapons.FirstOrDefault(w => w.WeaponId == dropped.WeaponId);

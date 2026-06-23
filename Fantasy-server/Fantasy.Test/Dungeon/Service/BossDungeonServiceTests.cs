@@ -30,6 +30,7 @@ public class BossDungeonServiceTests
         IGameDataCacheService? cache = null,
         ILevelUpService? levelUpService = null,
         IAppDbTransactionRunner? txRunner = null,
+        IRandomProvider? randomProvider = null,
         ICurrentUserProvider? userProvider = null,
         ICombatStatCalculator? calculator = null)
     {
@@ -43,13 +44,14 @@ public class BossDungeonServiceTests
         cache ??= Substitute.For<IGameDataCacheService>();
         levelUpService ??= Substitute.For<ILevelUpService>();
         txRunner ??= Substitute.For<IAppDbTransactionRunner>();
+        randomProvider ??= Substitute.For<IRandomProvider>();
         userProvider ??= Substitute.For<ICurrentUserProvider>();
         calculator ??= new CombatStatCalculator();
 
         return new BossDungeonService(
             playerRepo, resourceRepo, stageRepo, sessionRepo,
             weaponRepo, skillRepo, redisRepo, cache,
-            levelUpService, txRunner, userProvider, calculator);
+            levelUpService, txRunner, randomProvider, userProvider, calculator);
     }
 
     public class 플레이어가_없을_때
