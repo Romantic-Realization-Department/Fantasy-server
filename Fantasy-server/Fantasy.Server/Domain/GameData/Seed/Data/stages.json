@@ -1,0 +1,7 @@
+[
+  { "stage": 1, "monsterHp": 100, "monsterAtk": 10, "xpPerSecond": 5, "goldPerSecond": 10, "isBossStage": false },
+  { "stage": 2, "monsterHp": 180, "monsterAtk": 16, "xpPerSecond": 8, "goldPerSecond": 16, "isBossStage": false },
+  { "stage": 3, "monsterHp": 320, "monsterAtk": 26, "xpPerSecond": 13, "goldPerSecond": 26, "isBossStage": false },
+  { "stage": 4, "monsterHp": 560, "monsterAtk": 42, "xpPerSecond": 21, "goldPerSecond": 42, "isBossStage": false },
+  { "stage": 5, "monsterHp": 1200, "monsterAtk": 80, "xpPerSecond": 40, "goldPerSecond": 80, "isBossStage": true }
+]

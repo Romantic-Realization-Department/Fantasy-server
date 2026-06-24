@@ -33,3 +33,9 @@ TestResults/
 .DS_Store
 Thumbs.db
 Desktop.ini
+
+# LLM OutPuts
+PR_BODY.md
+.dotnet/
+.pr-tmp/
+current_plan.md

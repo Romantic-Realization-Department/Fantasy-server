@@ -1,0 +1,7 @@
+[
+  { "level": 1, "requiredExp": 0, "rewardSp": 0 },
+  { "level": 2, "requiredExp": 100, "rewardSp": 1 },
+  { "level": 3, "requiredExp": 300, "rewardSp": 1 },
+  { "level": 4, "requiredExp": 700, "rewardSp": 2 },
+  { "level": 5, "requiredExp": 1500, "rewardSp": 2 }
+]

@@ -1,0 +1,10 @@
+[
+  { "weaponId": 1001, "name": "Rusty Sword",     "grade": "C", "jobType": "Warrior", "baseAtk": 30,  "atkPerEnhancement": 5 },
+  { "weaponId": 1002, "name": "Knight Blade",    "grade": "B", "jobType": "Warrior", "baseAtk": 70,  "atkPerEnhancement": 10 },
+
+  { "weaponId": 2001, "name": "Short Bow",       "grade": "C", "jobType": "Archer",  "baseAtk": 35,  "atkPerEnhancement": 6 },
+  { "weaponId": 2002, "name": "Hunter Longbow",  "grade": "B", "jobType": "Archer",  "baseAtk": 78,  "atkPerEnhancement": 11 },
+
+  { "weaponId": 3001, "name": "Apprentice Wand", "grade": "C", "jobType": "Mage",    "baseAtk": 40,  "atkPerEnhancement": 7 },
+  { "weaponId": 3002, "name": "Arcane Staff",    "grade": "B", "jobType": "Mage",    "baseAtk": 85,  "atkPerEnhancement": 12 }
+]

@@ -1,0 +1,29 @@
+[
+  {
+    "jobType": "Warrior",
+    "baseHp": 1000,
+    "baseAtk": 50,
+    "critRate": 0.05,
+    "critDmgMultiplier": 1.5,
+    "hpPerLevel": 80,
+    "atkPerLevel": 6
+  },
+  {
+    "jobType": "Archer",
+    "baseHp": 700,
+    "baseAtk": 65,
+    "critRate": 0.15,
+    "critDmgMultiplier": 1.6,
+    "hpPerLevel": 55,
+    "atkPerLevel": 8
+  },
+  {
+    "jobType": "Mage",
+    "baseHp": 600,
+    "baseAtk": 80,
+    "critRate": 0.08,
+    "critDmgMultiplier": 1.7,
+    "hpPerLevel": 45,
+    "atkPerLevel": 10
+  }
+]
