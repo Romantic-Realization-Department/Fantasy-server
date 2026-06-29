@@ -360,6 +360,7 @@ public record SkillUnlockResponse(bool WasAlreadyUnlocked, ChangesDto Changes, P
 - Redis 캐시 삭제는 DB commit 이후 수행한다. 삭제 실패 시 재시도/로그 정책을 둔다.
 - 현재 `AppDbTransactionRunner` 안에서 repository별 `SaveChangesAsync`가 여러 번 호출되므로 "트랜잭션은 하나지만 저장 시점은 여러 번"이다. 신규 구현에서는 aggregate 변경 후 마지막에 한 번 저장하는 경계를 만든다.
 - PostgreSQL을 기준으로 하면 `xmin` concurrency token을 우선 검토한다. 다른 DBMS 확장 가능성을 중요하게 보면 명시적 `row_version` 컬럼을 둔다.
+- `CreatePlayerService`의 검사-후-생성(`FindByAccountAsync` → 생성)은 트랜잭션 외부 조회라 동시 `POST /v1/player` 시 둘 다 통과해 `account_id` 유니크 제약 위반(500)이 날 수 있다. 데이터는 안전하나 응답이 부적절. 추후 유니크 위반(`DbUpdateException` 23505)을 `ConflictException`(409)으로 변환하거나 락으로 막는다. 현재는 레이트리밋+유니크 제약으로 수용. (PR #29 리뷰 보류 항목)
 
 ### 보안 및 남용 방지
 
