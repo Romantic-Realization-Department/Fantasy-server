@@ -14,7 +14,7 @@
 - 서버가 비용, 조건, 보상, 성장 결과를 계산하고 DB에 저장한다.
 - 모든 상태 변경 API 응답에는 변경분과 최신 `PlayerDataResponse`를 포함한다.
 - 클라이언트는 응답의 `player` 상태로 로컬 상태를 덮어쓴다.
-- `POST /v1/player/init`은 현재처럼 플레이어 상태 조회 및 초기 생성 용도로 유지한다.
+- 플레이어 상태 조회는 `GET /v1/player`(없으면 404), 초기 생성은 `POST /v1/player`(이미 있으면 409)로 분리한다.
 - 모든 성장/보상 API는 계정 ID를 JWT에서만 가져오고, 요청 body/query의 계정 식별자는 받지 않는다.
 - 서버 계산에 필요한 시간은 `DateTime.UtcNow`를 직접 호출하지 않고 clock abstraction을 주입해서 테스트 가능하게 만든다.
 - 재화 차감과 보상 지급은 음수 방지, overflow 방지, 동시 요청 방지를 같은 트랜잭션 안에서 처리한다.
@@ -53,9 +53,9 @@
 계정은 하나의 직업 캐릭터만 키울 수 있다.
 
 - 계정당 `Player`는 1개만 허용한다.
-- `POST /v1/player/init`에서 최초 생성 시에만 `jobType`을 받는다.
-- 이미 플레이어가 있는 계정이 다른 `jobType`으로 init을 요청하면 기존 플레이어를 반환하거나 409로 거부한다.
-- 추천 답: 클라이언트 버그를 빨리 드러내기 위해 다른 `jobType` init은 409로 거부한다.
+- `jobType`은 `POST /v1/player`(생성) 시에만 받는다. 로드(`GET /v1/player`)에는 `jobType`이 필요 없다.
+- 이미 플레이어가 있는 계정이 `POST /v1/player`(생성)를 호출하면 409로 거부한다.
+- 재접속 클라이언트는 직업을 몰라도 `GET /v1/player`로 로드(없으면 404)할 수 있어, 잘못된 직업 추측으로 막히지 않는다.
 - 성장/보상/던전 API는 `jobType` query/body를 받지 않고, JWT 계정의 플레이어 직업을 DB에서 조회해 사용한다.
 - `PlayerDataResponse.JobType`은 유지해서 클라이언트가 현재 계정의 직업을 알 수 있게 한다.
 - Redis 플레이어 캐시 키는 `accountId + jobType`이 아니라 `accountId` 기준으로 단순화한다.
@@ -118,7 +118,8 @@ public record SkillUnlockResponse(bool WasAlreadyUnlocked, ChangesDto Changes, P
 
 ### 1차 신규/유지 API
 
-- `POST /v1/player/init`: 플레이어 상태 조회 및 초기 생성
+- `GET /v1/player`: 플레이어 상태 조회 (없으면 404)
+- `POST /v1/player`: 초기 생성 (이미 있으면 409)
 - `POST /v1/player/loadout`: 장착 무기와 활성 스킬 변경
 - `POST /v1/player/skill/unlock`: 스킬 해금
 - `POST /v1/dungeons/basic/claim`: 방치 보상 정산
@@ -188,7 +189,7 @@ public record SkillUnlockResponse(bool WasAlreadyUnlocked, ChangesDto Changes, P
 
 클라이언트 호출 계약:
 
-- 앱 시작 또는 복귀 시 `POST /v1/player/init`으로 최신 플레이어 상태를 받는다.
+- 앱 시작 또는 복귀 시 `GET /v1/player`로 최신 플레이어 상태를 받고, 404면 `POST /v1/player`로 생성한다.
 - 기본 던전 화면 진입 시 `GET /v1/dungeons/basic/state`로 전투 표시 기준값을 받는다.
 - 앱 백그라운드 복귀, 일정 주기, loadout 변경 직전에는 `POST /v1/dungeons/basic/claim`을 호출한다.
 - claim 성공 후 클라이언트는 서버 `player`와 `basicDungeonState`로 로컬 전투 상태를 재동기화한다.
@@ -359,6 +360,7 @@ public record SkillUnlockResponse(bool WasAlreadyUnlocked, ChangesDto Changes, P
 - Redis 캐시 삭제는 DB commit 이후 수행한다. 삭제 실패 시 재시도/로그 정책을 둔다.
 - 현재 `AppDbTransactionRunner` 안에서 repository별 `SaveChangesAsync`가 여러 번 호출되므로 "트랜잭션은 하나지만 저장 시점은 여러 번"이다. 신규 구현에서는 aggregate 변경 후 마지막에 한 번 저장하는 경계를 만든다.
 - PostgreSQL을 기준으로 하면 `xmin` concurrency token을 우선 검토한다. 다른 DBMS 확장 가능성을 중요하게 보면 명시적 `row_version` 컬럼을 둔다.
+- `CreatePlayerService`의 검사-후-생성(`FindByAccountAsync` → 생성)은 트랜잭션 외부 조회라 동시 `POST /v1/player` 시 둘 다 통과해 `account_id` 유니크 제약 위반(500)이 날 수 있다. 데이터는 안전하나 응답이 부적절. 추후 유니크 위반(`DbUpdateException` 23505)을 `ConflictException`(409)으로 변환하거나 락으로 막는다. 현재는 레이트리밋+유니크 제약으로 수용. (PR #29 리뷰 보류 항목)
 
 ### 보안 및 남용 방지
 

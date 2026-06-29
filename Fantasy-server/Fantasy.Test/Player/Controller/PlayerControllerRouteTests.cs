@@ -23,23 +23,35 @@ public class PlayerControllerRouteTests
     }
 
     [Fact]
-    public void PlayerController는_POST_메서드만_노출한다()
+    public void PlayerController는_GET과_POST만_노출한다()
     {
         var httpMethods = Actions
             .SelectMany(m => m.GetCustomAttributes<HttpMethodAttribute>())
             .SelectMany(a => a.HttpMethods)
             .Distinct();
 
-        httpMethods.Should().OnlyContain(method => method == "POST");
+        httpMethods.Should().BeEquivalentTo(["GET", "POST"]);
     }
 
     [Fact]
-    public void PlayerController_라우트_템플릿은_정확히_세_개다()
+    public void 루트_경로에_GET_로드와_POST_생성이_있다()
+    {
+        var rootMethods = Actions
+            .SelectMany(m => m.GetCustomAttributes<HttpMethodAttribute>())
+            .Where(a => a.Template == null)
+            .SelectMany(a => a.HttpMethods);
+
+        rootMethods.Should().BeEquivalentTo(["GET", "POST"]);
+    }
+
+    [Fact]
+    public void 하위_경로_템플릿은_loadout과_skill_unlock이다()
     {
         var templates = Actions
             .SelectMany(m => m.GetCustomAttributes<HttpMethodAttribute>())
-            .Select(a => a.Template);
+            .Select(a => a.Template)
+            .Where(t => t != null);
 
-        templates.Should().BeEquivalentTo(["init", "loadout", "skill/unlock"]);
+        templates.Should().BeEquivalentTo(["loadout", "skill/unlock"]);
     }
 }

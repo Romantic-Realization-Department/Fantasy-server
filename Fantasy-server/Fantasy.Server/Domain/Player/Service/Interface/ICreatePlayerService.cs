@@ -3,7 +3,7 @@ using Fantasy.Server.Domain.Player.Dto.Response;
 
 namespace Fantasy.Server.Domain.Player.Service.Interface;
 
-public interface IInitPlayerService
+public interface ICreatePlayerService
 {
-    Task<(PlayerDataResponse Data, bool IsNew)> ExecuteAsync(InitPlayerRequest request);
+    Task<PlayerDataResponse> ExecuteAsync(CreatePlayerRequest request);
 }
