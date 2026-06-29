@@ -151,4 +151,43 @@ public class GetPlayerServiceTest
             await act.Should().ThrowAsync<NotFoundException>();
         }
     }
+
+    public class 플레이어는_있으나_하위_데이터가_없을_때
+    {
+        private readonly IPlayerRepository _playerRepository = Substitute.For<IPlayerRepository>();
+        private readonly IPlayerResourceRepository _playerResourceRepository = Substitute.For<IPlayerResourceRepository>();
+        private readonly IPlayerStageRepository _playerStageRepository = Substitute.For<IPlayerStageRepository>();
+        private readonly IPlayerSessionRepository _playerSessionRepository = Substitute.For<IPlayerSessionRepository>();
+        private readonly IPlayerWeaponRepository _playerWeaponRepository = Substitute.For<IPlayerWeaponRepository>();
+        private readonly IPlayerSkillRepository _playerSkillRepository = Substitute.For<IPlayerSkillRepository>();
+        private readonly IPlayerRedisRepository _playerRedisRepository = Substitute.For<IPlayerRedisRepository>();
+        private readonly ICurrentUserProvider _currentUserProvider = Substitute.For<ICurrentUserProvider>();
+        private readonly GetPlayerService _sut;
+
+        public 플레이어는_있으나_하위_데이터가_없을_때()
+        {
+            _currentUserProvider.GetAccountId().Returns(1L);
+            _playerRedisRepository.GetPlayerDataAsync(1L).Returns((PlayerDataResponse?)null);
+            _playerRepository.FindByAccountAsync(1L).Returns(PlayerEntity.Create(1L, JobType.Warrior));
+            _playerResourceRepository.FindByPlayerIdAsync(Arg.Any<long>()).Returns((PlayerResourceEntity?)null);
+
+            _sut = new GetPlayerService(
+                _playerRepository,
+                _playerResourceRepository,
+                _playerStageRepository,
+                _playerSessionRepository,
+                _playerWeaponRepository,
+                _playerSkillRepository,
+                _playerRedisRepository,
+                _currentUserProvider);
+        }
+
+        [Fact]
+        public async Task 재화_데이터가_없으면_InvalidOperationException이_발생한다()
+        {
+            Func<Task> act = () => _sut.ExecuteAsync();
+
+            await act.Should().ThrowAsync<InvalidOperationException>();
+        }
+    }
 }

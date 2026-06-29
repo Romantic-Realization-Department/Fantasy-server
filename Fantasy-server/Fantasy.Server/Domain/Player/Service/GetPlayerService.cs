@@ -51,11 +51,11 @@ public class GetPlayerService : IGetPlayerService
             ?? throw new NotFoundException("플레이어를 찾을 수 없습니다.");
 
         PlayerResource resource = await _playerResourceRepository.FindByPlayerIdAsync(player.Id)
-            ?? throw new NotFoundException("플레이어 재화 데이터를 찾을 수 없습니다.");
+            ?? throw new InvalidOperationException("플레이어 재화 데이터를 찾을 수 없습니다.");
         PlayerStage stage = await _playerStageRepository.FindByPlayerIdAsync(player.Id)
-            ?? throw new NotFoundException("플레이어 스테이지 데이터를 찾을 수 없습니다.");
+            ?? throw new InvalidOperationException("플레이어 스테이지 데이터를 찾을 수 없습니다.");
         PlayerSession session = await _playerSessionRepository.FindByPlayerIdAsync(player.Id)
-            ?? throw new NotFoundException("플레이어 세션 데이터를 찾을 수 없습니다.");
+            ?? throw new InvalidOperationException("플레이어 세션 데이터를 찾을 수 없습니다.");
 
         List<Entity.PlayerWeapon> weapons = await _playerWeaponRepository.FindAllByPlayerIdAsync(player.Id);
         List<Entity.PlayerSkill> skills = await _playerSkillRepository.FindAllByPlayerIdAsync(player.Id);
