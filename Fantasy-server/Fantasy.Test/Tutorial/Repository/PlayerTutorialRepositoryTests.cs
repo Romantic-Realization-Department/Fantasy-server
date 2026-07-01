@@ -32,13 +32,9 @@ public class PlayerTutorialRepositoryTests : IDisposable
     [Fact]
     public async Task SaveAsync_저장한_레코드를_FindAllByPlayerIdAsync로_조회할_수_있다()
     {
-        var cancellationToken = TestContext.Current.CancellationToken;
-
         await _sut.SaveAsync(PlayerTutorial.Create(1L, "tutorial_first_game_start"));
 
-        List<PlayerTutorial> saved = await _dbContext.PlayerTutorials
-            .Where(t => t.PlayerId == 1L)
-            .ToListAsync(cancellationToken);
+        List<PlayerTutorial> saved = await _sut.FindAllByPlayerIdAsync(1L);
 
         saved.Should().HaveCount(1);
         saved[0].TutorialId.Should().Be("tutorial_first_game_start");
