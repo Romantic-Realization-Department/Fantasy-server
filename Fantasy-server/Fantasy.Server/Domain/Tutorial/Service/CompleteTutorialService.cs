@@ -6,6 +6,7 @@ using Fantasy.Server.Domain.Tutorial.Repository.Interface;
 using Fantasy.Server.Domain.Tutorial.Service.Interface;
 using Fantasy.Server.Global.Security.Provider;
 using Gamism.SDK.Extensions.AspNetCore.Exceptions;
+using Microsoft.EntityFrameworkCore;
 using PlayerEntity = Fantasy.Server.Domain.Player.Entity.Player;
 
 namespace Fantasy.Server.Domain.Tutorial.Service;
@@ -40,7 +41,17 @@ public class CompleteTutorialService : ICompleteTutorialService
         if (existing != null)
             return new TutorialCompleteResponse(tutorialId, true, existing.CompletedAt);
 
-        PlayerTutorial created = await _playerTutorialRepository.SaveAsync(PlayerTutorial.Create(player.Id, tutorialId));
-        return new TutorialCompleteResponse(tutorialId, false, created.CompletedAt);
+        try
+        {
+            PlayerTutorial created = await _playerTutorialRepository.SaveAsync(PlayerTutorial.Create(player.Id, tutorialId));
+            return new TutorialCompleteResponse(tutorialId, false, created.CompletedAt);
+        }
+        catch (DbUpdateException)
+        {
+            PlayerTutorial? completedByConcurrentRequest = await _playerTutorialRepository.FindByPlayerIdAndTutorialIdAsync(player.Id, tutorialId);
+            if (completedByConcurrentRequest != null)
+                return new TutorialCompleteResponse(tutorialId, true, completedByConcurrentRequest.CompletedAt);
+            throw;
+        }
     }
 }

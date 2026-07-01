@@ -6,7 +6,9 @@ using Fantasy.Server.Domain.Tutorial.Service;
 using Fantasy.Server.Global.Security.Provider;
 using FluentAssertions;
 using Gamism.SDK.Extensions.AspNetCore.Exceptions;
+using Microsoft.EntityFrameworkCore;
 using NSubstitute;
+using NSubstitute.ExceptionExtensions;
 using Xunit;
 using PlayerEntity = Fantasy.Server.Domain.Player.Entity.Player;
 
@@ -135,6 +137,40 @@ public class CompleteTutorialServiceTest
             await sut.ExecuteAsync("tutorial_first_game_start");
 
             await _tutorialRepository.Received(1).SaveAsync(Arg.Any<PlayerTutorial>());
+        }
+    }
+
+    public class 동시_요청으로_인해_저장_시점에_이미_존재할_때
+    {
+        private readonly IPlayerRepository _playerRepository = Substitute.For<IPlayerRepository>();
+        private readonly IPlayerTutorialRepository _tutorialRepository = Substitute.For<IPlayerTutorialRepository>();
+        private readonly ICurrentUserProvider _currentUserProvider = Substitute.For<ICurrentUserProvider>();
+        private readonly PlayerEntity _player;
+        private readonly PlayerTutorial _existing;
+
+        public 동시_요청으로_인해_저장_시점에_이미_존재할_때()
+        {
+            _player = PlayerEntity.Create(1L, JobType.Warrior);
+            _existing = PlayerTutorial.Create(_player.Id, "tutorial_first_game_start");
+
+            _currentUserProvider.GetAccountId().Returns(1L);
+            _playerRepository.FindByAccountAsync(1L).Returns(_player);
+            _tutorialRepository.FindByPlayerIdAndTutorialIdAsync(_player.Id, "tutorial_first_game_start")
+                .Returns((PlayerTutorial?)null, _existing);
+            _tutorialRepository.SaveAsync(Arg.Any<PlayerTutorial>())
+                .Throws(new DbUpdateException());
+        }
+
+        [Fact]
+        public async Task WasAlreadyCompleted가_true로_반환된다()
+        {
+            var sut = BuildSut(playerRepo: _playerRepository, tutorialRepo: _tutorialRepository,
+                userProvider: _currentUserProvider);
+
+            var result = await sut.ExecuteAsync("tutorial_first_game_start");
+
+            result.WasAlreadyCompleted.Should().BeTrue();
+            result.CompletedAt.Should().Be(_existing.CompletedAt);
         }
     }
 }

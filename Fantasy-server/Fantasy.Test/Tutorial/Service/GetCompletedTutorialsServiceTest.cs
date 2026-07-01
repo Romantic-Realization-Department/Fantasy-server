@@ -41,8 +41,9 @@ public class GetCompletedTutorialsServiceTest
             var tutorialRepo = Substitute.For<IPlayerTutorialRepository>();
             var userProvider = Substitute.For<ICurrentUserProvider>();
             userProvider.GetAccountId().Returns(1L);
-            playerRepo.FindByAccountAsync(1L).Returns(PlayerEntity.Create(1L, JobType.Warrior));
-            tutorialRepo.FindAllByPlayerIdAsync(Arg.Any<long>()).Returns(
+            var player = PlayerEntity.Create(1L, JobType.Warrior);
+            playerRepo.FindByAccountAsync(1L).Returns(player);
+            tutorialRepo.FindAllByPlayerIdAsync(player.Id).Returns(
             [
                 PlayerTutorial.Create(1L, "tutorial_first_game_start"),
                 PlayerTutorial.Create(1L, "tutorial_first_dungeon")
@@ -66,8 +67,9 @@ public class GetCompletedTutorialsServiceTest
             var tutorialRepo = Substitute.For<IPlayerTutorialRepository>();
             var userProvider = Substitute.For<ICurrentUserProvider>();
             userProvider.GetAccountId().Returns(1L);
-            playerRepo.FindByAccountAsync(1L).Returns(PlayerEntity.Create(1L, JobType.Warrior));
-            tutorialRepo.FindAllByPlayerIdAsync(Arg.Any<long>()).Returns([]);
+            var player = PlayerEntity.Create(1L, JobType.Warrior);
+            playerRepo.FindByAccountAsync(1L).Returns(player);
+            tutorialRepo.FindAllByPlayerIdAsync(player.Id).Returns([]);
 
             var sut = new GetCompletedTutorialsService(playerRepo, tutorialRepo, userProvider);
 
