@@ -23,7 +23,7 @@
 | `Microsoft.AspNetCore.Authentication.JwtBearer` | 10.0.5 | `/dotnet/docs` |
 | `System.IdentityModel.Tokens.Jwt` | 8.17.0 | `/dotnet/docs` |
 | `BCrypt.Net-Next` | 4.1.0 | — (no Context7 entry) |
-| `Gamism.SDK.Extensions.AspNetCore` | 0.2.8 | — (no Context7 entry) |
+| `Gamism.SDK.Extensions.AspNetCore` | 0.4.0 | — (no Context7 entry) |
 | `xunit.v3` | 3.2.2 | `/xunit/xunit.net` |
 | `NSubstitute` | 5.3.0 | `/nsubstitute/nsubstitute` |
 | `FluentAssertions` | 8.9.0 | `/fluentassertions/fluentassertions` |
