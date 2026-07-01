@@ -24,7 +24,7 @@ public class PlayerTutorialRepository : IPlayerTutorialRepository
 
     public async Task<PlayerTutorial> SaveAsync(PlayerTutorial tutorial)
     {
-        await _db.PlayerTutorials.AddAsync(tutorial);
+        _db.PlayerTutorials.Add(tutorial);
         await _db.SaveChangesAsync();
         return tutorial;
     }
