@@ -1,5 +1,6 @@
 using Fantasy.Server.Domain.Player.Repository.Interface;
 using Fantasy.Server.Domain.Tutorial.Dto.Response;
+using Fantasy.Server.Domain.Tutorial.Entity;
 using Fantasy.Server.Domain.Tutorial.Repository.Interface;
 using Fantasy.Server.Domain.Tutorial.Service.Interface;
 using Fantasy.Server.Global.Security.Provider;
@@ -31,7 +32,7 @@ public class GetCompletedTutorialsService : IGetCompletedTutorialsService
         PlayerEntity player = await _playerRepository.FindByAccountAsync(accountId)
             ?? throw new NotFoundException("플레이어를 찾을 수 없습니다.");
 
-        List<Entity.PlayerTutorial> tutorials = await _playerTutorialRepository.FindAllByPlayerIdAsync(player.Id);
+        List<PlayerTutorial> tutorials = await _playerTutorialRepository.FindAllByPlayerIdAsync(player.Id);
         return new CompletedTutorialsResponse(tutorials.Select(t => t.TutorialId).ToList());
     }
 }
