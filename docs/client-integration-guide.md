@@ -58,7 +58,7 @@
 ```
 [최초]   signup → login → GET player(404) → POST player(직업 선택·생성)
 [재접속] login(또는 refresh) → GET player(기존 데이터 로드)
-[플레이] basic/state ↔ basic/claim · loadout · skill/unlock · weapon · boss · gold-runs · tutorials
+[플레이] basic/state ↔ basic/claim · loadout · skill/unlock · weapon · boss · gold-runs · weapons/* · tutorials
 [토큰]   accessToken 만료 → auth/refresh 로 갱신
 [종료]   logout
 ```
@@ -123,6 +123,8 @@
 
 > 이 엔드포인트들은 enum 값을 **문자열 이름**(`"Warrior"`, `"C"`, `"AtkPercent"`)으로 반환합니다.
 
+`/v1/jobs/{jobType}/weapons` 응답에는 무기 강화/합성/각성(7장)에 필요한 필드 4개가 포함됩니다: `maxEnhancementLevel`(최대 강화 레벨), `maxAwakeningLevel`(최대 각성 횟수), `synthesizeRequiredCount`(합성 필요 개수, `null`이면 합성 불가), `synthesizeResultWeaponId`(합성 결과 무기 ID, `null`이면 합성 불가).
+
 ## 6. 던전
 
 모든 경로 `/v1/dungeons/*` — 인증 필요, 레이트리밋 `game`.
@@ -176,7 +178,56 @@
 5. 이미 정산된 런을 다시 호출하면 **동일 보상으로 멱등 응답**(중복 지급 없음).
 6. claim 응답에 `highScore`(골드 던전 역대 최고 획득 골드)가 포함됩니다. 이번 획득 골드가 기존 최고 기록을 넘으면 갱신되고, 넘지 못하면 기존 값이 유지됩니다. 멱등 재호출 시에도 저장된 최고 기록을 반환합니다.
 
-## 7. 튜토리얼
+## 7. 무기 강화/합성/각성
+
+모든 경로 `/v1/weapons/*` — 인증 필요, 레이트리밋 `game`. 본문 없음, 대상 무기는 경로의 `weaponId`로 지정합니다.
+
+| 메서드 | 경로 | 설명 |
+|---|---|---|
+| POST | `/v1/weapons/{weaponId}/upgrade` | 무기 강화 (Gold/강화 스크롤 소모) |
+| POST | `/v1/weapons/{weaponId}/synthesize` | 무기 합성 (동일 등급 무기 여러 개 → 상위 등급 1개) |
+| POST | `/v1/weapons/{weaponId}/awaken` | 무기 각성 (동일 무기 복사본 + 미스릴 소모) |
+
+강화/합성/각성에 필요한 최대치와 합성 조건은 `GET /v1/jobs/{jobType}/weapons`(5장) 응답의 신규 필드로 확인합니다: `maxEnhancementLevel`, `maxAwakeningLevel`, `synthesizeRequiredCount`, `synthesizeResultWeaponId`(둘 다 `null`이면 해당 무기는 합성 불가 — 예: 현재 최고 등급인 B등급).
+
+### 7.1 강화 (upgrade)
+
+- **확정 성공**입니다. 실패(랜덤 실패) 개념이 없고, 자원이 충분하면 항상 성공합니다.
+- 비용은 `EnhancementLevel`별 마스터 데이터로 정해지며 Gold와 강화 스크롤을 함께 소모합니다.
+- 무기별로 `maxEnhancementLevel`까지만 강화할 수 있습니다(현재 시드 기준 **최대 10강**).
+- 이미 최대 레벨이거나 재화가 부족하면 400.
+
+### 7.2 합성 (synthesize)
+
+- **C등급 무기 3개 → 동일 직업 B등급 무기 1개**로 합성됩니다(필요 개수는 무기별 `synthesizeRequiredCount`).
+- 합성 결과로 얻는 무기는 강화 레벨·각성 횟수가 **0에서 시작**합니다. 재료 무기의 강화/각성 상태는 승계되지 않습니다.
+- 재료 무기는 강화·각성이 진행된 상태여도 보유 개수(`count`)만 충족하면 합성에 사용할 수 있습니다.
+- **B등급 무기는 합성할 수 없습니다**(`synthesizeRequiredCount`/`synthesizeResultWeaponId`가 `null`인 무기).
+
+### 7.3 각성 (awaken)
+
+- 동일 무기의 **자신을 제외한 복사본**과 미스릴을 함께 소모합니다. 필요 개수(`RequiredCount`)만큼 소모하려면 대상 무기를 포함해 `RequiredCount + 1`개 이상을 보유해야 합니다.
+- 무기별로 **최대 3회**까지 각성할 수 있습니다(`maxAwakeningLevel`).
+- 각성으로 복사본을 소모해도 대상 무기 1개는 항상 남습니다(전량 소모되지 않음).
+- 이미 최대 각성 횟수에 도달했거나 복사본·미스릴이 부족하면 400.
+
+### 7.4 실패 응답
+
+| 상태 코드 | 상황 |
+|---|---|
+| 404 | 대상 무기를 보유하지 않음(또는 무기 마스터 데이터 없음) |
+| 400 | 최대 강화/각성 도달, 재화·복사본 부족, 합성 불가 무기(B등급 등) |
+| 409 | 동시 요청 충돌 — 같은 무기에 강화/합성/각성이 동시에 들어온 경우 |
+
+### 7.5 응답과 `changes`
+
+세 API 모두 `changes`와 최신 `player` 스냅샷(9장)을 반환합니다.
+
+- 강화/각성은 Gold·강화 스크롤·미스릴을 소모하므로 `changes`의 해당 필드가 **음수**로 내려옵니다(예: 강화 시 `gold: -600, enhancementScroll: -1`).
+- 합성 성공 시 `changes.acquiredWeaponIds`에 결과 무기 ID가 포함됩니다.
+- 최종 상태는 `player.weapons[]`에서 해당 무기의 `count`/`enhancementLevel`/`awakeningCount`로 확인합니다.
+
+## 8. 튜토리얼
 
 모든 경로 `/v1/tutorials/*` — 인증 필요, 레이트리밋 `game`.
 
@@ -198,7 +249,7 @@
 - **GET**: `{ completedTutorialIds: [...] }` 반환. 재접속 시 이 목록으로 튜토리얼 표시 상태를 동기화합니다(`GET /v1/player` 응답에는 포함되지 않음).
 - 플레이어 미생성 상태에서 호출하면 **404** → 먼저 `POST /v1/player`로 생성해야 합니다.
 
-## 8. 공통 데이터 구조
+## 9. 공통 데이터 구조
 
 ### PlayerDataResponse (`player`)
 
@@ -220,6 +271,8 @@ gold, exp, sp, mithril, enhancementScroll, dungeonTickets,
 levelUps[], unlockedSkillIds[], acquiredWeaponIds[], maxStage
 ```
 
+- 값은 획득(양수)뿐 아니라 소모(음수)도 나타낼 수 있습니다. 무기 강화/각성(7장)처럼 재화를 소모하는 호출은 해당 필드가 **음수**로 내려옵니다.
+
 ### Enum
 
 | Enum | 값 (순서값) |
@@ -231,7 +284,7 @@ levelUps[], unlockedSkillIds[], acquiredWeaponIds[], maxStage
 > 게임 데이터 조회 엔드포인트(5장)는 enum을 **문자열 이름**으로 반환합니다.
 > 플레이어/던전 응답의 enum 직렬화 형태(이름 vs 순서값)는 `/swagger`의 실제 응답으로 확인 후 매핑하세요.
 
-## 9. 시간 처리
+## 10. 시간 처리
 
 - 서버 시각은 모두 **UTC**입니다. 응답의 시각 필드(`serverNow`, `lastCalculatedAt`, `expiresAt` 등)는 UTC 기준입니다.
 - 단, 일일 리셋(던전 티켓·광고 보상)은 **KST(UTC+9) 날짜** 기준으로 판정됩니다.
