@@ -25,6 +25,7 @@ public class AppDbContext : DbContext
 
     public DbSet<AccountDungeonTicket> AccountDungeonTickets => Set<AccountDungeonTicket>();
     public DbSet<GoldDungeonRun> GoldDungeonRuns => Set<GoldDungeonRun>();
+    public DbSet<PlayerDungeonProgress> PlayerDungeonProgresses => Set<PlayerDungeonProgress>();
 
     public DbSet<LevelTable> LevelTables => Set<LevelTable>();
     public DbSet<WeaponData> WeaponDatas => Set<WeaponData>();
