@@ -252,10 +252,10 @@ public class WeaponAwakenCost
 
 **강화(upgrade)**
 
-1. 소유 무기 확인(`PlayerWeapon` 존재) → 없으면 `WEAPON_NOT_OWNED`.
-2. 현재 `EnhancementLevel`이 `WeaponData.MaxEnhancementLevel` 이상이면 `MAX_UPGRADE_REACHED`.
+1. 소유 무기 확인(`PlayerWeapon` 존재, `Count ≥ 1`) → 없으면 404(`NotFoundException`).
+2. 현재 `EnhancementLevel`이 `WeaponData.MaxEnhancementLevel` 이상이면 400(`BadRequestException`).
 3. `WeaponEnhancementCost(weaponId, 현재레벨)` 조회 → `RequiredGold`/`RequiredScroll` 확인.
-4. 재화 부족 시 `INSUFFICIENT_CURRENCY`.
+4. 재화 부족 시 400(`BadRequestException`).
 5. 재화 차감 + `EnhancementLevel + 1` — 하나의 트랜잭션.
 6. `RewardTransaction`(소모 방향) 기록.
 
@@ -269,9 +269,9 @@ public class WeaponAwakenCost
 
 **각성(awaken)**
 
-1. 소유 무기 확인, 현재 `AwakeningCount`가 `MaxAwakeningLevel` 이상이면 `MAX_UPGRADE_REACHED`.
+1. 소유 무기 확인, 현재 `AwakeningCount`가 `MaxAwakeningLevel` 이상이면 400(`BadRequestException`).
 2. `WeaponAwakenCost(weaponId, 현재각성레벨)` 조회 → `RequiredCount`(복사본)와 `RequiredMithril` 확인.
-3. `PlayerWeapon.Count >= RequiredCount + 1`(자기 자신 제외 복사본 소모 기준 확정 필요, 아래 참고) 및 `PlayerResource.Mithril >= RequiredMithril` 확인.
+3. `PlayerWeapon.Count >= RequiredCount + 1`(자기 자신 제외 복사본 소모 — §5.5 ② 확정) 및 `PlayerResource.Mithril >= RequiredMithril` 확인.
 4. `Count -= RequiredCount`, `Mithril -= RequiredMithril`, `AwakeningCount + 1`.
 5. `RewardTransaction` 기록.
 
