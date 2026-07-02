@@ -44,6 +44,11 @@ public class AppDbTransactionRunner : IAppDbTransactionRunner
                 await transaction.RollbackAsync();
                 throw new ConflictException("동시 요청으로 인해 충돌이 발생했습니다. 다시 시도해주세요.");
             }
+            catch (DbUpdateException)
+            {
+                await transaction.RollbackAsync();
+                throw new ConflictException("동시 요청으로 인해 충돌이 발생했습니다. 다시 시도해주세요.");
+            }
             catch
             {
                 await transaction.RollbackAsync();
