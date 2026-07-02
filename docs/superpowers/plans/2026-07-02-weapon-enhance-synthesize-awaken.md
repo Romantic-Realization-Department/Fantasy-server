@@ -212,10 +212,17 @@ migrationBuilder.Sql("""
 - Modify: `Fantasy-server/Fantasy.Server/Domain/GameData/Repository/Interface/IGameDataRepository.cs` + `Repository/GameDataRepository.cs`
 - Modify: `Fantasy-server/Fantasy.Server/Domain/GameData/Service/Interface/IGameDataCacheService.cs` + `Service/GameDataCacheService.cs`
 - Test: `Fantasy-server/Fantasy.Test/GameData/Service/GameDataCacheServiceTest.cs` (케이스 추가)
+- Modify: `Fantasy-server/Fantasy.Test/Dungeon/Repository/PlayerDungeonProgressRepositoryTests.cs` (Sqlite 픽스처에 신규 타입 Ignore 추가)
+- Modify: `Fantasy-server/Fantasy.Test/Global/Infrastructure/AppDbTransactionRunnerTests.cs` (동일)
+- Modify: `Fantasy-server/Fantasy.Test/Player/Repository/PlayerSkillRepositoryTests.cs` (동일)
+- Modify: `Fantasy-server/Fantasy.Test/Player/Repository/PlayerWeaponRepositoryTests.cs` (동일)
+- Modify: `Fantasy-server/Fantasy.Test/Tutorial/Repository/PlayerTutorialRepositoryTests.cs` (동일)
 - Create: `Fantasy-server/Fantasy.Server/Migrations/{timestamp}_AddWeaponCostTables.cs` (자동 생성)
 
 **Interfaces:**
 - Produces: `WeaponEnhancementCost.Create(int weaponId, long enhancementLevel, long requiredGold, long requiredScroll)`, `WeaponAwakenCost.Create(int weaponId, long awakeningLevel, int requiredCount, int requiredMithril)`. `IGameDataCacheService.GetWeaponEnhancementCostAsync(int weaponId, long enhancementLevel) : Task<WeaponEnhancementCost?>`, `IGameDataCacheService.GetWeaponAwakenCostAsync(int weaponId, long awakeningLevel) : Task<WeaponAwakenCost?>`. 레벨 파라미터 의미: **현재 레벨 → 다음 레벨로 가는 비용**.
+
+**⚠ 중요 — 기존 테스트 픽스처 5개 회귀 방지:** `WeaponEnhancementCost`/`WeaponAwakenCost`는 복합 PK(`WeaponId`+레벨)라 단일 `Id` 프로퍼티가 없다. `AppDbContext`에 이 두 `DbSet<T>`를 추가하면, `base.OnModelCreating()`을 호출하지 않고 자체 `OnModelCreating`에서 `modelBuilder.Ignore<JobBaseStat/LevelTable/StageData/WeaponData/SkillData>()`만 하는 기존 5개 Sqlite 픽스처(`PlayerDungeonProgressRepositoryTests`, `AppDbTransactionRunnerTests`, `PlayerSkillRepositoryTests`, `PlayerWeaponRepositoryTests`, `PlayerTutorialRepositoryTests`)가 `Database.EnsureCreated()` 시점에 "요구되는 기본 키를 찾을 수 없다" 예외로 전부 깨진다(EF Core는 `Id` 형태 프로퍼티가 없는 엔티티의 PK를 컨벤션으로 추론하지 못함). Task 2를 완료로 표시하기 전에 이 5개 파일 각각의 `OnModelCreating`에 `modelBuilder.Ignore<WeaponEnhancementCost>(); modelBuilder.Ignore<WeaponAwakenCost>();` 두 줄을 기존 `Ignore<SkillData>()` 아래에 추가해야 한다.
 
 - [ ] **Step 1: 실패하는 테스트 작성** — `GameDataCacheServiceTest.cs`에 기존 무기 캐시 테스트와 같은 패턴(모킹된 `IGameDataRepository`+`IDistributedCache`)으로 추가:
 
@@ -531,9 +538,23 @@ private async Task<List<WeaponAwakenCost>> GetAllWeaponAwakenCostsAsync()
 
 - [ ] **Step 9: 마이그레이션 생성** — `/db-migrate add AddWeaponCostTables`. 생성물에 두 테이블 CreateTable만 있는지 확인.
 
-- [ ] **Step 10: 통과 확인** — `/test GameDataCacheService` PASS, 이어서 `/test` 전체 PASS.
+- [ ] **Step 10: 기존 Sqlite 테스트 픽스처 5개에 Ignore 추가 (필수 — 생략 시 아래 5개 파일의 테스트가 전부 깨진다)** — 각 파일의 `TestAppDbContext.OnModelCreating` 안, 기존 `modelBuilder.Ignore<SkillData>();` 줄 바로 아래에 다음 두 줄을 추가한다. using에 `Fantasy.Server.Domain.GameData.Entity`가 이미 있으므로 추가 using은 필요 없다.
 
-- [ ] **Step 11: 커밋** — `feat: 무기 강화/각성 비용 마스터 테이블 및 시드 추가`
+```csharp
+modelBuilder.Ignore<WeaponEnhancementCost>();
+modelBuilder.Ignore<WeaponAwakenCost>();
+```
+
+대상 파일 5개:
+- `Fantasy-server/Fantasy.Test/Dungeon/Repository/PlayerDungeonProgressRepositoryTests.cs`
+- `Fantasy-server/Fantasy.Test/Global/Infrastructure/AppDbTransactionRunnerTests.cs`
+- `Fantasy-server/Fantasy.Test/Player/Repository/PlayerSkillRepositoryTests.cs`
+- `Fantasy-server/Fantasy.Test/Player/Repository/PlayerWeaponRepositoryTests.cs`
+- `Fantasy-server/Fantasy.Test/Tutorial/Repository/PlayerTutorialRepositoryTests.cs`
+
+- [ ] **Step 11: 통과 확인** — `/test GameDataCacheService` PASS, 이어서 `/test` 전체 PASS(위 5개 파일이 속한 스위트 포함, 컴파일 에러·`EnsureCreated()` 실패 없어야 함).
+
+- [ ] **Step 12: 커밋** — `feat: 무기 강화/각성 비용 마스터 테이블 및 시드 추가`
 
 ---
 
@@ -643,7 +664,7 @@ public async Task UpdateAsync(PlayerWeapon weapon)
 
 - [ ] **Step 6: 마이그레이션 생성** — `/db-migrate add AddPlayerWeaponConcurrencyToken`. xmin은 Npgsql 시스템 컬럼이라 생성 SQL이 migration history insert 외에 사실상 없음(무해) — 기존 `PlayerDungeonProgress` 때와 동일.
 
-- [ ] **Step 7: 통과 확인** — `/test PlayerWeaponRepository` PASS. (파일 내 `TestAppDbContext`는 프로덕션 Config를 적용하지 않으므로 Sqlite에서 xmin 문제 없음. 만약 해당 파일 `TestAppDbContext`가 `base.OnModelCreating`을 호출하는 구조면 `PlayerWeapon` 모델을 파일 내에서 재정의해 xmin을 제외한다.)
+- [ ] **Step 7: 통과 확인** — `/test PlayerWeaponRepository` PASS. (확인됨: 이 파일의 `TestAppDbContext.OnModelCreating`은 `base`를 호출하지 않고 `PlayerWeapon`을 자체 Fluent 설정으로 처음부터 재정의하며 xmin을 포함하지 않으므로, 프로덕션 `PlayerWeaponConfig`의 xmin 추가가 이 Sqlite 픽스처에 전혀 영향을 주지 않는다. 추가 조치 불필요.)
 
 - [ ] **Step 8: 커밋** — `feat: PlayerWeapon xmin 동시성 토큰 및 단건 갱신 리포지토리 추가`
 
