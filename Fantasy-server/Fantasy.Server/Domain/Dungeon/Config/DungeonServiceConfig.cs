@@ -18,6 +18,7 @@ public static class DungeonServiceConfig
         services.AddScoped<IBossDungeonService, BossDungeonService>();
         services.AddScoped<IAccountDungeonTicketRepository, AccountDungeonTicketRepository>();
         services.AddScoped<IGoldDungeonRunRepository, GoldDungeonRunRepository>();
+        services.AddScoped<IPlayerDungeonProgressRepository, PlayerDungeonProgressRepository>();
         services.AddScoped<IGoldDungeonRunService, GoldDungeonRunService>();
         services.AddScoped<IGoldDungeonClaimService, GoldDungeonClaimService>();
         services.AddScoped<IDungeonTicketService, DungeonTicketService>();
