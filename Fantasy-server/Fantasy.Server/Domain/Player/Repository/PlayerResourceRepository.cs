@@ -13,7 +13,6 @@ public class PlayerResourceRepository : IPlayerResourceRepository
 
     public async Task<PlayerResource?> FindByPlayerIdAsync(long playerId)
         => await _db.PlayerResources
-            .AsNoTracking()
             .FirstOrDefaultAsync(r => r.PlayerId == playerId);
 
     public async Task<PlayerResource> SaveAsync(PlayerResource resource)
