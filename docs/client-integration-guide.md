@@ -58,7 +58,7 @@
 ```
 [최초]   signup → login → GET player(404) → POST player(직업 선택·생성)
 [재접속] login(또는 refresh) → GET player(기존 데이터 로드)
-[플레이] basic/state ↔ basic/claim · loadout · skill/unlock · weapon · boss · gold-runs
+[플레이] basic/state ↔ basic/claim · loadout · skill/unlock · weapon · boss · gold-runs · tutorials
 [토큰]   accessToken 만료 → auth/refresh 로 갱신
 [종료]   logout
 ```
@@ -176,7 +176,29 @@
 5. 이미 정산된 런을 다시 호출하면 **동일 보상으로 멱등 응답**(중복 지급 없음).
 6. claim 응답에 `highScore`(골드 던전 역대 최고 획득 골드)가 포함됩니다. 이번 획득 골드가 기존 최고 기록을 넘으면 갱신되고, 넘지 못하면 기존 값이 유지됩니다. 멱등 재호출 시에도 저장된 최고 기록을 반환합니다.
 
-## 7. 공통 데이터 구조
+## 7. 튜토리얼
+
+모든 경로 `/v1/tutorials/*` — 인증 필요, 레이트리밋 `game`.
+
+| 메서드 | 경로 | 본문 | 설명 |
+|---|---|---|---|
+| GET | `/v1/tutorials` | (없음) | 완료한 튜토리얼 ID 목록 조회 |
+| POST | `/v1/tutorials/{tutorialId}/complete` | (없음) | 튜토리얼 완료 기록 |
+
+- 튜토리얼은 **순수 기록용**입니다. 완료 여부가 다른 API의 동작을 제한하지 않으며, 재화/성장 상태도 바꾸지 않습니다(응답에 `changes`/`player` 미포함).
+- `tutorialId`는 서버 화이트리스트에 있는 값만 허용됩니다. 목록 외 ID는 **400**.
+
+| tutorialId |
+|---|
+| `tutorial_first_game_start` |
+| `tutorial_first_dungeon` |
+| `tutorial_first_upgrade` |
+
+- **complete**: 성공 시 `{ tutorialId, wasAlreadyCompleted, completedAt }` 반환. 이미 완료한 튜토리얼을 다시 호출하면 `wasAlreadyCompleted=true`로 **멱등 성공**(중복 기록 없음).
+- **GET**: `{ completedTutorialIds: [...] }` 반환. 재접속 시 이 목록으로 튜토리얼 표시 상태를 동기화합니다(`GET /v1/player` 응답에는 포함되지 않음).
+- 플레이어 미생성 상태에서 호출하면 **404** → 먼저 `POST /v1/player`로 생성해야 합니다.
+
+## 8. 공통 데이터 구조
 
 ### PlayerDataResponse (`player`)
 
@@ -209,7 +231,7 @@ levelUps[], unlockedSkillIds[], acquiredWeaponIds[], maxStage
 > 게임 데이터 조회 엔드포인트(5장)는 enum을 **문자열 이름**으로 반환합니다.
 > 플레이어/던전 응답의 enum 직렬화 형태(이름 vs 순서값)는 `/swagger`의 실제 응답으로 확인 후 매핑하세요.
 
-## 8. 시간 처리
+## 9. 시간 처리
 
 - 서버 시각은 모두 **UTC**입니다. 응답의 시각 필드(`serverNow`, `lastCalculatedAt`, `expiresAt` 등)는 UTC 기준입니다.
 - 단, 일일 리셋(던전 티켓·광고 보상)은 **KST(UTC+9) 날짜** 기준으로 판정됩니다.
