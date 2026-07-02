@@ -7,5 +7,6 @@ public record BossDungeonResponse(
     long EarnedMithril,
     DroppedWeaponInfo? DroppedWeapon,
     long EarnedXp,
-    List<LevelUpResult> LevelUps
+    List<LevelUpResult> LevelUps,
+    long HighestClearedStage
 );
