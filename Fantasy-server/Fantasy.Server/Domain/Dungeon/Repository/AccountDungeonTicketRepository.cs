@@ -16,7 +16,6 @@ public class AccountDungeonTicketRepository : IAccountDungeonTicketRepository
 
     public async Task<AccountDungeonTicket?> FindByAccountIdAsync(long accountId) =>
         await _dbContext.AccountDungeonTickets
-            .AsNoTracking()
             .FirstOrDefaultAsync(t => t.AccountId == accountId);
 
     public async Task SaveAsync(AccountDungeonTicket ticket)

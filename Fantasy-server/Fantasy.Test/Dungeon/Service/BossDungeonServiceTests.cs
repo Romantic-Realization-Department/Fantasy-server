@@ -1,3 +1,6 @@
+using Fantasy.Server.Domain.Dungeon.Entity;
+using Fantasy.Server.Domain.Dungeon.Enum;
+using Fantasy.Server.Domain.Dungeon.Repository.Interface;
 using Fantasy.Server.Domain.Dungeon.Service;
 using Fantasy.Server.Domain.Dungeon.Service.Interface;
 using Fantasy.Server.Domain.GameData.Entity;
@@ -29,6 +32,7 @@ public class BossDungeonServiceTests
         IPlayerRedisRepository? redisRepo = null,
         IGameDataCacheService? cache = null,
         ILevelUpService? levelUpService = null,
+        IPlayerDungeonProgressRepository? progressRepo = null,
         IAppDbTransactionRunner? txRunner = null,
         ICurrentUserProvider? userProvider = null,
         ICombatStatCalculator? calculator = null)
@@ -42,6 +46,7 @@ public class BossDungeonServiceTests
         redisRepo ??= Substitute.For<IPlayerRedisRepository>();
         cache ??= Substitute.For<IGameDataCacheService>();
         levelUpService ??= Substitute.For<ILevelUpService>();
+        progressRepo ??= Substitute.For<IPlayerDungeonProgressRepository>();
         txRunner ??= Substitute.For<IAppDbTransactionRunner>();
         userProvider ??= Substitute.For<ICurrentUserProvider>();
         calculator ??= new CombatStatCalculator();
@@ -49,7 +54,7 @@ public class BossDungeonServiceTests
         return new BossDungeonService(
             playerRepo, resourceRepo, stageRepo, sessionRepo,
             weaponRepo, skillRepo, redisRepo, cache,
-            levelUpService, txRunner, userProvider, calculator);
+            levelUpService, progressRepo, txRunner, userProvider, calculator);
     }
 
     public class 플레이어가_없을_때
@@ -310,6 +315,151 @@ public class BossDungeonServiceTests
             var result = await sut.ExecuteAsync();
 
             result.Cleared.Should().BeTrue();
+        }
+    }
+
+    public class 진행도가_있고_클리어에_성공할_때
+    {
+        private readonly IPlayerRepository _playerRepository = Substitute.For<IPlayerRepository>();
+        private readonly IPlayerResourceRepository _playerResourceRepository = Substitute.For<IPlayerResourceRepository>();
+        private readonly IPlayerStageRepository _playerStageRepository = Substitute.For<IPlayerStageRepository>();
+        private readonly IPlayerSessionRepository _playerSessionRepository = Substitute.For<IPlayerSessionRepository>();
+        private readonly IPlayerWeaponRepository _playerWeaponRepository = Substitute.For<IPlayerWeaponRepository>();
+        private readonly IPlayerSkillRepository _playerSkillRepository = Substitute.For<IPlayerSkillRepository>();
+        private readonly IPlayerRedisRepository _playerRedisRepository = Substitute.For<IPlayerRedisRepository>();
+        private readonly IGameDataCacheService _gameDataCacheService = Substitute.For<IGameDataCacheService>();
+        private readonly ILevelUpService _levelUpService = Substitute.For<ILevelUpService>();
+        private readonly IPlayerDungeonProgressRepository _progressRepository = Substitute.For<IPlayerDungeonProgressRepository>();
+        private readonly IAppDbTransactionRunner _transactionRunner = Substitute.For<IAppDbTransactionRunner>();
+        private readonly ICurrentUserProvider _currentUserProvider = Substitute.For<ICurrentUserProvider>();
+
+        public 진행도가_있고_클리어에_성공할_때()
+        {
+            _currentUserProvider.GetAccountId().Returns(1L);
+            _playerRepository.FindByAccountAsync(1L)
+                .Returns(PlayerEntity.Create(1L, JobType.Warrior));
+            _playerResourceRepository.FindByPlayerIdAsync(Arg.Any<long>())
+                .Returns(PlayerResource.Create(1L));
+            _playerStageRepository.FindByPlayerIdAsync(Arg.Any<long>())
+                .Returns(PlayerStage.Create(1L));
+            _playerSessionRepository.FindByPlayerIdAsync(Arg.Any<long>())
+                .Returns(PlayerSession.Create(1L));
+            _playerWeaponRepository.FindAllByPlayerIdAsync(Arg.Any<long>()).Returns([]);
+            _playerSkillRepository.FindAllByPlayerIdAsync(Arg.Any<long>()).Returns([]);
+
+            var existingProgress = PlayerDungeonProgress.Create(1L, DungeonType.Boss);
+            existingProgress.ClearStage(3);
+            _progressRepository.FindByPlayerIdAndDungeonTypeAsync(Arg.Any<long>(), DungeonType.Boss)
+                .Returns(existingProgress);
+
+            // 보스 HP = 1 * 5 = 5 → DPS(100) > 5 → 클리어
+            var stageData = StageData.Create(3, monsterHp: 1, monsterAtk: 1, xpPerSecond: 5, goldPerSecond: 10);
+            _gameDataCacheService.GetStageDataAsync(3).Returns(stageData);
+            _gameDataCacheService.GetJobBaseStatAsync(JobType.Warrior)
+                .Returns(JobBaseStat.Create(JobType.Warrior, 1000, 100, 0, 1.5, 10, 10));
+            _gameDataCacheService.GetSkillDataByJobAsync(Arg.Any<JobType>()).Returns([]);
+            _gameDataCacheService.GetWeaponDataByGradeAsync(WeaponGrade.A).Returns([]);
+            _levelUpService.ExecuteAsync(Arg.Any<PlayerEntity>(), Arg.Any<PlayerResource>(), Arg.Any<long>())
+                .Returns([]);
+            _transactionRunner.ExecuteAsync(Arg.Any<Func<Task>>())
+                .Returns(callInfo => callInfo.Arg<Func<Task>>()());
+        }
+
+        [Fact]
+        public async Task 자기_진행도_기준으로_보스_스테이지를_조회한다()
+        {
+            var sut = BuildSut(
+                playerRepo: _playerRepository, resourceRepo: _playerResourceRepository,
+                stageRepo: _playerStageRepository, sessionRepo: _playerSessionRepository,
+                weaponRepo: _playerWeaponRepository, skillRepo: _playerSkillRepository,
+                redisRepo: _playerRedisRepository, cache: _gameDataCacheService,
+                levelUpService: _levelUpService, progressRepo: _progressRepository,
+                txRunner: _transactionRunner, userProvider: _currentUserProvider);
+
+            await sut.ExecuteAsync();
+
+            await _gameDataCacheService.Received(1).GetStageDataAsync(3);
+        }
+
+        [Fact]
+        public async Task HighestClearedStage가_1_증가한다()
+        {
+            var sut = BuildSut(
+                playerRepo: _playerRepository, resourceRepo: _playerResourceRepository,
+                stageRepo: _playerStageRepository, sessionRepo: _playerSessionRepository,
+                weaponRepo: _playerWeaponRepository, skillRepo: _playerSkillRepository,
+                redisRepo: _playerRedisRepository, cache: _gameDataCacheService,
+                levelUpService: _levelUpService, progressRepo: _progressRepository,
+                txRunner: _transactionRunner, userProvider: _currentUserProvider);
+
+            var result = await sut.ExecuteAsync();
+
+            result.HighestClearedStage.Should().Be(4);
+        }
+
+        [Fact]
+        public async Task 진행도_UpdateAsync가_호출된다()
+        {
+            var sut = BuildSut(
+                playerRepo: _playerRepository, resourceRepo: _playerResourceRepository,
+                stageRepo: _playerStageRepository, sessionRepo: _playerSessionRepository,
+                weaponRepo: _playerWeaponRepository, skillRepo: _playerSkillRepository,
+                redisRepo: _playerRedisRepository, cache: _gameDataCacheService,
+                levelUpService: _levelUpService, progressRepo: _progressRepository,
+                txRunner: _transactionRunner, userProvider: _currentUserProvider);
+
+            await sut.ExecuteAsync();
+
+            await _progressRepository.Received(1).UpdateAsync(Arg.Any<PlayerDungeonProgress>());
+        }
+    }
+
+    public class 클리어_실패시_진행도가_변하지_않는다
+    {
+        [Fact]
+        public async Task 기존_HighestClearedStage가_그대로_반환된다()
+        {
+            var playerRepository = Substitute.For<IPlayerRepository>();
+            var resourceRepository = Substitute.For<IPlayerResourceRepository>();
+            var stageRepository = Substitute.For<IPlayerStageRepository>();
+            var sessionRepository = Substitute.For<IPlayerSessionRepository>();
+            var weaponRepository = Substitute.For<IPlayerWeaponRepository>();
+            var skillRepository = Substitute.For<IPlayerSkillRepository>();
+            var gameDataCacheService = Substitute.For<IGameDataCacheService>();
+            var progressRepository = Substitute.For<IPlayerDungeonProgressRepository>();
+            var currentUserProvider = Substitute.For<ICurrentUserProvider>();
+
+            currentUserProvider.GetAccountId().Returns(1L);
+            playerRepository.FindByAccountAsync(1L).Returns(PlayerEntity.Create(1L, JobType.Warrior));
+            resourceRepository.FindByPlayerIdAsync(Arg.Any<long>()).Returns(PlayerResource.Create(1L));
+            stageRepository.FindByPlayerIdAsync(Arg.Any<long>()).Returns(PlayerStage.Create(1L));
+            sessionRepository.FindByPlayerIdAsync(Arg.Any<long>()).Returns(PlayerSession.Create(1L));
+            weaponRepository.FindAllByPlayerIdAsync(Arg.Any<long>()).Returns([]);
+            skillRepository.FindAllByPlayerIdAsync(Arg.Any<long>()).Returns([]);
+
+            var existingProgress = PlayerDungeonProgress.Create(1L, DungeonType.Boss);
+            existingProgress.ClearStage(3);
+            progressRepository.FindByPlayerIdAndDungeonTypeAsync(Arg.Any<long>(), DungeonType.Boss)
+                .Returns(existingProgress);
+
+            // 몬스터 HP가 매우 높아 클리어 불가
+            var stageData = StageData.Create(3, monsterHp: 10_000_000, monsterAtk: 999, xpPerSecond: 5, goldPerSecond: 10);
+            gameDataCacheService.GetStageDataAsync(3).Returns(stageData);
+            gameDataCacheService.GetJobBaseStatAsync(JobType.Warrior)
+                .Returns(JobBaseStat.Create(JobType.Warrior, 1000, 100, 0, 1.5, 10, 10));
+            gameDataCacheService.GetSkillDataByJobAsync(Arg.Any<JobType>()).Returns([]);
+
+            var sut = BuildSut(
+                playerRepo: playerRepository, resourceRepo: resourceRepository,
+                stageRepo: stageRepository, sessionRepo: sessionRepository,
+                weaponRepo: weaponRepository, skillRepo: skillRepository,
+                cache: gameDataCacheService, progressRepo: progressRepository,
+                userProvider: currentUserProvider);
+
+            var result = await sut.ExecuteAsync();
+
+            result.HighestClearedStage.Should().Be(3);
+            await progressRepository.DidNotReceive().UpdateAsync(Arg.Any<PlayerDungeonProgress>());
         }
     }
 }

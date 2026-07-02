@@ -1,7 +1,7 @@
 # 서버 권위 기능 확장 — 설계 문서
 
 - 날짜: 2026-07-02
-- 상태: 승인됨 (구현 전, 단계별 PR)
+- 상태: 단계별 구현 중 — Phase 1(Tutorial) 완료, Phase 2(던전 타입별 진행도) 구현 완료, Phase 3~4 미착수
 - 범위: Tutorial 신규 도메인, 던전 타입별 진행도 분리, 무기 강화/합성/각성, RewardTransaction 감사 로그
 - 비범위: 무기/스킬 ID 전면 문자열 전환, 스킬·무기 장착 API 재설계, 다중 캐릭터/직업 전환, 전 던전 공통 Run 모델 강제
 
@@ -124,7 +124,7 @@ public record CompletedTutorialsResponse(List<string> CompletedTutorialIds);
 - `GetCompletedTutorialsServiceTest`: 완료 기록 있음/없음, 플레이어 없음(404).
 - `TutorialControllerRouteTests`: 라우트 존재 확인(기존 `PlayerControllerRouteTests` 패턴 재사용).
 
-## 4. Phase 2 — 던전 타입별 진행도
+## 4. Phase 2 — 던전 타입별 진행도 ✅ 구현 완료 (2026-07-02)
 
 ### 4.1 `DungeonType`
 
@@ -157,19 +157,21 @@ public class PlayerDungeonProgress
         LastClearedAt = null
     };
 
-    public void ClearStage(long stage, DateTime clearedAt)
+    public void ClearStage(long stage)
     {
         if (stage > HighestClearedStage) HighestClearedStage = stage;
-        LastClearedAt = clearedAt;
+        LastClearedAt = DateTime.UtcNow;
     }
 
-    public void UpdateHighScore(long score, DateTime achievedAt)
+    public void UpdateHighScore(long score)
     {
         if (score > HighScore) HighScore = score;
-        LastClearedAt = achievedAt;
+        LastClearedAt = DateTime.UtcNow;
     }
 }
 ```
+
+- `ClearStage`/`UpdateHighScore`는 `Player.UpdateLevel`/`UpdateExp`와 동일하게 외부 시간 파라미터 없이 엔티티 내부에서 직접 `DateTime.UtcNow`를 찍는다. `TimeProvider` 주입은 경과 시간 계산(골드 던전 만료 판정 등)에만 예약되어 있고, 단순 "이 이벤트가 언제 발생했는지 기록"하는 타임스탬프는 엔티티가 직접 처리하는 것이 기존 컨벤션이다.
 
 - 테이블: `dungeon.player_dungeon_progress` — `(player_id, dungeon_type)` 유니크 인덱스.
 - `xmin` 동시성 토큰 적용(다른 Player 하위 테이블과 동일).
@@ -191,12 +193,13 @@ public class PlayerDungeonProgress
 신규 GET 엔드포인트를 추가하지 않고, 기존 응답 DTO에 필드를 확장한다(API 표면 최소화).
 
 - `WeaponDungeonResponse`, `BossDungeonResponse`에 `HighestClearedStage` 추가.
-- `GoldDungeonClaimResponse`, `DungeonTicketResponse`에 `HighScore` 추가.
+- `GoldDungeonClaimResponse`에 `HighScore` 추가.
+- `DungeonTicketResponse`는 건드리지 않는다 — 이 엔드포인트는 계정 기준으로만 동작하고 Player 조회가 없으므로, 새로 Player 의존성을 넣지 않기로 결정(2026-07-02 확정).
 
-### 4.5 확인 필요 사항 (Phase 착수 전 재확인)
+### 4.5 확인 필요 사항 — 확정됨 (2026-07-02)
 
-- 무기/보스 던전이 "독자 진행도"로 바뀌면 기존에 기본 던전 스테이지에 종속되어 있던 난이도 곡선이 사실상 초기화(둘 다 1부터 시작)되는 셈이라 밸런싱 재검토가 필요하다.
-- 기존 플레이어(마이그레이션 시점 기존 유저)의 초기 `HighestClearedStage`를 1로 리셋할지, 기존 `PlayerStage.MaxStage`로 백필할지 결정 필요.
+- 무기/보스 던전이 "독자 진행도"로 바뀌면 기존에 기본 던전 스테이지에 종속되어 있던 난이도 곡선이 사실상 초기화(둘 다 1부터 시작)되는 셈이라 밸런싱에 영향을 준다는 점을 사용자에게 명시적으로 확인했다.
+- 결정: **백필하지 않는다.** 기존 유저 포함 전원 지연 생성(lazy-create)으로 1부터 시작한다. 기존 `AccountDungeonTicket`/`GoldDungeonRun`과 동일한 지연 생성 패턴을 따르며, 별도 데이터 마이그레이션/백필 스크립트를 두지 않는다. 이는 앞서 확정한 "완전 독립, 각자 1부터 시작" 원칙과 일치한다.
 
 ## 5. Phase 3 — 무기 강화/합성/각성
 

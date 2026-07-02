@@ -1,10 +1,14 @@
 using Fantasy.Server.Domain.Dungeon.Dto.Response;
+using Fantasy.Server.Domain.Dungeon.Entity;
+using Fantasy.Server.Domain.Dungeon.Enum;
+using Fantasy.Server.Domain.Dungeon.Repository.Interface;
 using Fantasy.Server.Domain.Dungeon.Service.Interface;
 using Fantasy.Server.Domain.GameData.Entity;
 using Fantasy.Server.Domain.GameData.Enum;
 using Fantasy.Server.Domain.GameData.Service.Interface;
 using Fantasy.Server.Domain.Player.Dto.Request;
 using Fantasy.Server.Domain.Player.Repository.Interface;
+using Fantasy.Server.Global.Infrastructure;
 using Fantasy.Server.Global.Security.Provider;
 using Gamism.SDK.Extensions.AspNetCore.Exceptions;
 
@@ -24,6 +28,8 @@ public class WeaponDungeonService : IWeaponDungeonService
     private readonly IPlayerSkillRepository _playerSkillRepository;
     private readonly IPlayerRedisRepository _playerRedisRepository;
     private readonly IGameDataCacheService _gameDataCacheService;
+    private readonly IPlayerDungeonProgressRepository _playerDungeonProgressRepository;
+    private readonly IAppDbTransactionRunner _transactionRunner;
     private readonly ICurrentUserProvider _currentUserProvider;
     private readonly ICombatStatCalculator _calculator;
 
@@ -36,6 +42,8 @@ public class WeaponDungeonService : IWeaponDungeonService
         IPlayerSkillRepository playerSkillRepository,
         IPlayerRedisRepository playerRedisRepository,
         IGameDataCacheService gameDataCacheService,
+        IPlayerDungeonProgressRepository playerDungeonProgressRepository,
+        IAppDbTransactionRunner transactionRunner,
         ICurrentUserProvider currentUserProvider,
         ICombatStatCalculator calculator)
     {
@@ -47,6 +55,8 @@ public class WeaponDungeonService : IWeaponDungeonService
         _playerSkillRepository = playerSkillRepository;
         _playerRedisRepository = playerRedisRepository;
         _gameDataCacheService = gameDataCacheService;
+        _playerDungeonProgressRepository = playerDungeonProgressRepository;
+        _transactionRunner = transactionRunner;
         _currentUserProvider = currentUserProvider;
         _calculator = calculator;
     }
@@ -93,9 +103,12 @@ public class WeaponDungeonService : IWeaponDungeonService
 
         var combatStat = _calculator.Calculate(player.Level, jobStat, weaponData, weaponEnhancement, unlockedPassiveSkills);
 
-        var stageData = await _gameDataCacheService.GetStageDataAsync(stage.MaxStage);
-        if (stageData is null)
-            throw new NotFoundException("스테이지 데이터를 찾을 수 없습니다.");
+        var progress = await _playerDungeonProgressRepository.FindByPlayerIdAndDungeonTypeAsync(player.Id, DungeonType.Weapon);
+        var isNewProgress = progress is null;
+        var currentStage = progress?.HighestClearedStage ?? 1;
+
+        var stageData = await _gameDataCacheService.GetStageDataAsync(currentStage)
+            ?? throw new NotFoundException("스테이지 데이터를 찾을 수 없습니다.");
 
         var dps = _calculator.CalculateDps(combatStat);
         var cleared = dps * 30 >= stageData.MonsterHp;
@@ -131,10 +144,10 @@ public class WeaponDungeonService : IWeaponDungeonService
             // 스크롤 드랍 시도
             if (Random.Shared.Next(0, 100) < ScrollDropRatePercent)
                 droppedScrolls = 1;
-        }
 
-        if (droppedWeapons.Count > 0 || droppedScrolls > 0)
-        {
+            progress ??= PlayerDungeonProgress.Create(player.Id, DungeonType.Weapon);
+            progress.ClearStage(currentStage + 1);
+
             var weaponChanges = droppedWeapons
                 .Select(w =>
                 {
@@ -144,18 +157,28 @@ public class WeaponDungeonService : IWeaponDungeonService
                 })
                 .ToList();
 
-            if (weaponChanges.Count > 0)
-                await _playerWeaponRepository.UpsertRangeAsync(player.Id, weaponChanges);
-
-            if (droppedScrolls > 0)
+            await _transactionRunner.ExecuteAsync(async () =>
             {
-                resource.UpdateChangeData(resource.EnhancementScroll + droppedScrolls, null, null);
-                await _playerResourceRepository.UpdateAsync(resource);
-            }
+                if (weaponChanges.Count > 0)
+                    await _playerWeaponRepository.UpsertRangeAsync(player.Id, weaponChanges);
 
-            await _playerRedisRepository.DeleteAsync(accountId);
+                if (droppedScrolls > 0)
+                {
+                    resource.UpdateChangeData(resource.EnhancementScroll + droppedScrolls, null, null);
+                    await _playerResourceRepository.UpdateAsync(resource);
+                }
+
+                if (isNewProgress)
+                    await _playerDungeonProgressRepository.SaveAsync(progress);
+                else
+                    await _playerDungeonProgressRepository.UpdateAsync(progress);
+            });
+
+            if (droppedWeapons.Count > 0 || droppedScrolls > 0)
+                await _playerRedisRepository.DeleteAsync(accountId);
         }
 
-        return new WeaponDungeonResponse(cleared, droppedWeapons, droppedScrolls);
+        var highestClearedStage = progress?.HighestClearedStage ?? currentStage;
+        return new WeaponDungeonResponse(cleared, droppedWeapons, droppedScrolls, highestClearedStage);
     }
 }

@@ -16,7 +16,6 @@ public class GoldDungeonRunRepository : IGoldDungeonRunRepository
 
     public async Task<GoldDungeonRun?> FindByIdAsync(Guid runId) =>
         await _dbContext.GoldDungeonRuns
-            .AsNoTracking()
             .FirstOrDefaultAsync(r => r.Id == runId);
 
     public async Task SaveAsync(GoldDungeonRun run)

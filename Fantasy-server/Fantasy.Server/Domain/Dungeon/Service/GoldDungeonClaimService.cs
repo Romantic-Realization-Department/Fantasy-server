@@ -1,5 +1,7 @@
 using Fantasy.Server.Domain.Dungeon.Dto.Request;
 using Fantasy.Server.Domain.Dungeon.Dto.Response;
+using Fantasy.Server.Domain.Dungeon.Entity;
+using Fantasy.Server.Domain.Dungeon.Enum;
 using Fantasy.Server.Domain.Dungeon.Repository.Interface;
 using Fantasy.Server.Domain.Dungeon.Service.Interface;
 using Fantasy.Server.Domain.Player.Dto.Response;
@@ -23,6 +25,7 @@ public class GoldDungeonClaimService : IGoldDungeonClaimService
     private readonly IPlayerSkillRepository _playerSkillRepository;
     private readonly IPlayerRedisRepository _playerRedisRepository;
     private readonly IGoldDungeonRunRepository _goldDungeonRunRepository;
+    private readonly IPlayerDungeonProgressRepository _playerDungeonProgressRepository;
     private readonly IRandomProvider _randomProvider;
     private readonly IAppDbTransactionRunner _transactionRunner;
     private readonly ICurrentUserProvider _currentUserProvider;
@@ -37,6 +40,7 @@ public class GoldDungeonClaimService : IGoldDungeonClaimService
         IPlayerSkillRepository playerSkillRepository,
         IPlayerRedisRepository playerRedisRepository,
         IGoldDungeonRunRepository goldDungeonRunRepository,
+        IPlayerDungeonProgressRepository playerDungeonProgressRepository,
         IRandomProvider randomProvider,
         IAppDbTransactionRunner transactionRunner,
         ICurrentUserProvider currentUserProvider,
@@ -50,6 +54,7 @@ public class GoldDungeonClaimService : IGoldDungeonClaimService
         _playerSkillRepository = playerSkillRepository;
         _playerRedisRepository = playerRedisRepository;
         _goldDungeonRunRepository = goldDungeonRunRepository;
+        _playerDungeonProgressRepository = playerDungeonProgressRepository;
         _randomProvider = randomProvider;
         _transactionRunner = transactionRunner;
         _currentUserProvider = currentUserProvider;
@@ -85,6 +90,8 @@ public class GoldDungeonClaimService : IGoldDungeonClaimService
 
             var playerResponse = PlayerDataResponseBuilder.Build(player, resource, stage, session, weapons, skills);
 
+            var existingProgress = await _playerDungeonProgressRepository.FindByPlayerIdAndDungeonTypeAsync(player.Id, DungeonType.Gold);
+
             var idempotentChanges = new ChangesDto(
                 Gold: run.EarnedGold!.Value,
                 Exp: 0,
@@ -98,7 +105,8 @@ public class GoldDungeonClaimService : IGoldDungeonClaimService
                 MaxStage: 0
             );
 
-            return new GoldDungeonClaimResponse(run.Id, run.EarnedGold!.Value, run.EarnedMithril!.Value, idempotentChanges, playerResponse);
+            return new GoldDungeonClaimResponse(run.Id, run.EarnedGold!.Value, run.EarnedMithril!.Value,
+                existingProgress?.HighScore ?? 0, idempotentChanges, playerResponse);
         }
 
         var now = _timeProvider.GetUtcNow().UtcDateTime;
@@ -138,10 +146,20 @@ public class GoldDungeonClaimService : IGoldDungeonClaimService
 
         run.Claim(request.Clicks, earnedGold, mithrilDropped ? 1 : 0);
 
+        var progress = await _playerDungeonProgressRepository.FindByPlayerIdAndDungeonTypeAsync(claimPlayer.Id, DungeonType.Gold);
+        var isNewProgress = progress is null;
+        progress ??= PlayerDungeonProgress.Create(claimPlayer.Id, DungeonType.Gold);
+        progress.UpdateHighScore(earnedGold);
+
         await _transactionRunner.ExecuteAsync(async () =>
         {
             await _playerResourceRepository.UpdateAsync(claimResource);
             await _goldDungeonRunRepository.UpdateAsync(run);
+
+            if (isNewProgress)
+                await _playerDungeonProgressRepository.SaveAsync(progress);
+            else
+                await _playerDungeonProgressRepository.UpdateAsync(progress);
         });
 
         var claimPlayerResponse = PlayerDataResponseBuilder.Build(claimPlayer, claimResource, claimStage, claimSession, claimWeapons, claimSkills);
@@ -160,6 +178,6 @@ public class GoldDungeonClaimService : IGoldDungeonClaimService
             MaxStage: 0
         );
 
-        return new GoldDungeonClaimResponse(run.Id, earnedGold, mithrilDropped ? 1 : 0, changes, claimPlayerResponse);
+        return new GoldDungeonClaimResponse(run.Id, earnedGold, mithrilDropped ? 1 : 0, progress.HighScore, changes, claimPlayerResponse);
     }
 }

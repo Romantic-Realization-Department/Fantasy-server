@@ -1,4 +1,7 @@
 using Fantasy.Server.Domain.Dungeon.Dto.Response;
+using Fantasy.Server.Domain.Dungeon.Entity;
+using Fantasy.Server.Domain.Dungeon.Enum;
+using Fantasy.Server.Domain.Dungeon.Repository.Interface;
 using Fantasy.Server.Domain.Dungeon.Service.Interface;
 using Fantasy.Server.Domain.GameData.Entity;
 using Fantasy.Server.Domain.GameData.Enum;
@@ -26,6 +29,7 @@ public class BossDungeonService : IBossDungeonService
     private readonly IPlayerRedisRepository _playerRedisRepository;
     private readonly IGameDataCacheService _gameDataCacheService;
     private readonly ILevelUpService _levelUpService;
+    private readonly IPlayerDungeonProgressRepository _playerDungeonProgressRepository;
     private readonly IAppDbTransactionRunner _transactionRunner;
     private readonly ICurrentUserProvider _currentUserProvider;
     private readonly ICombatStatCalculator _calculator;
@@ -40,6 +44,7 @@ public class BossDungeonService : IBossDungeonService
         IPlayerRedisRepository playerRedisRepository,
         IGameDataCacheService gameDataCacheService,
         ILevelUpService levelUpService,
+        IPlayerDungeonProgressRepository playerDungeonProgressRepository,
         IAppDbTransactionRunner transactionRunner,
         ICurrentUserProvider currentUserProvider,
         ICombatStatCalculator calculator)
@@ -53,6 +58,7 @@ public class BossDungeonService : IBossDungeonService
         _playerRedisRepository = playerRedisRepository;
         _gameDataCacheService = gameDataCacheService;
         _levelUpService = levelUpService;
+        _playerDungeonProgressRepository = playerDungeonProgressRepository;
         _transactionRunner = transactionRunner;
         _currentUserProvider = currentUserProvider;
         _calculator = calculator;
@@ -100,9 +106,11 @@ public class BossDungeonService : IBossDungeonService
 
         var combatStat = _calculator.Calculate(player.Level, jobStat, weaponData, weaponEnhancement, unlockedPassiveSkills);
 
-        var stageData = await _gameDataCacheService.GetStageDataAsync(stage.MaxStage);
-        if (stageData is null)
-            throw new NotFoundException("스테이지 데이터를 찾을 수 없습니다.");
+        var progress = await _playerDungeonProgressRepository.FindByPlayerIdAndDungeonTypeAsync(player.Id, DungeonType.Boss);
+        var currentStage = progress?.HighestClearedStage ?? 1;
+
+        var stageData = await _gameDataCacheService.GetStageDataAsync(currentStage)
+            ?? throw new NotFoundException("스테이지 데이터를 찾을 수 없습니다.");
 
         // 보스는 일반 몬스터의 5배 체력
         var bossHp = stageData.MonsterHp * 5;
@@ -110,7 +118,11 @@ public class BossDungeonService : IBossDungeonService
         var cleared = dps * 30 >= bossHp;
 
         if (!cleared)
-            return new BossDungeonResponse(false, 0, null, 0, []);
+            return new BossDungeonResponse(false, 0, null, 0, [], currentStage);
+
+        var isNewProgress = progress is null;
+        progress ??= PlayerDungeonProgress.Create(player.Id, DungeonType.Boss);
+        progress.ClearStage(currentStage + 1);
 
         var earnedXp = stageData.XpPerSecond * BossXpMultiplier;
         var levelUps = await _levelUpService.ExecuteAsync(player, resource, earnedXp);
@@ -137,10 +149,15 @@ public class BossDungeonService : IBossDungeonService
             await _playerResourceRepository.UpdateAsync(resource);
             if (weaponChanges.Count > 0)
                 await _playerWeaponRepository.UpsertRangeAsync(player.Id, weaponChanges);
+
+            if (isNewProgress)
+                await _playerDungeonProgressRepository.SaveAsync(progress);
+            else
+                await _playerDungeonProgressRepository.UpdateAsync(progress);
         });
 
         await _playerRedisRepository.DeleteAsync(accountId);
 
-        return new BossDungeonResponse(true, BossMithrilReward, droppedWeapon, earnedXp, levelUps);
+        return new BossDungeonResponse(true, BossMithrilReward, droppedWeapon, earnedXp, levelUps, progress.HighestClearedStage);
     }
 }

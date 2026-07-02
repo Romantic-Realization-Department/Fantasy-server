@@ -6,6 +6,7 @@ public record GoldDungeonClaimResponse(
     Guid RunId,
     long EarnedGold,
     int EarnedMithril,
+    long HighScore,
     ChangesDto Changes,
     PlayerDataResponse Player
 );
