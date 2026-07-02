@@ -8,7 +8,6 @@ using Fantasy.Server.Domain.GameData.Enum;
 using Fantasy.Server.Domain.GameData.Service.Interface;
 using Fantasy.Server.Domain.LevelUp.Service.Interface;
 using Fantasy.Server.Domain.Player.Constant;
-using Fantasy.Server.Domain.Player.Dto.Request;
 using Fantasy.Server.Domain.Player.Entity;
 using Fantasy.Server.Domain.Player.Repository.Interface;
 using Fantasy.Server.Global.Infrastructure;
@@ -136,16 +135,13 @@ public class BossDungeonService : IBossDungeonService
         DroppedWeaponInfo? droppedWeapon = null;
         var aWeapons = await _gameDataCacheService.GetWeaponDataByGradeAsync(WeaponGrade.A);
         var aJobWeapons = aWeapons.Where(w => w.JobType == jobType).ToList();
-        List<WeaponChangeItem> weaponChanges = [];
+        List<int> droppedWeaponIds = [];
 
         if (aJobWeapons.Count > 0)
         {
             var dropped = aJobWeapons[Random.Shared.Next(aJobWeapons.Count)];
             droppedWeapon = new DroppedWeaponInfo(dropped.WeaponId, dropped.Name, dropped.Grade);
-
-            var existing = weapons.FirstOrDefault(w => w.WeaponId == dropped.WeaponId);
-            weaponChanges.Add(new WeaponChangeItem(dropped.WeaponId, (existing?.Count ?? 0) + 1,
-                existing?.EnhancementLevel ?? 0, existing?.AwakeningCount ?? 0));
+            droppedWeaponIds.Add(dropped.WeaponId);
         }
 
         var rewardTransactions = new List<RewardTransaction>
@@ -163,8 +159,8 @@ public class BossDungeonService : IBossDungeonService
         {
             await _playerRepository.UpdateAsync(player);
             await _playerResourceRepository.UpdateAsync(resource);
-            if (weaponChanges.Count > 0)
-                await _playerWeaponRepository.UpsertRangeAsync(player.Id, weaponChanges);
+            if (droppedWeaponIds.Count > 0)
+                await _playerWeaponRepository.GrantWeaponsAsync(player.Id, droppedWeaponIds);
 
             if (isNewProgress)
                 await _playerDungeonProgressRepository.SaveAsync(progress);

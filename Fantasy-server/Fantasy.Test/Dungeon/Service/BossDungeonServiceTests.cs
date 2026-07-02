@@ -281,6 +281,28 @@ public class BossDungeonServiceTests
                     list.Any(t => t.RewardType == RewardTypes.Mithril && t.Amount == 1) &&
                     list.Any(t => t.RewardType == RewardTypes.Exp)));
         }
+
+        [Fact]
+        public async Task 드랍된_무기_ID로_GrantWeaponsAsync가_호출된다()
+        {
+            var sut = BuildSut(
+                playerRepo: _playerRepository,
+                resourceRepo: _playerResourceRepository,
+                stageRepo: _playerStageRepository,
+                sessionRepo: _playerSessionRepository,
+                weaponRepo: _playerWeaponRepository,
+                skillRepo: _playerSkillRepository,
+                redisRepo: _playerRedisRepository,
+                cache: _gameDataCacheService,
+                levelUpService: _levelUpService,
+                txRunner: _transactionRunner,
+                userProvider: _currentUserProvider);
+
+            await sut.ExecuteAsync();
+
+            await _playerWeaponRepository.Received(1).GrantWeaponsAsync(
+                Arg.Any<long>(), Arg.Is<List<int>>(ids => ids.SequenceEqual(new List<int> { 10 })));
+        }
     }
 
     public class DPS_곱하기_30이_보스HP와_정확히_같을_때

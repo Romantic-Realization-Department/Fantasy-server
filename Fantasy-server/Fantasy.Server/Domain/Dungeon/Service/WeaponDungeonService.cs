@@ -7,7 +7,6 @@ using Fantasy.Server.Domain.GameData.Entity;
 using Fantasy.Server.Domain.GameData.Enum;
 using Fantasy.Server.Domain.GameData.Service.Interface;
 using Fantasy.Server.Domain.Player.Constant;
-using Fantasy.Server.Domain.Player.Dto.Request;
 using Fantasy.Server.Domain.Player.Entity;
 using Fantasy.Server.Domain.Player.Repository.Interface;
 using Fantasy.Server.Global.Infrastructure;
@@ -153,14 +152,7 @@ public class WeaponDungeonService : IWeaponDungeonService
             progress ??= PlayerDungeonProgress.Create(player.Id, DungeonType.Weapon);
             progress.ClearStage(currentStage + 1);
 
-            var weaponChanges = droppedWeapons
-                .Select(w =>
-                {
-                    var existing = weapons.FirstOrDefault(pw => pw.WeaponId == w.WeaponId);
-                    return new WeaponChangeItem(w.WeaponId, (existing?.Count ?? 0) + 1,
-                        existing?.EnhancementLevel ?? 0, existing?.AwakeningCount ?? 0);
-                })
-                .ToList();
+            var droppedWeaponIds = droppedWeapons.Select(w => w.WeaponId).ToList();
 
             var rewardTransactions = droppedWeapons
                 .Select(w => RewardTransaction.Create(
@@ -172,8 +164,8 @@ public class WeaponDungeonService : IWeaponDungeonService
 
             await _transactionRunner.ExecuteAsync(async () =>
             {
-                if (weaponChanges.Count > 0)
-                    await _playerWeaponRepository.UpsertRangeAsync(player.Id, weaponChanges);
+                if (droppedWeaponIds.Count > 0)
+                    await _playerWeaponRepository.GrantWeaponsAsync(player.Id, droppedWeaponIds);
 
                 if (droppedScrolls > 0)
                 {
