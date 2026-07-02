@@ -13,7 +13,6 @@ public class PlayerSessionRepository : IPlayerSessionRepository
 
     public async Task<PlayerSession?> FindByPlayerIdAsync(long playerId)
         => await _db.PlayerSessions
-            .AsNoTracking()
             .FirstOrDefaultAsync(s => s.PlayerId == playerId);
 
     public async Task<PlayerSession> SaveAsync(PlayerSession session)

@@ -14,27 +14,31 @@ namespace Fantasy.Server.Domain.Player.Controller;
 [EnableRateLimiting("game")]
 public class PlayerController : ControllerBase
 {
-    private readonly IInitPlayerService _initPlayerService;
+    private readonly IGetPlayerService _getPlayerService;
+    private readonly ICreatePlayerService _createPlayerService;
     private readonly ILoadoutService _loadoutService;
     private readonly ISkillUnlockService _skillUnlockService;
 
     public PlayerController(
-        IInitPlayerService initPlayerService,
+        IGetPlayerService getPlayerService,
+        ICreatePlayerService createPlayerService,
         ILoadoutService loadoutService,
         ISkillUnlockService skillUnlockService)
     {
-        _initPlayerService = initPlayerService;
+        _getPlayerService = getPlayerService;
+        _createPlayerService = createPlayerService;
         _loadoutService = loadoutService;
         _skillUnlockService = skillUnlockService;
     }
 
-    [HttpPost("init")]
-    public async Task<CommonApiResponse<PlayerDataResponse>> Init([FromBody] InitPlayerRequest request)
+    [HttpGet]
+    public async Task<PlayerDataResponse> Get() => await _getPlayerService.ExecuteAsync();
+
+    [HttpPost]
+    public async Task<CommonApiResponse<PlayerDataResponse>> Create([FromBody] CreatePlayerRequest request)
     {
-        var (data, isNew) = await _initPlayerService.ExecuteAsync(request);
-        return isNew
-            ? CommonApiResponse.Created("플레이어가 생성되었습니다.", data)
-            : CommonApiResponse.Success("플레이어 데이터를 불러왔습니다.", data);
+        var data = await _createPlayerService.ExecuteAsync(request);
+        return CommonApiResponse.Created("플레이어가 생성되었습니다.", data);
     }
 
     [HttpPost("loadout")]

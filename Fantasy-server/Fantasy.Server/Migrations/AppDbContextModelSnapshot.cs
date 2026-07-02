@@ -144,6 +144,48 @@ namespace Fantasy.Server.Migrations
                     b.ToTable("gold_dungeon_run", "dungeon");
                 });
 
+            modelBuilder.Entity("Fantasy.Server.Domain.Dungeon.Entity.PlayerDungeonProgress", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("DungeonType")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<long>("HighScore")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasDefaultValue(0L);
+
+                    b.Property<long>("HighestClearedStage")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasDefaultValue(1L);
+
+                    b.Property<DateTime?>("LastClearedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("PlayerId")
+                        .HasColumnType("bigint");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PlayerId", "DungeonType")
+                        .IsUnique();
+
+                    b.ToTable("player_dungeon_progress", "dungeon");
+                });
+
             modelBuilder.Entity("Fantasy.Server.Domain.GameData.Entity.JobBaseStat", b =>
                 {
                     b.Property<string>("JobType")
@@ -502,6 +544,33 @@ namespace Fantasy.Server.Migrations
                     b.ToTable("player_weapon", "player");
                 });
 
+            modelBuilder.Entity("Fantasy.Server.Domain.Tutorial.Entity.PlayerTutorial", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("CompletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("PlayerId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("TutorialId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PlayerId", "TutorialId")
+                        .IsUnique();
+
+                    b.ToTable("player_tutorial", "tutorial");
+                });
+
             modelBuilder.Entity("Fantasy.Server.Domain.Dungeon.Entity.AccountDungeonTicket", b =>
                 {
                     b.HasOne("Fantasy.Server.Domain.Account.Entity.Account", null)
@@ -516,6 +585,15 @@ namespace Fantasy.Server.Migrations
                     b.HasOne("Fantasy.Server.Domain.Account.Entity.Account", null)
                         .WithMany()
                         .HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Fantasy.Server.Domain.Dungeon.Entity.PlayerDungeonProgress", b =>
+                {
+                    b.HasOne("Fantasy.Server.Domain.Player.Entity.Player", null)
+                        .WithMany()
+                        .HasForeignKey("PlayerId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
@@ -557,6 +635,15 @@ namespace Fantasy.Server.Migrations
                 });
 
             modelBuilder.Entity("Fantasy.Server.Domain.Player.Entity.PlayerWeapon", b =>
+                {
+                    b.HasOne("Fantasy.Server.Domain.Player.Entity.Player", null)
+                        .WithMany()
+                        .HasForeignKey("PlayerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Fantasy.Server.Domain.Tutorial.Entity.PlayerTutorial", b =>
                 {
                     b.HasOne("Fantasy.Server.Domain.Player.Entity.Player", null)
                         .WithMany()

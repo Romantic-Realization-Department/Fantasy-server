@@ -17,7 +17,8 @@ public static class PlayerServiceConfig
         services.AddScoped<IPlayerSkillRepository, PlayerSkillRepository>();
         services.AddScoped<IPlayerRedisRepository, PlayerRedisRepository>();
 
-        services.AddScoped<IInitPlayerService, InitPlayerService>();
+        services.AddScoped<IGetPlayerService, GetPlayerService>();
+        services.AddScoped<ICreatePlayerService, CreatePlayerService>();
         services.AddScoped<ILoadoutService, LoadoutService>();
         services.AddScoped<ISkillUnlockService, SkillUnlockService>();
 

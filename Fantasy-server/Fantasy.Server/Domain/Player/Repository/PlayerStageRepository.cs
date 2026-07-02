@@ -13,7 +13,6 @@ public class PlayerStageRepository : IPlayerStageRepository
 
     public async Task<PlayerStage?> FindByPlayerIdAsync(long playerId)
         => await _db.PlayerStages
-            .AsNoTracking()
             .FirstOrDefaultAsync(s => s.PlayerId == playerId);
 
     public async Task<PlayerStage> SaveAsync(PlayerStage stage)
