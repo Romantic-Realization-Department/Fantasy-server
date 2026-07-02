@@ -14,7 +14,6 @@ public class PlayerDungeonProgressRepository : IPlayerDungeonProgressRepository
 
     public async Task<PlayerDungeonProgress?> FindByPlayerIdAndDungeonTypeAsync(long playerId, DungeonType dungeonType)
         => await _db.PlayerDungeonProgresses
-            .AsNoTracking()
             .FirstOrDefaultAsync(p => p.PlayerId == playerId && p.DungeonType == dungeonType);
 
     public async Task SaveAsync(PlayerDungeonProgress progress)
