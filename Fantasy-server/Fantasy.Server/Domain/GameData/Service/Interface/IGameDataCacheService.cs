@@ -15,4 +15,6 @@ public interface IGameDataCacheService
     Task<StageData?> GetStageDataAsync(long stage);
     Task<List<StageData>> GetAllStageDataAsync();
     Task<JobBaseStat?> GetJobBaseStatAsync(JobType jobType);
+    Task<WeaponEnhancementCost?> GetWeaponEnhancementCostAsync(int weaponId, long enhancementLevel);
+    Task<WeaponAwakenCost?> GetWeaponAwakenCostAsync(int weaponId, long awakeningLevel);
 }

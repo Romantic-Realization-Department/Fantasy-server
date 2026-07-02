@@ -38,25 +38,34 @@ public static class GameDataSeeder
         long MaxEnhancementLevel, long MaxAwakeningLevel,
         int? SynthesizeRequiredCount, int? SynthesizeResultWeaponId);
 
+    public record WeaponEnhancementCostSeed(int WeaponId, long EnhancementLevel, long RequiredGold, long RequiredScroll);
+    public record WeaponAwakenCostSeed(int WeaponId, long AwakeningLevel, int RequiredCount, int RequiredMithril);
+
     public record AllSeeds(
         IReadOnlyList<JobBaseStatSeed> JobBaseStats,
         IReadOnlyList<LevelSeed> Levels,
         IReadOnlyList<StageSeed> Stages,
         IReadOnlyList<SkillSeed> Skills,
-        IReadOnlyList<WeaponSeed> Weapons);
+        IReadOnlyList<WeaponSeed> Weapons,
+        IReadOnlyList<WeaponEnhancementCostSeed> WeaponEnhancementCosts,
+        IReadOnlyList<WeaponAwakenCostSeed> WeaponAwakenCosts);
 
     public static IReadOnlyList<JobBaseStatSeed> LoadJobBaseStatSeeds() => Load<JobBaseStatSeed>("jobBaseStats.json");
     public static IReadOnlyList<LevelSeed> LoadLevelSeeds() => Load<LevelSeed>("levels.json");
     public static IReadOnlyList<StageSeed> LoadStageSeeds() => Load<StageSeed>("stages.json");
     public static IReadOnlyList<SkillSeed> LoadSkillSeeds() => Load<SkillSeed>("skills.json");
     public static IReadOnlyList<WeaponSeed> LoadWeaponSeeds() => Load<WeaponSeed>("weapons.json");
+    public static IReadOnlyList<WeaponEnhancementCostSeed> LoadWeaponEnhancementCostSeeds() => Load<WeaponEnhancementCostSeed>("weaponEnhancementCosts.json");
+    public static IReadOnlyList<WeaponAwakenCostSeed> LoadWeaponAwakenCostSeeds() => Load<WeaponAwakenCostSeed>("weaponAwakenCosts.json");
 
     public static AllSeeds LoadAllSeeds() => new(
         LoadJobBaseStatSeeds(),
         LoadLevelSeeds(),
         LoadStageSeeds(),
         LoadSkillSeeds(),
-        LoadWeaponSeeds());
+        LoadWeaponSeeds(),
+        LoadWeaponEnhancementCostSeeds(),
+        LoadWeaponAwakenCostSeeds());
 
     public static async Task SeedAsync(AppDbContext db, ILogger? logger = null)
     {
@@ -82,6 +91,14 @@ public static class GameDataSeeder
             .Select(s => WeaponData.Create(s.WeaponId, s.Name, s.Grade, s.JobType, s.BaseAtk, s.AtkPerEnhancement,
                 s.MaxEnhancementLevel, s.MaxAwakeningLevel, s.SynthesizeRequiredCount, s.SynthesizeResultWeaponId))
             .ToList(), await db.WeaponDatas.CountAsync(), "weapon_data", logger);
+
+        SeedTable(db.WeaponEnhancementCosts, seeds.WeaponEnhancementCosts
+            .Select(s => WeaponEnhancementCost.Create(s.WeaponId, s.EnhancementLevel, s.RequiredGold, s.RequiredScroll))
+            .ToList(), await db.WeaponEnhancementCosts.CountAsync(), "weapon_enhancement_cost", logger);
+
+        SeedTable(db.WeaponAwakenCosts, seeds.WeaponAwakenCosts
+            .Select(s => WeaponAwakenCost.Create(s.WeaponId, s.AwakeningLevel, s.RequiredCount, s.RequiredMithril))
+            .ToList(), await db.WeaponAwakenCosts.CountAsync(), "weapon_awaken_cost", logger);
 
         await db.SaveChangesAsync();
     }

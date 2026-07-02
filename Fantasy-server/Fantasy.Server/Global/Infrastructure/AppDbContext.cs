@@ -32,6 +32,8 @@ public class AppDbContext : DbContext
     public DbSet<SkillData> SkillDatas => Set<SkillData>();
     public DbSet<StageData> StageDatas => Set<StageData>();
     public DbSet<JobBaseStat> JobBaseStats => Set<JobBaseStat>();
+    public DbSet<WeaponEnhancementCost> WeaponEnhancementCosts => Set<WeaponEnhancementCost>();
+    public DbSet<WeaponAwakenCost> WeaponAwakenCosts => Set<WeaponAwakenCost>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

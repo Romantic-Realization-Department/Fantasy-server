@@ -15,6 +15,8 @@ public class GameDataCacheService : IGameDataCacheService
     private const string SkillDataKey = "game_data:skill_data";
     private const string StageDataKey = "game_data:stage_data";
     private const string JobBaseStatKey = "game_data:job_base_stat";
+    private const string WeaponEnhancementCostKey = "game_data:weapon_enhancement_cost";
+    private const string WeaponAwakenCostKey = "game_data:weapon_awaken_cost";
     private static readonly TimeSpan CacheTtl = TimeSpan.FromHours(24);
 
     private readonly IGameDataRepository _repository;
@@ -84,6 +86,18 @@ public class GameDataCacheService : IGameDataCacheService
         return all.FirstOrDefault(j => j.JobType == jobType);
     }
 
+    public async Task<WeaponEnhancementCost?> GetWeaponEnhancementCostAsync(int weaponId, long enhancementLevel)
+    {
+        var all = await GetAllWeaponEnhancementCostsAsync();
+        return all.FirstOrDefault(c => c.WeaponId == weaponId && c.EnhancementLevel == enhancementLevel);
+    }
+
+    public async Task<WeaponAwakenCost?> GetWeaponAwakenCostAsync(int weaponId, long awakeningLevel)
+    {
+        var all = await GetAllWeaponAwakenCostsAsync();
+        return all.FirstOrDefault(c => c.WeaponId == weaponId && c.AwakeningLevel == awakeningLevel);
+    }
+
     private async Task<List<WeaponData>> GetAllWeaponDatasAsync()
     {
         var json = await _cache.GetStringAsync(WeaponDataKey);
@@ -128,6 +142,30 @@ public class GameDataCacheService : IGameDataCacheService
 
         var data = await _repository.GetAllJobBaseStatsAsync();
         await _cache.SetStringAsync(JobBaseStatKey, JsonSerializer.Serialize(data),
+            new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = CacheTtl });
+        return data;
+    }
+
+    private async Task<List<WeaponEnhancementCost>> GetAllWeaponEnhancementCostsAsync()
+    {
+        var json = await _cache.GetStringAsync(WeaponEnhancementCostKey);
+        if (json is not null)
+            return JsonSerializer.Deserialize<List<WeaponEnhancementCost>>(json)!;
+
+        var data = await _repository.GetAllWeaponEnhancementCostsAsync();
+        await _cache.SetStringAsync(WeaponEnhancementCostKey, JsonSerializer.Serialize(data),
+            new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = CacheTtl });
+        return data;
+    }
+
+    private async Task<List<WeaponAwakenCost>> GetAllWeaponAwakenCostsAsync()
+    {
+        var json = await _cache.GetStringAsync(WeaponAwakenCostKey);
+        if (json is not null)
+            return JsonSerializer.Deserialize<List<WeaponAwakenCost>>(json)!;
+
+        var data = await _repository.GetAllWeaponAwakenCostsAsync();
+        await _cache.SetStringAsync(WeaponAwakenCostKey, JsonSerializer.Serialize(data),
             new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = CacheTtl });
         return data;
     }

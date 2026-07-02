@@ -152,6 +152,33 @@ public class GameDataCacheServiceTest
             result.Should().NotBeNull();
             result!.JobType.Should().Be(JobType.Warrior);
         }
+
+        [Fact]
+        public async Task GetWeaponEnhancementCostAsync_캐시_미스면_리포지토리에서_읽고_해당_레벨_비용을_반환한다()
+        {
+            _repository.GetAllWeaponEnhancementCostsAsync().Returns([
+                WeaponEnhancementCost.Create(1001, 0, 100, 0),
+                WeaponEnhancementCost.Create(1001, 5, 600, 1)
+            ]);
+
+            var result = await _sut.GetWeaponEnhancementCostAsync(1001, 5);
+
+            result.Should().NotBeNull();
+            result!.RequiredGold.Should().Be(600);
+            result.RequiredScroll.Should().Be(1);
+        }
+
+        [Fact]
+        public async Task GetWeaponAwakenCostAsync_없는_레벨이면_null을_반환한다()
+        {
+            _repository.GetAllWeaponAwakenCostsAsync().Returns([
+                WeaponAwakenCost.Create(1001, 0, 1, 5)
+            ]);
+
+            var result = await _sut.GetWeaponAwakenCostAsync(1001, 3);
+
+            result.Should().BeNull();
+        }
     }
 
     public class 캐시_히트_시

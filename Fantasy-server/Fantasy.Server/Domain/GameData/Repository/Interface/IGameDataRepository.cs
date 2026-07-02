@@ -9,4 +9,6 @@ public interface IGameDataRepository
     Task<List<SkillData>> GetAllSkillDatasAsync();
     Task<List<StageData>> GetAllStageDatasAsync();
     Task<List<JobBaseStat>> GetAllJobBaseStatsAsync();
+    Task<List<WeaponEnhancementCost>> GetAllWeaponEnhancementCostsAsync();
+    Task<List<WeaponAwakenCost>> GetAllWeaponAwakenCostsAsync();
 }
