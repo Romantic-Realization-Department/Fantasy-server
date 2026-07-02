@@ -11,6 +11,10 @@ public class WeaponData
     public JobType JobType { get; private set; }
     public long BaseAtk { get; private set; }
     public long AtkPerEnhancement { get; private set; }
+    public long MaxEnhancementLevel { get; private set; }
+    public long MaxAwakeningLevel { get; private set; }
+    public int? SynthesizeRequiredCount { get; private set; }
+    public int? SynthesizeResultWeaponId { get; private set; }
 
     public static WeaponData Create(
         int weaponId,
@@ -18,13 +22,21 @@ public class WeaponData
         WeaponGrade grade,
         JobType jobType,
         long baseAtk,
-        long atkPerEnhancement) => new()
+        long atkPerEnhancement,
+        long maxEnhancementLevel = 0,
+        long maxAwakeningLevel = 0,
+        int? synthesizeRequiredCount = null,
+        int? synthesizeResultWeaponId = null) => new()
     {
         WeaponId = weaponId,
         Name = name,
         Grade = grade,
         JobType = jobType,
         BaseAtk = baseAtk,
-        AtkPerEnhancement = atkPerEnhancement
+        AtkPerEnhancement = atkPerEnhancement,
+        MaxEnhancementLevel = maxEnhancementLevel,
+        MaxAwakeningLevel = maxAwakeningLevel,
+        SynthesizeRequiredCount = synthesizeRequiredCount,
+        SynthesizeResultWeaponId = synthesizeResultWeaponId
     };
 }

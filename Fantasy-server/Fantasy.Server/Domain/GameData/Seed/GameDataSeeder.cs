@@ -34,7 +34,9 @@ public static class GameDataSeeder
 
     public record WeaponSeed(
         int WeaponId, string Name, WeaponGrade Grade, JobType JobType,
-        long BaseAtk, long AtkPerEnhancement);
+        long BaseAtk, long AtkPerEnhancement,
+        long MaxEnhancementLevel, long MaxAwakeningLevel,
+        int? SynthesizeRequiredCount, int? SynthesizeResultWeaponId);
 
     public record AllSeeds(
         IReadOnlyList<JobBaseStatSeed> JobBaseStats,
@@ -77,7 +79,8 @@ public static class GameDataSeeder
             .ToList(), await db.SkillDatas.CountAsync(), "skill_data", logger);
 
         SeedTable(db.WeaponDatas, seeds.Weapons
-            .Select(s => WeaponData.Create(s.WeaponId, s.Name, s.Grade, s.JobType, s.BaseAtk, s.AtkPerEnhancement))
+            .Select(s => WeaponData.Create(s.WeaponId, s.Name, s.Grade, s.JobType, s.BaseAtk, s.AtkPerEnhancement,
+                s.MaxEnhancementLevel, s.MaxAwakeningLevel, s.SynthesizeRequiredCount, s.SynthesizeResultWeaponId))
             .ToList(), await db.WeaponDatas.CountAsync(), "weapon_data", logger);
 
         await db.SaveChangesAsync();

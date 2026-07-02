@@ -11,7 +11,7 @@ namespace Fantasy.Server.Domain.GameData.Service;
 public class GameDataCacheService : IGameDataCacheService
 {
     private const string LevelTableKey = "game_data:level_table";
-    private const string WeaponDataKey = "game_data:weapon_data";
+    private const string WeaponDataKey = "game_data:weapon_data:v2";
     private const string SkillDataKey = "game_data:skill_data";
     private const string StageDataKey = "game_data:stage_data";
     private const string JobBaseStatKey = "game_data:job_base_stat";

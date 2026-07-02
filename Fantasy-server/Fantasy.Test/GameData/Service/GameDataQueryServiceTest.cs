@@ -43,8 +43,10 @@ public class GameDataQueryServiceTest
     {
         // Arrange
         _cache.GetWeaponDataByJobAsync(JobType.Archer).Returns([
-            WeaponData.Create(1, "Iron Bow", WeaponGrade.C, JobType.Archer, 100, 10),
-            WeaponData.Create(2, "Steel Bow", WeaponGrade.B, JobType.Archer, 150, 15)
+            WeaponData.Create(1, "Iron Bow", WeaponGrade.C, JobType.Archer, 100, 10,
+                maxEnhancementLevel: 10, maxAwakeningLevel: 3, synthesizeRequiredCount: 3, synthesizeResultWeaponId: 2),
+            WeaponData.Create(2, "Steel Bow", WeaponGrade.B, JobType.Archer, 150, 15,
+                maxEnhancementLevel: 10, maxAwakeningLevel: 3)
         ]);
 
         // Act
@@ -56,6 +58,10 @@ public class GameDataQueryServiceTest
         result[0].Name.Should().Be("Iron Bow");
         result[0].Grade.Should().Be("C");
         result[0].JobType.Should().Be("Archer");
+        result[0].MaxEnhancementLevel.Should().Be(10);
+        result[0].SynthesizeRequiredCount.Should().Be(3);
+        result[0].SynthesizeResultWeaponId.Should().Be(2);
+        result[1].SynthesizeRequiredCount.Should().BeNull();
     }
 
     [Fact]

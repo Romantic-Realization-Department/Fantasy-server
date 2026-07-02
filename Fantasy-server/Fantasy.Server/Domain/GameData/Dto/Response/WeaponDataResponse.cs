@@ -6,5 +6,9 @@ public record WeaponDataResponse(
     string Grade,
     string JobType,
     long BaseAtk,
-    long AtkPerEnhancement
+    long AtkPerEnhancement,
+    long MaxEnhancementLevel,
+    long MaxAwakeningLevel,
+    int? SynthesizeRequiredCount,
+    int? SynthesizeResultWeaponId
 );
