@@ -24,4 +24,12 @@ public class PlayerWeapon
         EnhancementLevel = enhancementLevel;
         AwakeningCount = awakeningCount;
     }
+
+    public void Enhance() => EnhancementLevel += 1;
+
+    public void AddCount(long amount) => Count += amount;
+
+    public void ConsumeCount(long amount) => Count -= amount;
+
+    public void Awaken() => AwakeningCount += 1;
 }

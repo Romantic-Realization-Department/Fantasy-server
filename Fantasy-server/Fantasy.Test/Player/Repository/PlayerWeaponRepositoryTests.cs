@@ -59,6 +59,43 @@ public class PlayerWeaponRepositoryTests : IDisposable
         saved[1].WeaponId.Should().Be(2);
     }
 
+    [Fact]
+    public async Task FindByPlayerIdAndWeaponIdAsync_없으면_null을_반환한다()
+    {
+        var result = await _sut.FindByPlayerIdAndWeaponIdAsync(1L, 999);
+
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task SaveAsync_저장한_무기를_단건_조회할_수_있다()
+    {
+        await _sut.SaveAsync(PlayerWeapon.Create(1L, 1001, 3L, 0L, 0L));
+
+        var result = await _sut.FindByPlayerIdAndWeaponIdAsync(1L, 1001);
+
+        result.Should().NotBeNull();
+        result!.Count.Should().Be(3L);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_엔티티_메서드로_변경한_값이_반영된다()
+    {
+        var weapon = PlayerWeapon.Create(1L, 1001, 5L, 0L, 0L);
+        await _sut.SaveAsync(weapon);
+
+        weapon.ConsumeCount(3L);
+        weapon.Enhance();
+        weapon.Awaken();
+        weapon.AddCount(1L);
+        await _sut.UpdateAsync(weapon);
+
+        var result = await _sut.FindByPlayerIdAndWeaponIdAsync(1L, 1001);
+        result!.Count.Should().Be(3L);
+        result.EnhancementLevel.Should().Be(1L);
+        result.AwakeningCount.Should().Be(1L);
+    }
+
     public void Dispose()
     {
         _dbContext.Dispose();

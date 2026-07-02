@@ -7,4 +7,7 @@ public interface IPlayerWeaponRepository
 {
     Task<List<PlayerWeapon>> FindAllByPlayerIdAsync(long playerId);
     Task UpsertRangeAsync(long playerId, List<WeaponChangeItem> items);
+    Task<PlayerWeapon?> FindByPlayerIdAndWeaponIdAsync(long playerId, int weaponId);
+    Task SaveAsync(PlayerWeapon weapon);
+    Task UpdateAsync(PlayerWeapon weapon);
 }

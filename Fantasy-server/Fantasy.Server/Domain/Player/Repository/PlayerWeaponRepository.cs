@@ -45,4 +45,20 @@ public class PlayerWeaponRepository : IPlayerWeaponRepository
 
         await _db.SaveChangesAsync();
     }
+
+    public async Task<PlayerWeapon?> FindByPlayerIdAndWeaponIdAsync(long playerId, int weaponId)
+        => await _db.PlayerWeapons
+            .FirstOrDefaultAsync(w => w.PlayerId == playerId && w.WeaponId == weaponId);
+
+    public async Task SaveAsync(PlayerWeapon weapon)
+    {
+        _db.PlayerWeapons.Add(weapon);
+        await _db.SaveChangesAsync();
+    }
+
+    public async Task UpdateAsync(PlayerWeapon weapon)
+    {
+        _db.PlayerWeapons.Update(weapon);
+        await _db.SaveChangesAsync();
+    }
 }

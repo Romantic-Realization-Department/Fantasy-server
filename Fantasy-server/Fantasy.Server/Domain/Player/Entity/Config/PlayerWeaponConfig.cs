@@ -40,5 +40,11 @@ public class PlayerWeaponConfig : IEntityTypeConfiguration<PlayerWeapon>
             .WithMany()
             .HasForeignKey(w => w.PlayerId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Property<uint>("xmin")
+            .HasColumnName("xmin")
+            .HasColumnType("xid")
+            .ValueGeneratedOnAddOrUpdate()
+            .IsConcurrencyToken();
     }
 }
