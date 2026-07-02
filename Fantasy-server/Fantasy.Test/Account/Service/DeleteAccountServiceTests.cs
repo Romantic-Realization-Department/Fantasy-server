@@ -34,6 +34,7 @@ public class DeleteAccountServiceTests
         private readonly IAccountRepository _accountRepository = Substitute.For<IAccountRepository>();
         private readonly ICurrentUserProvider _currentUserProvider = Substitute.For<ICurrentUserProvider>();
         private readonly IPlayerRepository _playerRepository = Substitute.For<IPlayerRepository>();
+        private readonly IPlayerRedisRepository _playerRedisRepository = Substitute.For<IPlayerRedisRepository>();
         private readonly IRefreshTokenRedisRepository _refreshTokenRepository = Substitute.For<IRefreshTokenRedisRepository>();
         private readonly IAppDbTransactionRunner _txRunner = CreateTxRunner();
         private readonly DeleteAccountService _sut;
@@ -46,7 +47,7 @@ public class DeleteAccountServiceTests
             _accountRepository.FindByEmailAsync(Email).Returns(_account);
             _sut = new DeleteAccountService(
                 _accountRepository, _currentUserProvider,
-                _playerRepository, _refreshTokenRepository, _txRunner);
+                _playerRepository, _playerRedisRepository, _refreshTokenRepository, _txRunner);
         }
 
         [Fact]
@@ -72,6 +73,14 @@ public class DeleteAccountServiceTests
 
             await _refreshTokenRepository.Received(1).DeleteAsync(_account.Id);
         }
+
+        [Fact]
+        public async Task 회원탈퇴_요청_시_Player_캐시가_삭제된다()
+        {
+            await _sut.ExecuteAsync(_request);
+
+            await _playerRedisRepository.Received(1).DeleteAsync(_account.Id);
+        }
     }
 
     public class 존재하지_않는_계정으로_탈퇴_요청할_때
@@ -79,6 +88,7 @@ public class DeleteAccountServiceTests
         private readonly IAccountRepository _accountRepository = Substitute.For<IAccountRepository>();
         private readonly ICurrentUserProvider _currentUserProvider = Substitute.For<ICurrentUserProvider>();
         private readonly IPlayerRepository _playerRepository = Substitute.For<IPlayerRepository>();
+        private readonly IPlayerRedisRepository _playerRedisRepository = Substitute.For<IPlayerRedisRepository>();
         private readonly IRefreshTokenRedisRepository _refreshTokenRepository = Substitute.For<IRefreshTokenRedisRepository>();
         private readonly IAppDbTransactionRunner _txRunner = CreateTxRunner();
         private readonly DeleteAccountService _sut;
@@ -90,7 +100,7 @@ public class DeleteAccountServiceTests
             _accountRepository.FindByEmailAsync(Email).Returns((AccountEntity?)null);
             _sut = new DeleteAccountService(
                 _accountRepository, _currentUserProvider,
-                _playerRepository, _refreshTokenRepository, _txRunner);
+                _playerRepository, _playerRedisRepository, _refreshTokenRepository, _txRunner);
         }
 
         [Fact]
@@ -107,6 +117,7 @@ public class DeleteAccountServiceTests
         private readonly IAccountRepository _accountRepository = Substitute.For<IAccountRepository>();
         private readonly ICurrentUserProvider _currentUserProvider = Substitute.For<ICurrentUserProvider>();
         private readonly IPlayerRepository _playerRepository = Substitute.For<IPlayerRepository>();
+        private readonly IPlayerRedisRepository _playerRedisRepository = Substitute.For<IPlayerRedisRepository>();
         private readonly IRefreshTokenRedisRepository _refreshTokenRepository = Substitute.For<IRefreshTokenRedisRepository>();
         private readonly IAppDbTransactionRunner _txRunner = CreateTxRunner();
         private readonly DeleteAccountService _sut;
@@ -119,7 +130,7 @@ public class DeleteAccountServiceTests
             _accountRepository.FindByEmailAsync(Email).Returns(_account);
             _sut = new DeleteAccountService(
                 _accountRepository, _currentUserProvider,
-                _playerRepository, _refreshTokenRepository, _txRunner);
+                _playerRepository, _playerRedisRepository, _refreshTokenRepository, _txRunner);
         }
 
         [Fact]

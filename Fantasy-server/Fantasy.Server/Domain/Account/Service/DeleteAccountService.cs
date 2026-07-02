@@ -14,6 +14,7 @@ public class DeleteAccountService : IDeleteAccountService
     private readonly IAccountRepository _accountRepository;
     private readonly ICurrentUserProvider _currentUserProvider;
     private readonly IPlayerRepository _playerRepository;
+    private readonly IPlayerRedisRepository _playerRedisRepository;
     private readonly IRefreshTokenRedisRepository _refreshTokenRepository;
     private readonly IAppDbTransactionRunner _txRunner;
 
@@ -21,12 +22,14 @@ public class DeleteAccountService : IDeleteAccountService
         IAccountRepository accountRepository,
         ICurrentUserProvider currentUserProvider,
         IPlayerRepository playerRepository,
+        IPlayerRedisRepository playerRedisRepository,
         IRefreshTokenRedisRepository refreshTokenRepository,
         IAppDbTransactionRunner txRunner)
     {
         _accountRepository = accountRepository;
         _currentUserProvider = currentUserProvider;
         _playerRepository = playerRepository;
+        _playerRedisRepository = playerRedisRepository;
         _refreshTokenRepository = refreshTokenRepository;
         _txRunner = txRunner;
     }
@@ -47,6 +50,7 @@ public class DeleteAccountService : IDeleteAccountService
             await _accountRepository.DeleteAsync(account);
         });
 
+        await _playerRedisRepository.DeleteAsync(account.Id);
         await _refreshTokenRepository.DeleteAsync(account.Id);
     }
 }
