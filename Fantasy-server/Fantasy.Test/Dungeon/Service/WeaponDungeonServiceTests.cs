@@ -6,6 +6,7 @@ using Fantasy.Server.Domain.Dungeon.Service.Interface;
 using Fantasy.Server.Domain.GameData.Entity;
 using Fantasy.Server.Domain.GameData.Enum;
 using Fantasy.Server.Domain.GameData.Service.Interface;
+using Fantasy.Server.Domain.Player.Constant;
 using Fantasy.Server.Domain.Player.Entity;
 using Fantasy.Server.Domain.Player.Enum;
 using Fantasy.Server.Domain.Player.Repository.Interface;
@@ -31,6 +32,7 @@ public class WeaponDungeonServiceTests
         IPlayerRedisRepository? redisRepo = null,
         IGameDataCacheService? cache = null,
         IPlayerDungeonProgressRepository? progressRepo = null,
+        IRewardTransactionRepository? rewardTxRepo = null,
         IAppDbTransactionRunner? txRunner = null,
         ICurrentUserProvider? userProvider = null,
         ICombatStatCalculator? calculator = null)
@@ -44,6 +46,7 @@ public class WeaponDungeonServiceTests
         redisRepo ??= Substitute.For<IPlayerRedisRepository>();
         cache ??= Substitute.For<IGameDataCacheService>();
         progressRepo ??= Substitute.For<IPlayerDungeonProgressRepository>();
+        rewardTxRepo ??= Substitute.For<IRewardTransactionRepository>();
         txRunner ??= Substitute.For<IAppDbTransactionRunner>();
         userProvider ??= Substitute.For<ICurrentUserProvider>();
         calculator ??= new CombatStatCalculator();
@@ -51,7 +54,7 @@ public class WeaponDungeonServiceTests
         return new WeaponDungeonService(
             playerRepo, resourceRepo, stageRepo, sessionRepo,
             weaponRepo, skillRepo, redisRepo, cache,
-            progressRepo, txRunner, userProvider, calculator);
+            progressRepo, rewardTxRepo, txRunner, userProvider, calculator);
     }
 
     public class 플레이어가_없을_때
@@ -441,6 +444,81 @@ public class WeaponDungeonServiceTests
             await sut.ExecuteAsync();
 
             await _progressRepository.Received(1).SaveAsync(Arg.Any<PlayerDungeonProgress>());
+        }
+    }
+
+    public class 클리어하고_무기가_드랍될_때
+    {
+        private readonly IPlayerRepository _playerRepository = Substitute.For<IPlayerRepository>();
+        private readonly IPlayerResourceRepository _playerResourceRepository = Substitute.For<IPlayerResourceRepository>();
+        private readonly IPlayerStageRepository _playerStageRepository = Substitute.For<IPlayerStageRepository>();
+        private readonly IPlayerSessionRepository _playerSessionRepository = Substitute.For<IPlayerSessionRepository>();
+        private readonly IPlayerWeaponRepository _playerWeaponRepository = Substitute.For<IPlayerWeaponRepository>();
+        private readonly IPlayerSkillRepository _playerSkillRepository = Substitute.For<IPlayerSkillRepository>();
+        private readonly IPlayerRedisRepository _playerRedisRepository = Substitute.For<IPlayerRedisRepository>();
+        private readonly IGameDataCacheService _gameDataCacheService = Substitute.For<IGameDataCacheService>();
+        private readonly IAppDbTransactionRunner _transactionRunner = Substitute.For<IAppDbTransactionRunner>();
+        private readonly ICurrentUserProvider _currentUserProvider = Substitute.For<ICurrentUserProvider>();
+
+        public 클리어하고_무기가_드랍될_때()
+        {
+            _currentUserProvider.GetAccountId().Returns(1L);
+            _playerRepository.FindByAccountAsync(1L)
+                .Returns(PlayerEntity.Create(1L, JobType.Warrior));
+            _playerResourceRepository.FindByPlayerIdAsync(Arg.Any<long>())
+                .Returns(PlayerResource.Create(1L));
+            _playerStageRepository.FindByPlayerIdAsync(Arg.Any<long>())
+                .Returns(PlayerStage.Create(1L));
+            _playerSessionRepository.FindByPlayerIdAsync(Arg.Any<long>())
+                .Returns(PlayerSession.Create(1L));
+            _playerWeaponRepository.FindAllByPlayerIdAsync(Arg.Any<long>()).Returns([]);
+            _playerSkillRepository.FindAllByPlayerIdAsync(Arg.Any<long>()).Returns([]);
+
+            // 몬스터 HP = 1 → 항상 클리어
+            var stageData = StageData.Create(1, monsterHp: 1, monsterAtk: 1, xpPerSecond: 5, goldPerSecond: 10);
+            _gameDataCacheService.GetStageDataAsync(1).Returns(stageData);
+            _gameDataCacheService.GetJobBaseStatAsync(JobType.Warrior)
+                .Returns(JobBaseStat.Create(JobType.Warrior, 1000, 100, 0, 1.5, 10, 10));
+            _gameDataCacheService.GetSkillDataByJobAsync(Arg.Any<JobType>()).Returns([]);
+            _gameDataCacheService.GetWeaponDataByGradeAsync(WeaponGrade.B)
+                .Returns([WeaponData.Create(2001, "B등급검", WeaponGrade.B, JobType.Warrior, 100, 10)]);
+            _gameDataCacheService.GetWeaponDataByGradeAsync(WeaponGrade.C)
+                .Returns([WeaponData.Create(3001, "C등급검", WeaponGrade.C, JobType.Warrior, 50, 5)]);
+
+            _transactionRunner.ExecuteAsync(Arg.Any<Func<Task>>())
+                .Returns(callInfo => callInfo.Arg<Func<Task>>()());
+        }
+
+        [Fact]
+        public async Task RewardTransaction이_기록된다()
+        {
+            // B(20%)/C(70%) 등급 드랍은 WeaponDungeonService 내부 Random.Shared 기반 확률 로직이라
+            // 결정론적으로 강제할 수 없음(Phase 3 기존 동작, 이번 변경 범위 밖).
+            // 드랍이 발생할 때까지 재시도한다 — 미드랍 확률은 시도당 0.8*0.3=0.24, 50회 연속 미드랍 확률은 사실상 0.
+            for (var attempt = 0; attempt < 50; attempt++)
+            {
+                var rewardTxRepo = Substitute.For<IRewardTransactionRepository>();
+                var sut = BuildSut(
+                    playerRepo: _playerRepository, resourceRepo: _playerResourceRepository,
+                    stageRepo: _playerStageRepository, sessionRepo: _playerSessionRepository,
+                    weaponRepo: _playerWeaponRepository, skillRepo: _playerSkillRepository,
+                    redisRepo: _playerRedisRepository, cache: _gameDataCacheService,
+                    rewardTxRepo: rewardTxRepo, txRunner: _transactionRunner,
+                    userProvider: _currentUserProvider);
+
+                var result = await sut.ExecuteAsync();
+
+                if (result.DroppedWeapons.Count == 0)
+                    continue;
+
+                await rewardTxRepo.Received(1).SaveRangeAsync(
+                    Arg.Is<List<RewardTransaction>>(list =>
+                        list.All(t => t.SourceType == RewardSourceTypes.DungeonWeapon) &&
+                        list.Any(t => t.RewardType == RewardTypes.Weapon && t.Amount == 1)));
+                return;
+            }
+
+            Assert.Fail("50회 시도했지만 무기가 드랍되지 않았습니다.");
         }
     }
 }

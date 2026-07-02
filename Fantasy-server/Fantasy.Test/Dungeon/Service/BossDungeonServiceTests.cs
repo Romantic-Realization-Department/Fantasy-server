@@ -7,6 +7,7 @@ using Fantasy.Server.Domain.GameData.Entity;
 using Fantasy.Server.Domain.GameData.Enum;
 using Fantasy.Server.Domain.GameData.Service.Interface;
 using Fantasy.Server.Domain.LevelUp.Service.Interface;
+using Fantasy.Server.Domain.Player.Constant;
 using Fantasy.Server.Domain.Player.Entity;
 using Fantasy.Server.Domain.Player.Enum;
 using Fantasy.Server.Domain.Player.Repository.Interface;
@@ -33,6 +34,7 @@ public class BossDungeonServiceTests
         IGameDataCacheService? cache = null,
         ILevelUpService? levelUpService = null,
         IPlayerDungeonProgressRepository? progressRepo = null,
+        IRewardTransactionRepository? rewardTxRepo = null,
         IAppDbTransactionRunner? txRunner = null,
         ICurrentUserProvider? userProvider = null,
         ICombatStatCalculator? calculator = null)
@@ -47,6 +49,7 @@ public class BossDungeonServiceTests
         cache ??= Substitute.For<IGameDataCacheService>();
         levelUpService ??= Substitute.For<ILevelUpService>();
         progressRepo ??= Substitute.For<IPlayerDungeonProgressRepository>();
+        rewardTxRepo ??= Substitute.For<IRewardTransactionRepository>();
         txRunner ??= Substitute.For<IAppDbTransactionRunner>();
         userProvider ??= Substitute.For<ICurrentUserProvider>();
         calculator ??= new CombatStatCalculator();
@@ -54,7 +57,7 @@ public class BossDungeonServiceTests
         return new BossDungeonService(
             playerRepo, resourceRepo, stageRepo, sessionRepo,
             weaponRepo, skillRepo, redisRepo, cache,
-            levelUpService, progressRepo, txRunner, userProvider, calculator);
+            levelUpService, progressRepo, rewardTxRepo, txRunner, userProvider, calculator);
     }
 
     public class 플레이어가_없을_때
@@ -159,6 +162,7 @@ public class BossDungeonServiceTests
         private readonly IPlayerRedisRepository _playerRedisRepository = Substitute.For<IPlayerRedisRepository>();
         private readonly IGameDataCacheService _gameDataCacheService = Substitute.For<IGameDataCacheService>();
         private readonly ILevelUpService _levelUpService = Substitute.For<ILevelUpService>();
+        private readonly IRewardTransactionRepository _rewardTransactionRepository = Substitute.For<IRewardTransactionRepository>();
         private readonly IAppDbTransactionRunner _transactionRunner = Substitute.For<IAppDbTransactionRunner>();
         private readonly ICurrentUserProvider _currentUserProvider = Substitute.For<ICurrentUserProvider>();
 
@@ -251,6 +255,31 @@ public class BossDungeonServiceTests
             await sut.ExecuteAsync();
 
             await _playerRedisRepository.Received(1).DeleteAsync(1L);
+        }
+
+        [Fact]
+        public async Task RewardTransaction이_기록된다()
+        {
+            var sut = BuildSut(
+                playerRepo: _playerRepository,
+                resourceRepo: _playerResourceRepository,
+                stageRepo: _playerStageRepository,
+                sessionRepo: _playerSessionRepository,
+                weaponRepo: _playerWeaponRepository,
+                skillRepo: _playerSkillRepository,
+                redisRepo: _playerRedisRepository,
+                cache: _gameDataCacheService,
+                levelUpService: _levelUpService,
+                rewardTxRepo: _rewardTransactionRepository,
+                txRunner: _transactionRunner,
+                userProvider: _currentUserProvider);
+
+            await sut.ExecuteAsync();
+
+            await _rewardTransactionRepository.Received(1).SaveRangeAsync(
+                Arg.Is<List<RewardTransaction>>(list =>
+                    list.Any(t => t.RewardType == RewardTypes.Mithril && t.Amount == 1) &&
+                    list.Any(t => t.RewardType == RewardTypes.Exp)));
         }
     }
 

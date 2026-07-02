@@ -6,7 +6,9 @@ using Fantasy.Server.Domain.Dungeon.Service.Interface;
 using Fantasy.Server.Domain.GameData.Entity;
 using Fantasy.Server.Domain.GameData.Enum;
 using Fantasy.Server.Domain.GameData.Service.Interface;
+using Fantasy.Server.Domain.Player.Constant;
 using Fantasy.Server.Domain.Player.Dto.Request;
+using Fantasy.Server.Domain.Player.Entity;
 using Fantasy.Server.Domain.Player.Repository.Interface;
 using Fantasy.Server.Global.Infrastructure;
 using Fantasy.Server.Global.Security.Provider;
@@ -29,6 +31,7 @@ public class WeaponDungeonService : IWeaponDungeonService
     private readonly IPlayerRedisRepository _playerRedisRepository;
     private readonly IGameDataCacheService _gameDataCacheService;
     private readonly IPlayerDungeonProgressRepository _playerDungeonProgressRepository;
+    private readonly IRewardTransactionRepository _rewardTransactionRepository;
     private readonly IAppDbTransactionRunner _transactionRunner;
     private readonly ICurrentUserProvider _currentUserProvider;
     private readonly ICombatStatCalculator _calculator;
@@ -43,6 +46,7 @@ public class WeaponDungeonService : IWeaponDungeonService
         IPlayerRedisRepository playerRedisRepository,
         IGameDataCacheService gameDataCacheService,
         IPlayerDungeonProgressRepository playerDungeonProgressRepository,
+        IRewardTransactionRepository rewardTransactionRepository,
         IAppDbTransactionRunner transactionRunner,
         ICurrentUserProvider currentUserProvider,
         ICombatStatCalculator calculator)
@@ -56,6 +60,7 @@ public class WeaponDungeonService : IWeaponDungeonService
         _playerRedisRepository = playerRedisRepository;
         _gameDataCacheService = gameDataCacheService;
         _playerDungeonProgressRepository = playerDungeonProgressRepository;
+        _rewardTransactionRepository = rewardTransactionRepository;
         _transactionRunner = transactionRunner;
         _currentUserProvider = currentUserProvider;
         _calculator = calculator;
@@ -157,6 +162,14 @@ public class WeaponDungeonService : IWeaponDungeonService
                 })
                 .ToList();
 
+            var rewardTransactions = droppedWeapons
+                .Select(w => RewardTransaction.Create(
+                    player.Id, RewardSourceTypes.DungeonWeapon, null, RewardTypes.Weapon, w.WeaponId.ToString(), 1))
+                .ToList();
+            if (droppedScrolls > 0)
+                rewardTransactions.Add(RewardTransaction.Create(
+                    player.Id, RewardSourceTypes.DungeonWeapon, null, RewardTypes.EnhancementScroll, null, droppedScrolls));
+
             await _transactionRunner.ExecuteAsync(async () =>
             {
                 if (weaponChanges.Count > 0)
@@ -172,6 +185,8 @@ public class WeaponDungeonService : IWeaponDungeonService
                     await _playerDungeonProgressRepository.SaveAsync(progress);
                 else
                     await _playerDungeonProgressRepository.UpdateAsync(progress);
+
+                await _rewardTransactionRepository.SaveRangeAsync(rewardTransactions);
             });
 
             if (droppedWeapons.Count > 0 || droppedScrolls > 0)

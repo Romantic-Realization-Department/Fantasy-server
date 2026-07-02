@@ -4,7 +4,9 @@ using Fantasy.Server.Domain.Dungeon.Entity;
 using Fantasy.Server.Domain.Dungeon.Enum;
 using Fantasy.Server.Domain.Dungeon.Repository.Interface;
 using Fantasy.Server.Domain.Dungeon.Service.Interface;
+using Fantasy.Server.Domain.Player.Constant;
 using Fantasy.Server.Domain.Player.Dto.Response;
+using Fantasy.Server.Domain.Player.Entity;
 using Fantasy.Server.Domain.Player.Repository.Interface;
 using Fantasy.Server.Global.Infrastructure;
 using Fantasy.Server.Global.Security.Provider;
@@ -26,6 +28,7 @@ public class GoldDungeonClaimService : IGoldDungeonClaimService
     private readonly IPlayerRedisRepository _playerRedisRepository;
     private readonly IGoldDungeonRunRepository _goldDungeonRunRepository;
     private readonly IPlayerDungeonProgressRepository _playerDungeonProgressRepository;
+    private readonly IRewardTransactionRepository _rewardTransactionRepository;
     private readonly IRandomProvider _randomProvider;
     private readonly IAppDbTransactionRunner _transactionRunner;
     private readonly ICurrentUserProvider _currentUserProvider;
@@ -41,6 +44,7 @@ public class GoldDungeonClaimService : IGoldDungeonClaimService
         IPlayerRedisRepository playerRedisRepository,
         IGoldDungeonRunRepository goldDungeonRunRepository,
         IPlayerDungeonProgressRepository playerDungeonProgressRepository,
+        IRewardTransactionRepository rewardTransactionRepository,
         IRandomProvider randomProvider,
         IAppDbTransactionRunner transactionRunner,
         ICurrentUserProvider currentUserProvider,
@@ -55,6 +59,7 @@ public class GoldDungeonClaimService : IGoldDungeonClaimService
         _playerRedisRepository = playerRedisRepository;
         _goldDungeonRunRepository = goldDungeonRunRepository;
         _playerDungeonProgressRepository = playerDungeonProgressRepository;
+        _rewardTransactionRepository = rewardTransactionRepository;
         _randomProvider = randomProvider;
         _transactionRunner = transactionRunner;
         _currentUserProvider = currentUserProvider;
@@ -151,6 +156,14 @@ public class GoldDungeonClaimService : IGoldDungeonClaimService
         progress ??= PlayerDungeonProgress.Create(claimPlayer.Id, DungeonType.Gold);
         progress.UpdateHighScore(earnedGold);
 
+        var rewardTransactions = new List<RewardTransaction>();
+        if (earnedGold > 0)
+            rewardTransactions.Add(RewardTransaction.Create(
+                claimPlayer.Id, RewardSourceTypes.DungeonGold, run.Id.ToString(), RewardTypes.Gold, null, earnedGold));
+        if (mithrilDropped)
+            rewardTransactions.Add(RewardTransaction.Create(
+                claimPlayer.Id, RewardSourceTypes.DungeonGold, run.Id.ToString(), RewardTypes.Mithril, null, 1));
+
         await _transactionRunner.ExecuteAsync(async () =>
         {
             await _playerResourceRepository.UpdateAsync(claimResource);
@@ -160,6 +173,8 @@ public class GoldDungeonClaimService : IGoldDungeonClaimService
                 await _playerDungeonProgressRepository.SaveAsync(progress);
             else
                 await _playerDungeonProgressRepository.UpdateAsync(progress);
+
+            await _rewardTransactionRepository.SaveRangeAsync(rewardTransactions);
         });
 
         var claimPlayerResponse = PlayerDataResponseBuilder.Build(claimPlayer, claimResource, claimStage, claimSession, claimWeapons, claimSkills);
