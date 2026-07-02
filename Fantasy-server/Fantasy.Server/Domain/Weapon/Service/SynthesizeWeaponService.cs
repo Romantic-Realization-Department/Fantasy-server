@@ -84,13 +84,12 @@ public class SynthesizeWeaponService : ISynthesizeWeaponService
         else
             result.AddCount(1);
 
-        var rewardTransactions = new List<RewardTransaction>
-        {
-            RewardTransaction.Create(player.Id, RewardSourceTypes.WeaponSynthesize, null,
-                RewardTypes.Weapon, weaponId.ToString(), -requiredCount),
-            RewardTransaction.Create(player.Id, RewardSourceTypes.WeaponSynthesize, null,
-                RewardTypes.Weapon, resultWeaponId.ToString(), 1)
-        };
+        var rewardTransactions = new List<RewardTransaction>();
+        if (requiredCount > 0)
+            rewardTransactions.Add(RewardTransaction.Create(
+                player.Id, RewardSourceTypes.WeaponSynthesize, null, RewardTypes.Weapon, weaponId.ToString(), -requiredCount));
+        rewardTransactions.Add(RewardTransaction.Create(
+            player.Id, RewardSourceTypes.WeaponSynthesize, null, RewardTypes.Weapon, resultWeaponId.ToString(), 1));
 
         await _transactionRunner.ExecuteAsync(async () =>
         {

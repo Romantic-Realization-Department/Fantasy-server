@@ -176,4 +176,31 @@ public class AwakenWeaponServiceTest
                 list.Any(t => t.SourceType == RewardSourceTypes.WeaponAwaken
                     && t.RewardType == RewardTypes.Mithril && t.Amount == -5L)));
     }
+
+    [Fact]
+    public async Task ExecuteAsync_필요_미스릴이_0이면_무기_행만_기록된다()
+    {
+        var resource = PlayerResource.Create(1L);
+        var weapon = PlayerWeapon.Create(1L, 1001, 2L, 0L, 0L);
+        var (playerRepo, resourceRepo, stageRepo, sessionRepo, weaponRepo, skillRepo, cache, userProvider) =
+            BuildHappyPathMocks(resource, weapon);
+        cache.GetWeaponAwakenCostAsync(1001, 0).Returns(WeaponAwakenCost.Create(1001, 0, 1, 0));
+        var txRunner = Substitute.For<IAppDbTransactionRunner>();
+        txRunner.ExecuteAsync(Arg.Any<Func<Task>>())
+            .Returns(callInfo => callInfo.Arg<Func<Task>>()());
+        var redisRepo = Substitute.For<IPlayerRedisRepository>();
+        var rewardTxRepo = Substitute.For<IRewardTransactionRepository>();
+        var sut = BuildSut(playerRepo, resourceRepo, stageRepo, sessionRepo, weaponRepo, skillRepo,
+            redisRepo: redisRepo, rewardTxRepo: rewardTxRepo, cache: cache, txRunner: txRunner, userProvider: userProvider);
+
+        var result = await sut.ExecuteAsync(1001);
+
+        result.Changes.Mithril.Should().Be(0L);
+        await rewardTxRepo.Received(1).SaveRangeAsync(
+            Arg.Is<List<RewardTransaction>>(list =>
+                list.Count == 1 &&
+                list[0].SourceType == RewardSourceTypes.WeaponAwaken &&
+                list[0].RewardType == RewardTypes.Weapon &&
+                list[0].Amount == -1L));
+    }
 }

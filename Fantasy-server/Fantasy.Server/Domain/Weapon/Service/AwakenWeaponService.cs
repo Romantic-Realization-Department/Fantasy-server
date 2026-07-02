@@ -85,13 +85,13 @@ public class AwakenWeaponService : IAwakenWeaponService
         playerWeapon.Awaken();
         resource.UpdateChangeData(null, resource.Mithril - cost.RequiredMithril, null);
 
-        var rewardTransactions = new List<RewardTransaction>
-        {
-            RewardTransaction.Create(player.Id, RewardSourceTypes.WeaponAwaken, null,
-                RewardTypes.Weapon, weaponId.ToString(), -cost.RequiredCount),
-            RewardTransaction.Create(player.Id, RewardSourceTypes.WeaponAwaken, null,
-                RewardTypes.Mithril, null, -cost.RequiredMithril)
-        };
+        var rewardTransactions = new List<RewardTransaction>();
+        if (cost.RequiredCount > 0)
+            rewardTransactions.Add(RewardTransaction.Create(
+                player.Id, RewardSourceTypes.WeaponAwaken, null, RewardTypes.Weapon, weaponId.ToString(), -cost.RequiredCount));
+        if (cost.RequiredMithril > 0)
+            rewardTransactions.Add(RewardTransaction.Create(
+                player.Id, RewardSourceTypes.WeaponAwaken, null, RewardTypes.Mithril, null, -cost.RequiredMithril));
 
         await _transactionRunner.ExecuteAsync(async () =>
         {

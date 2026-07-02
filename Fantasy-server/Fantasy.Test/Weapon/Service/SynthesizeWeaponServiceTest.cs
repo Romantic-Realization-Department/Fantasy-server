@@ -185,4 +185,35 @@ public class SynthesizeWeaponServiceTest
         existing.EnhancementLevel.Should().Be(4L); // 기존 강화 레벨 유지
         await weaponRepo.Received(1).UpdateAsync(existing);
     }
+
+    [Fact]
+    public async Task ExecuteAsync_합성_필요_수량이_0이면_결과_행만_기록된다()
+    {
+        var material = PlayerWeapon.Create(1L, 1001, 3L, 0L, 0L);
+        var (playerRepo, resourceRepo, stageRepo, sessionRepo, weaponRepo, skillRepo, cache, userProvider) =
+            BuildHappyPathMocks(material);
+        cache.GetWeaponDataAsync(1001).Returns(WeaponData.Create(
+            1001, "Rusty Sword", WeaponGrade.C, JobType.Warrior, 30, 5,
+            maxEnhancementLevel: 10, maxAwakeningLevel: 3,
+            synthesizeRequiredCount: 0, synthesizeResultWeaponId: 1002));
+        weaponRepo.FindByPlayerIdAndWeaponIdAsync(Arg.Any<long>(), 1002).Returns((PlayerWeapon?)null);
+        var txRunner = Substitute.For<IAppDbTransactionRunner>();
+        txRunner.ExecuteAsync(Arg.Any<Func<Task>>())
+            .Returns(callInfo => callInfo.Arg<Func<Task>>()());
+        var redisRepo = Substitute.For<IPlayerRedisRepository>();
+        var rewardTxRepo = Substitute.For<IRewardTransactionRepository>();
+        var sut = BuildSut(playerRepo, resourceRepo, stageRepo, sessionRepo, weaponRepo, skillRepo,
+            redisRepo: redisRepo, rewardTxRepo: rewardTxRepo, cache: cache, txRunner: txRunner, userProvider: userProvider);
+
+        var result = await sut.ExecuteAsync(1001);
+
+        result.AcquiredWeaponId.Should().Be(1002);
+        await rewardTxRepo.Received(1).SaveRangeAsync(
+            Arg.Is<List<RewardTransaction>>(list =>
+                list.Count == 1 &&
+                list[0].SourceType == RewardSourceTypes.WeaponSynthesize &&
+                list[0].RewardType == RewardTypes.Weapon &&
+                list[0].RewardRefId == "1002" &&
+                list[0].Amount == 1L));
+    }
 }
