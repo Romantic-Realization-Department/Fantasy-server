@@ -22,6 +22,7 @@ public class AppDbContext : DbContext
     public DbSet<PlayerWeapon> PlayerWeapons => Set<PlayerWeapon>();
     public DbSet<PlayerSkill> PlayerSkills => Set<PlayerSkill>();
     public DbSet<PlayerTutorial> PlayerTutorials => Set<PlayerTutorial>();
+    public DbSet<RewardTransaction> RewardTransactions => Set<RewardTransaction>();
 
     public DbSet<AccountDungeonTicket> AccountDungeonTickets => Set<AccountDungeonTicket>();
     public DbSet<GoldDungeonRun> GoldDungeonRuns => Set<GoldDungeonRun>();

@@ -16,6 +16,7 @@ public static class PlayerServiceConfig
         services.AddScoped<IPlayerWeaponRepository, PlayerWeaponRepository>();
         services.AddScoped<IPlayerSkillRepository, PlayerSkillRepository>();
         services.AddScoped<IPlayerRedisRepository, PlayerRedisRepository>();
+        services.AddScoped<IRewardTransactionRepository, RewardTransactionRepository>();
 
         services.AddScoped<IGetPlayerService, GetPlayerService>();
         services.AddScoped<ICreatePlayerService, CreatePlayerService>();
