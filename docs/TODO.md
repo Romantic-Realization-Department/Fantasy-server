@@ -270,6 +270,7 @@ public record SkillUnlockResponse(bool WasAlreadyUnlocked, ChangesDto Changes, P
 - 기존 `PATCH /v1/player/weapon`은 삭제한다.
 - 무기 획득은 던전과 보스 보상처럼 서버 계산 보상으로만 발생한다.
 - ~~`PlayerWeapon.EnhancementLevel`, `AwakeningCount` 필드는 남겨두되 현재는 변경하지 않는다.~~ → Phase 3부터 강화/각성 API가 두 필드를 갱신한다. 동시 갱신 충돌 방지를 위해 `PlayerWeapon`에 `xmin` 동시성 토큰도 함께 추가됨.
+- 던전 보상 4종(basic/gold/weapon/boss)과 무기 강화/합성/각성의 소모/결과는 Phase 4에서 append-only 감사 로그(`RewardTransaction`)로 함께 기록되도록 확장됨(2026-07-02).
 
 ### 골드 던전
 

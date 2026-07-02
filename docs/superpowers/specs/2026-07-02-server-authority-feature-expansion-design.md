@@ -1,7 +1,7 @@
 # 서버 권위 기능 확장 — 설계 문서
 
 - 날짜: 2026-07-02
-- 상태: 단계별 구현 중 — Phase 1(Tutorial) 완료, Phase 2(던전 타입별 진행도) 구현 완료, Phase 3(무기 강화/합성/각성) 구현 완료, Phase 4 미착수
+- 상태: Phase 1~4 전체 구현 완료 — Phase 1(Tutorial) 완료, Phase 2(던전 타입별 진행도) 구현 완료, Phase 3(무기 강화/합성/각성) 구현 완료, Phase 4(RewardTransaction 감사 로그) 구현 완료
 - 범위: Tutorial 신규 도메인, 던전 타입별 진행도 분리, 무기 강화/합성/각성, RewardTransaction 감사 로그
 - 비범위: 무기/스킬 ID 전면 문자열 전환, 스킬·무기 장착 API 재설계, 다중 캐릭터/직업 전환, 전 던전 공통 Run 모델 강제
 
