@@ -1,6 +1,8 @@
 using Fantasy.Server.Domain.Dungeon.Dto.Response;
 using Fantasy.Server.Domain.GameData.Service.Interface;
+using Fantasy.Server.Domain.Player.Constant;
 using Fantasy.Server.Domain.Player.Dto.Response;
+using Fantasy.Server.Domain.Player.Entity;
 using Fantasy.Server.Domain.Player.Repository.Interface;
 using Fantasy.Server.Domain.Weapon.Dto.Response;
 using Fantasy.Server.Domain.Weapon.Service.Interface;
@@ -19,6 +21,7 @@ public class UpgradeWeaponService : IUpgradeWeaponService
     private readonly IPlayerWeaponRepository _playerWeaponRepository;
     private readonly IPlayerSkillRepository _playerSkillRepository;
     private readonly IPlayerRedisRepository _playerRedisRepository;
+    private readonly IRewardTransactionRepository _rewardTransactionRepository;
     private readonly IGameDataCacheService _gameDataCacheService;
     private readonly IAppDbTransactionRunner _transactionRunner;
     private readonly ICurrentUserProvider _currentUserProvider;
@@ -31,6 +34,7 @@ public class UpgradeWeaponService : IUpgradeWeaponService
         IPlayerWeaponRepository playerWeaponRepository,
         IPlayerSkillRepository playerSkillRepository,
         IPlayerRedisRepository playerRedisRepository,
+        IRewardTransactionRepository rewardTransactionRepository,
         IGameDataCacheService gameDataCacheService,
         IAppDbTransactionRunner transactionRunner,
         ICurrentUserProvider currentUserProvider)
@@ -42,6 +46,7 @@ public class UpgradeWeaponService : IUpgradeWeaponService
         _playerWeaponRepository = playerWeaponRepository;
         _playerSkillRepository = playerSkillRepository;
         _playerRedisRepository = playerRedisRepository;
+        _rewardTransactionRepository = rewardTransactionRepository;
         _gameDataCacheService = gameDataCacheService;
         _transactionRunner = transactionRunner;
         _currentUserProvider = currentUserProvider;
@@ -77,10 +82,19 @@ public class UpgradeWeaponService : IUpgradeWeaponService
         resource.UpdateChangeData(resource.EnhancementScroll - cost.RequiredScroll, null, null);
         playerWeapon.Enhance();
 
+        var rewardTransactions = new List<RewardTransaction>();
+        if (cost.RequiredGold > 0)
+            rewardTransactions.Add(RewardTransaction.Create(
+                player.Id, RewardSourceTypes.WeaponUpgrade, null, RewardTypes.Gold, weaponId.ToString(), -cost.RequiredGold));
+        if (cost.RequiredScroll > 0)
+            rewardTransactions.Add(RewardTransaction.Create(
+                player.Id, RewardSourceTypes.WeaponUpgrade, null, RewardTypes.EnhancementScroll, weaponId.ToString(), -cost.RequiredScroll));
+
         await _transactionRunner.ExecuteAsync(async () =>
         {
             await _playerResourceRepository.UpdateAsync(resource);
             await _playerWeaponRepository.UpdateAsync(playerWeapon);
+            await _rewardTransactionRepository.SaveRangeAsync(rewardTransactions);
         });
 
         await _playerRedisRepository.DeleteAsync(accountId);

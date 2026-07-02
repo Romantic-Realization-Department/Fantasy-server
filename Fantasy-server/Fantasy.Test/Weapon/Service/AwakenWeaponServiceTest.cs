@@ -1,6 +1,7 @@
 using Fantasy.Server.Domain.GameData.Entity;
 using Fantasy.Server.Domain.GameData.Enum;
 using Fantasy.Server.Domain.GameData.Service.Interface;
+using Fantasy.Server.Domain.Player.Constant;
 using Fantasy.Server.Domain.Player.Entity;
 using Fantasy.Server.Domain.Player.Enum;
 using Fantasy.Server.Domain.Player.Repository.Interface;
@@ -25,6 +26,7 @@ public class AwakenWeaponServiceTest
         IPlayerWeaponRepository? weaponRepo = null,
         IPlayerSkillRepository? skillRepo = null,
         IPlayerRedisRepository? redisRepo = null,
+        IRewardTransactionRepository? rewardTxRepo = null,
         IGameDataCacheService? cache = null,
         IAppDbTransactionRunner? txRunner = null,
         ICurrentUserProvider? userProvider = null)
@@ -36,13 +38,14 @@ public class AwakenWeaponServiceTest
         weaponRepo ??= Substitute.For<IPlayerWeaponRepository>();
         skillRepo ??= Substitute.For<IPlayerSkillRepository>();
         redisRepo ??= Substitute.For<IPlayerRedisRepository>();
+        rewardTxRepo ??= Substitute.For<IRewardTransactionRepository>();
         cache ??= Substitute.For<IGameDataCacheService>();
         txRunner ??= Substitute.For<IAppDbTransactionRunner>();
         userProvider ??= Substitute.For<ICurrentUserProvider>();
 
         return new AwakenWeaponService(
             playerRepo, resourceRepo, stageRepo, sessionRepo,
-            weaponRepo, skillRepo, redisRepo, cache, txRunner, userProvider);
+            weaponRepo, skillRepo, redisRepo, rewardTxRepo, cache, txRunner, userProvider);
     }
 
     private static (IPlayerRepository, IPlayerResourceRepository, IPlayerStageRepository,
@@ -153,8 +156,9 @@ public class AwakenWeaponServiceTest
         txRunner.ExecuteAsync(Arg.Any<Func<Task>>())
             .Returns(callInfo => callInfo.Arg<Func<Task>>()());
         var redisRepo = Substitute.For<IPlayerRedisRepository>();
+        var rewardTxRepo = Substitute.For<IRewardTransactionRepository>();
         var sut = BuildSut(playerRepo, resourceRepo, stageRepo, sessionRepo, weaponRepo, skillRepo,
-            redisRepo: redisRepo, cache: cache, txRunner: txRunner, userProvider: userProvider);
+            redisRepo: redisRepo, rewardTxRepo: rewardTxRepo, cache: cache, txRunner: txRunner, userProvider: userProvider);
 
         var result = await sut.ExecuteAsync(1001);
 
@@ -165,5 +169,11 @@ public class AwakenWeaponServiceTest
         await resourceRepo.Received(1).UpdateAsync(resource);
         await weaponRepo.Received(1).UpdateAsync(weapon);
         await redisRepo.Received(1).DeleteAsync(1L);
+        await rewardTxRepo.Received(1).SaveRangeAsync(
+            Arg.Is<List<RewardTransaction>>(list =>
+                list.Any(t => t.SourceType == RewardSourceTypes.WeaponAwaken
+                    && t.RewardType == RewardTypes.Weapon && t.RewardRefId == "1001" && t.Amount == -1L) &&
+                list.Any(t => t.SourceType == RewardSourceTypes.WeaponAwaken
+                    && t.RewardType == RewardTypes.Mithril && t.Amount == -5L)));
     }
 }

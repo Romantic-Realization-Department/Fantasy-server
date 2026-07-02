@@ -1,6 +1,8 @@
 using Fantasy.Server.Domain.Dungeon.Dto.Response;
 using Fantasy.Server.Domain.GameData.Service.Interface;
+using Fantasy.Server.Domain.Player.Constant;
 using Fantasy.Server.Domain.Player.Dto.Response;
+using Fantasy.Server.Domain.Player.Entity;
 using Fantasy.Server.Domain.Player.Repository.Interface;
 using Fantasy.Server.Domain.Weapon.Dto.Response;
 using Fantasy.Server.Domain.Weapon.Service.Interface;
@@ -19,6 +21,7 @@ public class AwakenWeaponService : IAwakenWeaponService
     private readonly IPlayerWeaponRepository _playerWeaponRepository;
     private readonly IPlayerSkillRepository _playerSkillRepository;
     private readonly IPlayerRedisRepository _playerRedisRepository;
+    private readonly IRewardTransactionRepository _rewardTransactionRepository;
     private readonly IGameDataCacheService _gameDataCacheService;
     private readonly IAppDbTransactionRunner _transactionRunner;
     private readonly ICurrentUserProvider _currentUserProvider;
@@ -31,6 +34,7 @@ public class AwakenWeaponService : IAwakenWeaponService
         IPlayerWeaponRepository playerWeaponRepository,
         IPlayerSkillRepository playerSkillRepository,
         IPlayerRedisRepository playerRedisRepository,
+        IRewardTransactionRepository rewardTransactionRepository,
         IGameDataCacheService gameDataCacheService,
         IAppDbTransactionRunner transactionRunner,
         ICurrentUserProvider currentUserProvider)
@@ -42,6 +46,7 @@ public class AwakenWeaponService : IAwakenWeaponService
         _playerWeaponRepository = playerWeaponRepository;
         _playerSkillRepository = playerSkillRepository;
         _playerRedisRepository = playerRedisRepository;
+        _rewardTransactionRepository = rewardTransactionRepository;
         _gameDataCacheService = gameDataCacheService;
         _transactionRunner = transactionRunner;
         _currentUserProvider = currentUserProvider;
@@ -80,10 +85,19 @@ public class AwakenWeaponService : IAwakenWeaponService
         playerWeapon.Awaken();
         resource.UpdateChangeData(null, resource.Mithril - cost.RequiredMithril, null);
 
+        var rewardTransactions = new List<RewardTransaction>
+        {
+            RewardTransaction.Create(player.Id, RewardSourceTypes.WeaponAwaken, null,
+                RewardTypes.Weapon, weaponId.ToString(), -cost.RequiredCount),
+            RewardTransaction.Create(player.Id, RewardSourceTypes.WeaponAwaken, null,
+                RewardTypes.Mithril, null, -cost.RequiredMithril)
+        };
+
         await _transactionRunner.ExecuteAsync(async () =>
         {
             await _playerResourceRepository.UpdateAsync(resource);
             await _playerWeaponRepository.UpdateAsync(playerWeapon);
+            await _rewardTransactionRepository.SaveRangeAsync(rewardTransactions);
         });
 
         await _playerRedisRepository.DeleteAsync(accountId);

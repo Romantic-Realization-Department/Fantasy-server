@@ -1,5 +1,6 @@
 using Fantasy.Server.Domain.Dungeon.Dto.Response;
 using Fantasy.Server.Domain.GameData.Service.Interface;
+using Fantasy.Server.Domain.Player.Constant;
 using Fantasy.Server.Domain.Player.Dto.Response;
 using Fantasy.Server.Domain.Player.Entity;
 using Fantasy.Server.Domain.Player.Repository.Interface;
@@ -20,6 +21,7 @@ public class SynthesizeWeaponService : ISynthesizeWeaponService
     private readonly IPlayerWeaponRepository _playerWeaponRepository;
     private readonly IPlayerSkillRepository _playerSkillRepository;
     private readonly IPlayerRedisRepository _playerRedisRepository;
+    private readonly IRewardTransactionRepository _rewardTransactionRepository;
     private readonly IGameDataCacheService _gameDataCacheService;
     private readonly IAppDbTransactionRunner _transactionRunner;
     private readonly ICurrentUserProvider _currentUserProvider;
@@ -32,6 +34,7 @@ public class SynthesizeWeaponService : ISynthesizeWeaponService
         IPlayerWeaponRepository playerWeaponRepository,
         IPlayerSkillRepository playerSkillRepository,
         IPlayerRedisRepository playerRedisRepository,
+        IRewardTransactionRepository rewardTransactionRepository,
         IGameDataCacheService gameDataCacheService,
         IAppDbTransactionRunner transactionRunner,
         ICurrentUserProvider currentUserProvider)
@@ -43,6 +46,7 @@ public class SynthesizeWeaponService : ISynthesizeWeaponService
         _playerWeaponRepository = playerWeaponRepository;
         _playerSkillRepository = playerSkillRepository;
         _playerRedisRepository = playerRedisRepository;
+        _rewardTransactionRepository = rewardTransactionRepository;
         _gameDataCacheService = gameDataCacheService;
         _transactionRunner = transactionRunner;
         _currentUserProvider = currentUserProvider;
@@ -80,6 +84,14 @@ public class SynthesizeWeaponService : ISynthesizeWeaponService
         else
             result.AddCount(1);
 
+        var rewardTransactions = new List<RewardTransaction>
+        {
+            RewardTransaction.Create(player.Id, RewardSourceTypes.WeaponSynthesize, null,
+                RewardTypes.Weapon, weaponId.ToString(), -requiredCount),
+            RewardTransaction.Create(player.Id, RewardSourceTypes.WeaponSynthesize, null,
+                RewardTypes.Weapon, resultWeaponId.ToString(), 1)
+        };
+
         await _transactionRunner.ExecuteAsync(async () =>
         {
             await _playerWeaponRepository.UpdateAsync(material);
@@ -88,6 +100,8 @@ public class SynthesizeWeaponService : ISynthesizeWeaponService
                 await _playerWeaponRepository.SaveAsync(result);
             else
                 await _playerWeaponRepository.UpdateAsync(result);
+
+            await _rewardTransactionRepository.SaveRangeAsync(rewardTransactions);
         });
 
         await _playerRedisRepository.DeleteAsync(accountId);
