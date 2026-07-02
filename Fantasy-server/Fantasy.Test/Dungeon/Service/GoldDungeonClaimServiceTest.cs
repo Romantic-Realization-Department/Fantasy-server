@@ -1,6 +1,7 @@
 using Fantasy.Server.Domain.Dungeon.Dto.Request;
 using Fantasy.Server.Domain.Dungeon.Dto.Response;
 using Fantasy.Server.Domain.Dungeon.Entity;
+using Fantasy.Server.Domain.Dungeon.Enum;
 using Fantasy.Server.Domain.Dungeon.Repository.Interface;
 using Fantasy.Server.Domain.Dungeon.Service;
 using Fantasy.Server.Domain.Player.Dto.Response;
@@ -28,6 +29,7 @@ public class GoldDungeonClaimServiceTest
         IPlayerSkillRepository? skillRepo = null,
         IPlayerRedisRepository? redisRepo = null,
         IGoldDungeonRunRepository? runRepo = null,
+        IPlayerDungeonProgressRepository? progressRepo = null,
         IRandomProvider? randomProvider = null,
         IAppDbTransactionRunner? txRunner = null,
         ICurrentUserProvider? userProvider = null,
@@ -41,6 +43,7 @@ public class GoldDungeonClaimServiceTest
             skillRepo ?? Substitute.For<IPlayerSkillRepository>(),
             redisRepo ?? Substitute.For<IPlayerRedisRepository>(),
             runRepo ?? Substitute.For<IGoldDungeonRunRepository>(),
+            progressRepo ?? Substitute.For<IPlayerDungeonProgressRepository>(),
             randomProvider ?? Substitute.For<IRandomProvider>(),
             txRunner ?? Substitute.For<IAppDbTransactionRunner>(),
             userProvider ?? Substitute.For<ICurrentUserProvider>(),
@@ -445,6 +448,158 @@ public class GoldDungeonClaimServiceTest
                 .ThrowAsync<ConflictException>();
 
             await _redisRepository.DidNotReceive().SetPlayerDataAsync(Arg.Any<long>(), Arg.Any<PlayerDataResponse>());
+        }
+    }
+
+    public class 정상_클레임시_HighScore가_갱신될_때
+    {
+        private readonly IPlayerRepository _playerRepository = Substitute.For<IPlayerRepository>();
+        private readonly IPlayerResourceRepository _resourceRepository = Substitute.For<IPlayerResourceRepository>();
+        private readonly IPlayerStageRepository _stageRepository = Substitute.For<IPlayerStageRepository>();
+        private readonly IPlayerSessionRepository _sessionRepository = Substitute.For<IPlayerSessionRepository>();
+        private readonly IPlayerWeaponRepository _weaponRepository = Substitute.For<IPlayerWeaponRepository>();
+        private readonly IPlayerSkillRepository _skillRepository = Substitute.For<IPlayerSkillRepository>();
+        private readonly IGoldDungeonRunRepository _runRepository = Substitute.For<IGoldDungeonRunRepository>();
+        private readonly IPlayerDungeonProgressRepository _progressRepository = Substitute.For<IPlayerDungeonProgressRepository>();
+        private readonly IRandomProvider _randomProvider = Substitute.For<IRandomProvider>();
+        private readonly IAppDbTransactionRunner _txRunner = Substitute.For<IAppDbTransactionRunner>();
+        private readonly ICurrentUserProvider _currentUserProvider = Substitute.For<ICurrentUserProvider>();
+        private readonly GoldDungeonRun _run;
+        private readonly TimeProvider _timeProvider;
+
+        public 정상_클레임시_HighScore가_갱신될_때()
+        {
+            _currentUserProvider.GetAccountId().Returns(1L);
+            _run = GoldDungeonRun.Create(accountId: 1L, durationSeconds: 30, maxClicksPerSecond: 15);
+            _runRepository.FindByIdAsync(_run.Id).Returns(_run);
+            _randomProvider.Next(0, 100).Returns(50);
+            _timeProvider = FixedTimeProvider(_run.StartedAt.AddSeconds(30));
+            SetupPlayerData(_playerRepository, _resourceRepository, _stageRepository,
+                _sessionRepository, _weaponRepository, _skillRepository);
+
+            var existingProgress = PlayerDungeonProgress.Create(1L, DungeonType.Gold);
+            existingProgress.UpdateHighScore(500L);
+            _progressRepository.FindByPlayerIdAndDungeonTypeAsync(Arg.Any<long>(), DungeonType.Gold)
+                .Returns(existingProgress);
+
+            _txRunner.ExecuteAsync(Arg.Any<Func<Task>>())
+                .Returns(callInfo => callInfo.Arg<Func<Task>>()());
+        }
+
+        [Fact]
+        public async Task 기존_최고점수보다_높으면_HighScore가_갱신된다()
+        {
+            // 클릭 100 * 10골드 = 1000 > 기존 500
+            var sut = BuildSut(playerRepo: _playerRepository, resourceRepo: _resourceRepository,
+                stageRepo: _stageRepository, sessionRepo: _sessionRepository,
+                weaponRepo: _weaponRepository, skillRepo: _skillRepository,
+                runRepo: _runRepository, progressRepo: _progressRepository,
+                randomProvider: _randomProvider, txRunner: _txRunner, userProvider: _currentUserProvider,
+                timeProvider: _timeProvider);
+
+            var result = await sut.ExecuteAsync(_run.Id, new GoldDungeonClaimRequest(100));
+
+            result.HighScore.Should().Be(1000L);
+        }
+
+        [Fact]
+        public async Task 진행도_UpdateAsync가_호출된다()
+        {
+            var sut = BuildSut(playerRepo: _playerRepository, resourceRepo: _resourceRepository,
+                stageRepo: _stageRepository, sessionRepo: _sessionRepository,
+                weaponRepo: _weaponRepository, skillRepo: _skillRepository,
+                runRepo: _runRepository, progressRepo: _progressRepository,
+                randomProvider: _randomProvider, txRunner: _txRunner, userProvider: _currentUserProvider,
+                timeProvider: _timeProvider);
+
+            await sut.ExecuteAsync(_run.Id, new GoldDungeonClaimRequest(100));
+
+            await _progressRepository.Received(1).UpdateAsync(Arg.Any<PlayerDungeonProgress>());
+        }
+    }
+
+    public class 정상_클레임시_기존_최고점수보다_낮을_때
+    {
+        [Fact]
+        public async Task HighScore가_기존값으로_유지된다()
+        {
+            var playerRepository = Substitute.For<IPlayerRepository>();
+            var resourceRepository = Substitute.For<IPlayerResourceRepository>();
+            var stageRepository = Substitute.For<IPlayerStageRepository>();
+            var sessionRepository = Substitute.For<IPlayerSessionRepository>();
+            var weaponRepository = Substitute.For<IPlayerWeaponRepository>();
+            var skillRepository = Substitute.For<IPlayerSkillRepository>();
+            var runRepository = Substitute.For<IGoldDungeonRunRepository>();
+            var progressRepository = Substitute.For<IPlayerDungeonProgressRepository>();
+            var randomProvider = Substitute.For<IRandomProvider>();
+            var txRunner = Substitute.For<IAppDbTransactionRunner>();
+            var currentUserProvider = Substitute.For<ICurrentUserProvider>();
+
+            currentUserProvider.GetAccountId().Returns(1L);
+            var run = GoldDungeonRun.Create(accountId: 1L, durationSeconds: 30, maxClicksPerSecond: 15);
+            runRepository.FindByIdAsync(run.Id).Returns(run);
+            randomProvider.Next(0, 100).Returns(50);
+            SetupPlayerData(playerRepository, resourceRepository, stageRepository,
+                sessionRepository, weaponRepository, skillRepository);
+
+            // 기존 최고점수 5000 > 이번 클릭 10 * 10골드 = 100
+            var existingProgress = PlayerDungeonProgress.Create(1L, DungeonType.Gold);
+            existingProgress.UpdateHighScore(5000L);
+            progressRepository.FindByPlayerIdAndDungeonTypeAsync(Arg.Any<long>(), DungeonType.Gold)
+                .Returns(existingProgress);
+
+            txRunner.ExecuteAsync(Arg.Any<Func<Task>>())
+                .Returns(callInfo => callInfo.Arg<Func<Task>>()());
+
+            var sut = BuildSut(playerRepo: playerRepository, resourceRepo: resourceRepository,
+                stageRepo: stageRepository, sessionRepo: sessionRepository,
+                weaponRepo: weaponRepository, skillRepo: skillRepository,
+                runRepo: runRepository, progressRepo: progressRepository,
+                randomProvider: randomProvider, txRunner: txRunner, userProvider: currentUserProvider,
+                timeProvider: FixedTimeProvider(run.StartedAt.AddSeconds(30)));
+
+            var result = await sut.ExecuteAsync(run.Id, new GoldDungeonClaimRequest(10));
+
+            result.HighScore.Should().Be(5000L);
+        }
+    }
+
+    public class 이미_클레임된_런_재조회시_HighScore가_포함될_때
+    {
+        [Fact]
+        public async Task 저장된_HighScore가_반환된다()
+        {
+            var playerRepository = Substitute.For<IPlayerRepository>();
+            var resourceRepository = Substitute.For<IPlayerResourceRepository>();
+            var stageRepository = Substitute.For<IPlayerStageRepository>();
+            var sessionRepository = Substitute.For<IPlayerSessionRepository>();
+            var weaponRepository = Substitute.For<IPlayerWeaponRepository>();
+            var skillRepository = Substitute.For<IPlayerSkillRepository>();
+            var runRepository = Substitute.For<IGoldDungeonRunRepository>();
+            var progressRepository = Substitute.For<IPlayerDungeonProgressRepository>();
+            var currentUserProvider = Substitute.For<ICurrentUserProvider>();
+
+            currentUserProvider.GetAccountId().Returns(1L);
+            var claimedRun = GoldDungeonRun.Create(accountId: 1L, durationSeconds: 30, maxClicksPerSecond: 15);
+            claimedRun.Claim(100, 1000L, 0);
+            runRepository.FindByIdAsync(claimedRun.Id).Returns(claimedRun);
+            SetupPlayerData(playerRepository, resourceRepository, stageRepository,
+                sessionRepository, weaponRepository, skillRepository);
+
+            var existingProgress = PlayerDungeonProgress.Create(1L, DungeonType.Gold);
+            existingProgress.UpdateHighScore(2000L);
+            progressRepository.FindByPlayerIdAndDungeonTypeAsync(Arg.Any<long>(), DungeonType.Gold)
+                .Returns(existingProgress);
+
+            var sut = BuildSut(playerRepo: playerRepository, resourceRepo: resourceRepository,
+                stageRepo: stageRepository, sessionRepo: sessionRepository,
+                weaponRepo: weaponRepository, skillRepo: skillRepository,
+                runRepo: runRepository, progressRepo: progressRepository,
+                userProvider: currentUserProvider);
+
+            var result = await sut.ExecuteAsync(claimedRun.Id, new GoldDungeonClaimRequest(50));
+
+            result.HighScore.Should().Be(2000L);
         }
     }
 }
