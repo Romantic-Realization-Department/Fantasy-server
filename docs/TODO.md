@@ -399,7 +399,7 @@ public record SkillUnlockResponse(bool WasAlreadyUnlocked, ChangesDto Changes, P
 ### 기존 Findings 후속 작업
 
 1. ~~클라이언트가 핵심 성장 값을 직접 쓰는 API 제거~~
-2. ~~게임 데이터 Redis 캐시의 private setter JSON 역직렬화 문제 수정~~
+2. ~~게임 데이터 Redis 캐시의 private setter JSON 역직렬화 문제 수정~~ (2026-07-02: 실제로는 미수정 상태였음을 발견하여 이 시점에 수정됨)
 3. ~~재화/보상 갱신의 read-modify-write 동시성 문제 해결~~
 4. ~~회원 삭제 시 플레이어 데이터와 refresh token 정리~~
 5. ~~rate limit을 전역이 아니라 IP 또는 account 기준으로 partition~~
