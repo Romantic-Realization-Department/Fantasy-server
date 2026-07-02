@@ -7,7 +7,8 @@ using Fantasy.Server.Domain.GameData.Entity;
 using Fantasy.Server.Domain.GameData.Enum;
 using Fantasy.Server.Domain.GameData.Service.Interface;
 using Fantasy.Server.Domain.LevelUp.Service.Interface;
-using Fantasy.Server.Domain.Player.Dto.Request;
+using Fantasy.Server.Domain.Player.Constant;
+using Fantasy.Server.Domain.Player.Entity;
 using Fantasy.Server.Domain.Player.Repository.Interface;
 using Fantasy.Server.Global.Infrastructure;
 using Fantasy.Server.Global.Security.Provider;
@@ -30,6 +31,7 @@ public class BossDungeonService : IBossDungeonService
     private readonly IGameDataCacheService _gameDataCacheService;
     private readonly ILevelUpService _levelUpService;
     private readonly IPlayerDungeonProgressRepository _playerDungeonProgressRepository;
+    private readonly IRewardTransactionRepository _rewardTransactionRepository;
     private readonly IAppDbTransactionRunner _transactionRunner;
     private readonly ICurrentUserProvider _currentUserProvider;
     private readonly ICombatStatCalculator _calculator;
@@ -45,6 +47,7 @@ public class BossDungeonService : IBossDungeonService
         IGameDataCacheService gameDataCacheService,
         ILevelUpService levelUpService,
         IPlayerDungeonProgressRepository playerDungeonProgressRepository,
+        IRewardTransactionRepository rewardTransactionRepository,
         IAppDbTransactionRunner transactionRunner,
         ICurrentUserProvider currentUserProvider,
         ICombatStatCalculator calculator)
@@ -59,6 +62,7 @@ public class BossDungeonService : IBossDungeonService
         _gameDataCacheService = gameDataCacheService;
         _levelUpService = levelUpService;
         _playerDungeonProgressRepository = playerDungeonProgressRepository;
+        _rewardTransactionRepository = rewardTransactionRepository;
         _transactionRunner = transactionRunner;
         _currentUserProvider = currentUserProvider;
         _calculator = calculator;
@@ -131,29 +135,39 @@ public class BossDungeonService : IBossDungeonService
         DroppedWeaponInfo? droppedWeapon = null;
         var aWeapons = await _gameDataCacheService.GetWeaponDataByGradeAsync(WeaponGrade.A);
         var aJobWeapons = aWeapons.Where(w => w.JobType == jobType).ToList();
-        List<WeaponChangeItem> weaponChanges = [];
+        List<int> droppedWeaponIds = [];
 
         if (aJobWeapons.Count > 0)
         {
             var dropped = aJobWeapons[Random.Shared.Next(aJobWeapons.Count)];
             droppedWeapon = new DroppedWeaponInfo(dropped.WeaponId, dropped.Name, dropped.Grade);
-
-            var existing = weapons.FirstOrDefault(w => w.WeaponId == dropped.WeaponId);
-            weaponChanges.Add(new WeaponChangeItem(dropped.WeaponId, (existing?.Count ?? 0) + 1,
-                existing?.EnhancementLevel ?? 0, existing?.AwakeningCount ?? 0));
+            droppedWeaponIds.Add(dropped.WeaponId);
         }
+
+        var rewardTransactions = new List<RewardTransaction>
+        {
+            RewardTransaction.Create(player.Id, RewardSourceTypes.DungeonBoss, null, RewardTypes.Mithril, null, BossMithrilReward)
+        };
+        if (earnedXp > 0)
+            rewardTransactions.Add(RewardTransaction.Create(
+                player.Id, RewardSourceTypes.DungeonBoss, null, RewardTypes.Exp, null, earnedXp));
+        if (droppedWeapon is not null)
+            rewardTransactions.Add(RewardTransaction.Create(
+                player.Id, RewardSourceTypes.DungeonBoss, null, RewardTypes.Weapon, droppedWeapon.WeaponId.ToString(), 1));
 
         await _transactionRunner.ExecuteAsync(async () =>
         {
             await _playerRepository.UpdateAsync(player);
             await _playerResourceRepository.UpdateAsync(resource);
-            if (weaponChanges.Count > 0)
-                await _playerWeaponRepository.UpsertRangeAsync(player.Id, weaponChanges);
+            if (droppedWeaponIds.Count > 0)
+                await _playerWeaponRepository.GrantWeaponsAsync(player.Id, droppedWeaponIds);
 
             if (isNewProgress)
                 await _playerDungeonProgressRepository.SaveAsync(progress);
             else
                 await _playerDungeonProgressRepository.UpdateAsync(progress);
+
+            await _rewardTransactionRepository.SaveRangeAsync(rewardTransactions);
         });
 
         await _playerRedisRepository.DeleteAsync(accountId);

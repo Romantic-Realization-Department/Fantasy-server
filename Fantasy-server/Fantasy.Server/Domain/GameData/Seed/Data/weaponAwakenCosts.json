@@ -1,0 +1,20 @@
+[
+  { "weaponId": 1001, "awakeningLevel": 0, "requiredCount": 1, "requiredMithril": 5 },
+  { "weaponId": 1001, "awakeningLevel": 1, "requiredCount": 2, "requiredMithril": 10 },
+  { "weaponId": 1001, "awakeningLevel": 2, "requiredCount": 3, "requiredMithril": 15 },
+  { "weaponId": 1002, "awakeningLevel": 0, "requiredCount": 1, "requiredMithril": 5 },
+  { "weaponId": 1002, "awakeningLevel": 1, "requiredCount": 2, "requiredMithril": 10 },
+  { "weaponId": 1002, "awakeningLevel": 2, "requiredCount": 3, "requiredMithril": 15 },
+  { "weaponId": 2001, "awakeningLevel": 0, "requiredCount": 1, "requiredMithril": 5 },
+  { "weaponId": 2001, "awakeningLevel": 1, "requiredCount": 2, "requiredMithril": 10 },
+  { "weaponId": 2001, "awakeningLevel": 2, "requiredCount": 3, "requiredMithril": 15 },
+  { "weaponId": 2002, "awakeningLevel": 0, "requiredCount": 1, "requiredMithril": 5 },
+  { "weaponId": 2002, "awakeningLevel": 1, "requiredCount": 2, "requiredMithril": 10 },
+  { "weaponId": 2002, "awakeningLevel": 2, "requiredCount": 3, "requiredMithril": 15 },
+  { "weaponId": 3001, "awakeningLevel": 0, "requiredCount": 1, "requiredMithril": 5 },
+  { "weaponId": 3001, "awakeningLevel": 1, "requiredCount": 2, "requiredMithril": 10 },
+  { "weaponId": 3001, "awakeningLevel": 2, "requiredCount": 3, "requiredMithril": 15 },
+  { "weaponId": 3002, "awakeningLevel": 0, "requiredCount": 1, "requiredMithril": 5 },
+  { "weaponId": 3002, "awakeningLevel": 1, "requiredCount": 2, "requiredMithril": 10 },
+  { "weaponId": 3002, "awakeningLevel": 2, "requiredCount": 3, "requiredMithril": 15 }
+]

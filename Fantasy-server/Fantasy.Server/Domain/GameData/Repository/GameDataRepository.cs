@@ -25,4 +25,10 @@ public class GameDataRepository : IGameDataRepository
 
     public async Task<List<JobBaseStat>> GetAllJobBaseStatsAsync()
         => await _db.JobBaseStats.AsNoTracking().ToListAsync();
+
+    public async Task<List<WeaponEnhancementCost>> GetAllWeaponEnhancementCostsAsync()
+        => await _db.WeaponEnhancementCosts.AsNoTracking().ToListAsync();
+
+    public async Task<List<WeaponAwakenCost>> GetAllWeaponAwakenCostsAsync()
+        => await _db.WeaponAwakenCosts.AsNoTracking().ToListAsync();
 }

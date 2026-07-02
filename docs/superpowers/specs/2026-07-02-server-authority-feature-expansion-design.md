@@ -1,7 +1,7 @@
 # 서버 권위 기능 확장 — 설계 문서
 
 - 날짜: 2026-07-02
-- 상태: 단계별 구현 중 — Phase 1(Tutorial) 완료, Phase 2(던전 타입별 진행도) 구현 완료, Phase 3~4 미착수
+- 상태: Phase 1~4 전체 구현 완료 — Phase 1(Tutorial) 완료, Phase 2(던전 타입별 진행도) 구현 완료, Phase 3(무기 강화/합성/각성) 구현 완료, Phase 4(RewardTransaction 감사 로그) 구현 완료
 - 범위: Tutorial 신규 도메인, 던전 타입별 진행도 분리, 무기 강화/합성/각성, RewardTransaction 감사 로그
 - 비범위: 무기/스킬 ID 전면 문자열 전환, 스킬·무기 장착 API 재설계, 다중 캐릭터/직업 전환, 전 던전 공통 Run 모델 강제
 
@@ -201,7 +201,7 @@ public class PlayerDungeonProgress
 - 무기/보스 던전이 "독자 진행도"로 바뀌면 기존에 기본 던전 스테이지에 종속되어 있던 난이도 곡선이 사실상 초기화(둘 다 1부터 시작)되는 셈이라 밸런싱에 영향을 준다는 점을 사용자에게 명시적으로 확인했다.
 - 결정: **백필하지 않는다.** 기존 유저 포함 전원 지연 생성(lazy-create)으로 1부터 시작한다. 기존 `AccountDungeonTicket`/`GoldDungeonRun`과 동일한 지연 생성 패턴을 따르며, 별도 데이터 마이그레이션/백필 스크립트를 두지 않는다. 이는 앞서 확정한 "완전 독립, 각자 1부터 시작" 원칙과 일치한다.
 
-## 5. Phase 3 — 무기 강화/합성/각성
+## 5. Phase 3 — 무기 강화/합성/각성 ✅ 구현 완료 (2026-07-02)
 
 ### 5.1 마스터 데이터 확장
 
@@ -242,20 +242,20 @@ public class WeaponAwakenCost
 
 | 메서드 | 경로 | 본문 | 실패 |
 |---|---|---|---|
-| POST | `/v1/weapons/{weaponId}/upgrade` | 없음 | `WEAPON_NOT_OWNED`, `MAX_UPGRADE_REACHED`, `INSUFFICIENT_CURRENCY` |
-| POST | `/v1/weapons/{weaponId}/synthesize` | 없음 | `WEAPON_NOT_OWNED`(재료 부족 포함), 합성 불가 무기 |
-| POST | `/v1/weapons/{weaponId}/awaken` | 없음 | `WEAPON_NOT_OWNED`, `MAX_UPGRADE_REACHED`, 미스릴 부족 |
+| POST | `/v1/weapons/{weaponId}/upgrade` | 없음 | 404 미보유, 400 최대 레벨 도달·재화 부족 |
+| POST | `/v1/weapons/{weaponId}/synthesize` | 없음 | 404 미보유, 400 재료 부족·합성 불가 무기 |
+| POST | `/v1/weapons/{weaponId}/awaken` | 없음 | 404 미보유, 400 최대 각성 도달·복사본/미스릴 부족 |
 
-무기 장착(`equip`)은 기존 `POST /player/loadout`으로 계속 처리하므로 신규 엔드포인트를 만들지 않는다.
+무기 장착(`equip`)은 기존 `POST /player/loadout`으로 계속 처리하므로 신규 엔드포인트를 만들지 않는다. 동시 요청으로 인한 충돌은 409(§5.4). 실패 사유는 위 표기처럼 문서상 설명 라벨일 뿐 실제 응답은 HTTP 상태 코드 + 한글 메시지로만 구분된다(§5.5 ④ — 머신 리더블 `ErrorCode` 필드 미도입).
 
 ### 5.3 처리 순서
 
 **강화(upgrade)**
 
-1. 소유 무기 확인(`PlayerWeapon` 존재) → 없으면 `WEAPON_NOT_OWNED`.
-2. 현재 `EnhancementLevel`이 `WeaponData.MaxEnhancementLevel` 이상이면 `MAX_UPGRADE_REACHED`.
+1. 소유 무기 확인(`PlayerWeapon` 존재, `Count ≥ 1`) → 없으면 404(`NotFoundException`).
+2. 현재 `EnhancementLevel`이 `WeaponData.MaxEnhancementLevel` 이상이면 400(`BadRequestException`).
 3. `WeaponEnhancementCost(weaponId, 현재레벨)` 조회 → `RequiredGold`/`RequiredScroll` 확인.
-4. 재화 부족 시 `INSUFFICIENT_CURRENCY`.
+4. 재화 부족 시 400(`BadRequestException`).
 5. 재화 차감 + `EnhancementLevel + 1` — 하나의 트랜잭션.
 6. `RewardTransaction`(소모 방향) 기록.
 
@@ -269,21 +269,28 @@ public class WeaponAwakenCost
 
 **각성(awaken)**
 
-1. 소유 무기 확인, 현재 `AwakeningCount`가 `MaxAwakeningLevel` 이상이면 `MAX_UPGRADE_REACHED`.
+1. 소유 무기 확인, 현재 `AwakeningCount`가 `MaxAwakeningLevel` 이상이면 400(`BadRequestException`).
 2. `WeaponAwakenCost(weaponId, 현재각성레벨)` 조회 → `RequiredCount`(복사본)와 `RequiredMithril` 확인.
-3. `PlayerWeapon.Count >= RequiredCount + 1`(자기 자신 제외 복사본 소모 기준 확정 필요, 아래 참고) 및 `PlayerResource.Mithril >= RequiredMithril` 확인.
+3. `PlayerWeapon.Count >= RequiredCount + 1`(자기 자신 제외 복사본 소모 — §5.5 ② 확정) 및 `PlayerResource.Mithril >= RequiredMithril` 확인.
 4. `Count -= RequiredCount`, `Mithril -= RequiredMithril`, `AwakeningCount + 1`.
 5. `RewardTransaction` 기록.
 
 ### 5.4 동시성
 
-`PlayerWeapon`에 `xmin` 동시성 토큰이 없으므로 이 Phase에서 반드시 추가한다(강화/합성/각성이 모두 같은 행을 동시 변경할 수 있는 경합 지점). `CONCURRENCY_CONFLICT` 에러코드는 이 토큰 충돌 시 매핑한다.
+`PlayerWeapon`에 `xmin` 동시성 토큰이 없으므로 이 Phase에서 반드시 추가한다(강화/합성/각성이 모두 같은 행을 동시 변경할 수 있는 경합 지점). 토큰 충돌(`DbUpdateConcurrencyException`)은 기존 `AppDbTransactionRunner` 정책 그대로 `ConflictException`(409)으로 매핑한다 — 머신 리더블 에러코드는 도입하지 않는다(§5.5 ④ 참고).
 
-### 5.5 확인 필요 사항 (Phase 착수 전 재확인)
+### 5.5 확인 필요 사항 — 확정됨 (2026-07-02)
 
-- `WeaponEnhancementCost`의 통화 구성이 Gold만/Scroll만/혼합인지 기획 확정 필요(현재는 둘 다 컬럼으로 열어둠 — 안 쓰는 쪽은 0으로 시드).
-- 각성 시 "복사본 소모" 기준이 자기 자신을 포함한 총 보유수인지, 자기 자신 제외 추가 보유분인지 확정 필요(위 3번 단계의 `+1` 가정 검증).
-- 합성 재료 무기의 강화 레벨이 남아있어도(강화된 무기를 재료로 써도) 되는지, 아니면 강화 레벨 0인 무기만 재료로 허용할지.
+Phase 3 구현 중 실제 코드로 확정된 가정 4건:
+
+1. **강화 비용 통화 구성** — Gold만/Scroll만/혼합인지 확정 필요했음.
+   결정: **Gold + Scroll 혼합.** 시드 데이터 기준 `EnhancementLevel` 0~4는 Gold만, 5부터는 Gold + 강화 스크롤 1을 함께 소모한다.
+2. **각성 복사본 소모 기준** — 자기 자신 포함 총 보유수인지, 자기 자신 제외 추가 보유분인지 확정 필요했음(3번 단계의 `+1` 가정 검증).
+   결정: **자기 자신 제외 추가 보유분 기준.** `PlayerWeapon.Count >= RequiredCount + 1`을 검증하고 `RequiredCount`만 차감한다 — 대상 무기 1개는 각성 후에도 항상 남는다.
+3. **합성 재료 무기의 강화 상태 허용 여부** — 강화된 무기를 재료로 써도 되는지 확정 필요했음.
+   결정: **강화/각성 상태와 무관하게 허용.** `Count`만 검사하고 `EnhancementLevel`/`AwakeningCount`는 검사하지 않는다.
+4. **에러 코드 표현 방식**(§7 공통 사항에서 이어짐) — `ErrorCode` 필드 도입 가능 여부 확인 필요했음.
+   결정: **도입하지 않는다.** `Gamism.SDK.Core`/`Gamism.SDK.Extensions.AspNetCore` 0.4.0(현재 참조 버전)·0.5.0(최신 캐시 버전) 모두 `CommonApiResponse`/`ExpectedException` 계열에 `ErrorCode`류 필드가 없음을 리플렉션으로 직접 확인했다. HTTP 상태 코드 + 한글 메시지로만 에러를 구분하는 기존 방식을 유지한다.
 
 ## 6. Phase 4 — RewardTransaction 감사 로그
 
@@ -317,8 +324,8 @@ public class RewardTransaction
 
 ## 7. 공통 사항
 
-- **에러 코드 문자열화**: 현재 예외는 HTTP status + 한글 메시지만 갖고 있어(`Gamism.SDK`의 `BadRequestException` 등) `INSUFFICIENT_CURRENCY` 같은 머신 리더블 코드가 없다. Phase 3에서 이 코드들이 실제로 필요해지므로, `CommonApiResponse`/예외에 `ErrorCode` 필드를 추가할 수 있는지 `Gamism.SDK` 확장 여지를 먼저 확인해야 한다(SDK 소유 타입이라 자체 구현 범위를 벗어날 수 있음).
-- **동시성**: `Player`, `PlayerWeapon`, `PlayerSkill`에는 아직 `xmin`이 없다. `PlayerWeapon`은 Phase 3에서 필수 추가, 나머지는 이번 범위에서 필수는 아니나 함께 정리하는 것을 권장.
+- **에러 코드 문자열화 — 확정됨 (2026-07-02)**: 현재 예외는 HTTP status + 한글 메시지만 갖고 있다(`Gamism.SDK`의 `BadRequestException` 등). `Gamism.SDK.Core`/`Gamism.SDK.Extensions.AspNetCore` 0.4.0(현재 참조 버전)·0.5.0(최신 캐시 버전) 모두 `CommonApiResponse`/`ExpectedException` 계열에 `ErrorCode` 필드가 없음을 리플렉션으로 확인했다. `ErrorCode` 필드 도입은 SDK 확장이 필요해 이번 범위에서 보류하고, 1차는 HTTP 상태 코드 + 한글 메시지로만 에러를 구분한다(§5.5 ④).
+- **동시성**: `Player`, `PlayerSkill`에는 아직 `xmin`이 없다(권장 사항으로만 유지, 이번 범위에는 포함하지 않음). `PlayerWeapon`은 Phase 3에서 `xmin` 동시성 토큰 추가를 완료했다(§5.4).
 - **문서**: 각 Phase 완료 시 `docs/client-integration-guide.md`와 `docs/TODO.md`를 갱신한다(기존 컨벤션).
 - **테스트/빌드 검증**: 기존 프로젝트 규칙(`verify.md`) 그대로 — `.cs` 변경 후 `/test` 실행, 실패 시 원인 파악 후 재실행.
 
@@ -336,5 +343,5 @@ public class RewardTransaction
 - 각 Phase 완료 시 `/test`로 빌드 + 전체 테스트 통과 확인.
 - Phase 1: 튜토리얼 완료(`POST /v1/tutorials/{tutorialId}/complete`) → `GET /v1/tutorials` 재조회 시 반영되는지 수동 확인.
 - Phase 2: 무기/보스 던전 반복 클리어 시 `HighestClearedStage`가 독립적으로 증가하는지, 골드 던전 최고 run이 `HighScore`에 반영되는지 확인.
-- Phase 3: 강화/합성/각성 각각 자원 부족·최대 레벨 도달·미소유 무기 케이스 테스트, 동시 요청 시 `xmin` 충돌이 `CONCURRENCY_CONFLICT`로 처리되는지 확인.
+- Phase 3: 강화/합성/각성 각각 자원 부족·최대 레벨 도달·미소유 무기 케이스 테스트 — 완료. 동시 요청 `xmin` 충돌의 `ConflictException`(409) 매핑은 기존 `AppDbTransactionRunner` 공통 로직(골드/기본 던전과 동일 경로)이므로 별도 단위 테스트로 재현하지 않는다 — Postgres 전용이라 단위 테스트에서 미재현되는 기존 한계와 동일(`docs/TODO.md` 테스트 체크리스트 참고).
 - Phase 4: 위 3개 Phase의 모든 보상/소모 경로에서 `RewardTransaction` 행이 정확히 1개씩 생성되는지(중복 없음) 확인.

@@ -4,6 +4,7 @@ using Fantasy.Server.Domain.Dungeon.Entity;
 using Fantasy.Server.Domain.Dungeon.Enum;
 using Fantasy.Server.Domain.Dungeon.Repository.Interface;
 using Fantasy.Server.Domain.Dungeon.Service;
+using Fantasy.Server.Domain.Player.Constant;
 using Fantasy.Server.Domain.Player.Dto.Response;
 using Fantasy.Server.Domain.Player.Entity;
 using Fantasy.Server.Domain.Player.Enum;
@@ -30,6 +31,7 @@ public class GoldDungeonClaimServiceTest
         IPlayerRedisRepository? redisRepo = null,
         IGoldDungeonRunRepository? runRepo = null,
         IPlayerDungeonProgressRepository? progressRepo = null,
+        IRewardTransactionRepository? rewardTxRepo = null,
         IRandomProvider? randomProvider = null,
         IAppDbTransactionRunner? txRunner = null,
         ICurrentUserProvider? userProvider = null,
@@ -44,6 +46,7 @@ public class GoldDungeonClaimServiceTest
             redisRepo ?? Substitute.For<IPlayerRedisRepository>(),
             runRepo ?? Substitute.For<IGoldDungeonRunRepository>(),
             progressRepo ?? Substitute.For<IPlayerDungeonProgressRepository>(),
+            rewardTxRepo ?? Substitute.For<IRewardTransactionRepository>(),
             randomProvider ?? Substitute.For<IRandomProvider>(),
             txRunner ?? Substitute.For<IAppDbTransactionRunner>(),
             userProvider ?? Substitute.For<ICurrentUserProvider>(),
@@ -117,6 +120,7 @@ public class GoldDungeonClaimServiceTest
         private readonly IPlayerWeaponRepository _weaponRepository = Substitute.For<IPlayerWeaponRepository>();
         private readonly IPlayerSkillRepository _skillRepository = Substitute.For<IPlayerSkillRepository>();
         private readonly IGoldDungeonRunRepository _runRepository = Substitute.For<IGoldDungeonRunRepository>();
+        private readonly IRewardTransactionRepository _rewardTransactionRepository = Substitute.For<IRewardTransactionRepository>();
         private readonly ICurrentUserProvider _currentUserProvider = Substitute.For<ICurrentUserProvider>();
         private readonly GoldDungeonRun _claimedRun;
 
@@ -142,6 +146,20 @@ public class GoldDungeonClaimServiceTest
 
             result.EarnedGold.Should().Be(1000L);
             result.EarnedMithril.Should().Be(0);
+        }
+
+        [Fact]
+        public async Task RewardTransaction이_기록되지_않는다()
+        {
+            var sut = BuildSut(playerRepo: _playerRepository, resourceRepo: _resourceRepository,
+                stageRepo: _stageRepository, sessionRepo: _sessionRepository,
+                weaponRepo: _weaponRepository, skillRepo: _skillRepository,
+                runRepo: _runRepository, rewardTxRepo: _rewardTransactionRepository,
+                userProvider: _currentUserProvider);
+
+            await sut.ExecuteAsync(_claimedRun.Id, new GoldDungeonClaimRequest(50));
+
+            await _rewardTransactionRepository.DidNotReceive().SaveRangeAsync(Arg.Any<List<RewardTransaction>>());
         }
     }
 
@@ -342,6 +360,7 @@ public class GoldDungeonClaimServiceTest
         private readonly IPlayerSkillRepository _skillRepository = Substitute.For<IPlayerSkillRepository>();
         private readonly IPlayerRedisRepository _redisRepository = Substitute.For<IPlayerRedisRepository>();
         private readonly IGoldDungeonRunRepository _runRepository = Substitute.For<IGoldDungeonRunRepository>();
+        private readonly IRewardTransactionRepository _rewardTransactionRepository = Substitute.For<IRewardTransactionRepository>();
         private readonly IRandomProvider _randomProvider = Substitute.For<IRandomProvider>();
         private readonly IAppDbTransactionRunner _txRunner = Substitute.For<IAppDbTransactionRunner>();
         private readonly ICurrentUserProvider _currentUserProvider = Substitute.For<ICurrentUserProvider>();
@@ -389,6 +408,27 @@ public class GoldDungeonClaimServiceTest
             await sut.ExecuteAsync(_run.Id, new GoldDungeonClaimRequest(100));
 
             await _redisRepository.Received(1).SetPlayerDataAsync(1L, Arg.Any<PlayerDataResponse>());
+        }
+
+        [Fact]
+        public async Task RewardTransaction이_runId와_함께_기록된다()
+        {
+            var sut = BuildSut(playerRepo: _playerRepository, resourceRepo: _resourceRepository,
+                stageRepo: _stageRepository, sessionRepo: _sessionRepository,
+                weaponRepo: _weaponRepository, skillRepo: _skillRepository,
+                redisRepo: _redisRepository, runRepo: _runRepository,
+                rewardTxRepo: _rewardTransactionRepository,
+                randomProvider: _randomProvider, txRunner: _txRunner, userProvider: _currentUserProvider,
+                timeProvider: _timeProvider);
+
+            var runId = _run.Id;
+
+            await sut.ExecuteAsync(_run.Id, new GoldDungeonClaimRequest(100));
+
+            await _rewardTransactionRepository.Received(1).SaveRangeAsync(
+                Arg.Is<List<RewardTransaction>>(list =>
+                    list.Any(t => t.SourceType == RewardSourceTypes.DungeonGold && t.RewardType == RewardTypes.Gold
+                        && t.SourceRefId == runId.ToString())));
         }
     }
 

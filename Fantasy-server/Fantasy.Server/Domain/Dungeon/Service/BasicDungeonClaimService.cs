@@ -1,6 +1,8 @@
 using Fantasy.Server.Domain.Dungeon.Dto.Response;
 using Fantasy.Server.Domain.Dungeon.Service.Interface;
+using Fantasy.Server.Domain.Player.Constant;
 using Fantasy.Server.Domain.Player.Dto.Response;
+using Fantasy.Server.Domain.Player.Entity;
 using Fantasy.Server.Domain.Player.Repository.Interface;
 using Fantasy.Server.Global.Infrastructure;
 using Fantasy.Server.Global.Security.Provider;
@@ -17,6 +19,7 @@ public class BasicDungeonClaimService : IBasicDungeonClaimService
     private readonly IPlayerWeaponRepository _playerWeaponRepository;
     private readonly IPlayerSkillRepository _playerSkillRepository;
     private readonly IPlayerRedisRepository _playerRedisRepository;
+    private readonly IRewardTransactionRepository _rewardTransactionRepository;
     private readonly IIdleRewardSettler _idleRewardSettler;
     private readonly IAppDbTransactionRunner _transactionRunner;
     private readonly ICurrentUserProvider _currentUserProvider;
@@ -29,6 +32,7 @@ public class BasicDungeonClaimService : IBasicDungeonClaimService
         IPlayerWeaponRepository playerWeaponRepository,
         IPlayerSkillRepository playerSkillRepository,
         IPlayerRedisRepository playerRedisRepository,
+        IRewardTransactionRepository rewardTransactionRepository,
         IIdleRewardSettler idleRewardSettler,
         IAppDbTransactionRunner transactionRunner,
         ICurrentUserProvider currentUserProvider)
@@ -40,6 +44,7 @@ public class BasicDungeonClaimService : IBasicDungeonClaimService
         _playerWeaponRepository = playerWeaponRepository;
         _playerSkillRepository = playerSkillRepository;
         _playerRedisRepository = playerRedisRepository;
+        _rewardTransactionRepository = rewardTransactionRepository;
         _idleRewardSettler = idleRewardSettler;
         _transactionRunner = transactionRunner;
         _currentUserProvider = currentUserProvider;
@@ -66,11 +71,20 @@ public class BasicDungeonClaimService : IBasicDungeonClaimService
 
         var reward = await _idleRewardSettler.SettleAsync(player, resource, stage, session, weapons, skills);
 
+        var rewardTransactions = new List<RewardTransaction>();
+        if (reward.EarnedGold > 0)
+            rewardTransactions.Add(RewardTransaction.Create(
+                player.Id, RewardSourceTypes.DungeonBasic, null, RewardTypes.Gold, null, reward.EarnedGold));
+        if (reward.EarnedXp > 0)
+            rewardTransactions.Add(RewardTransaction.Create(
+                player.Id, RewardSourceTypes.DungeonBasic, null, RewardTypes.Exp, null, reward.EarnedXp));
+
         await _transactionRunner.ExecuteAsync(async () =>
         {
             await _playerRepository.UpdateAsync(player);
             await _playerResourceRepository.UpdateAsync(resource);
             await _playerStageRepository.UpdateAsync(stage);
+            await _rewardTransactionRepository.SaveRangeAsync(rewardTransactions);
         });
 
         var playerResponse = PlayerDataResponseBuilder.Build(player, resource, stage, session, weapons, skills);

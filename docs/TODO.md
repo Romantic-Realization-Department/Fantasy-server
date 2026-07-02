@@ -264,12 +264,13 @@ public record SkillUnlockResponse(bool WasAlreadyUnlocked, ChangesDto Changes, P
 
 ### 무기 강화
 
-무기 강화 규칙은 아직 명확하지 않으므로 1차 범위에서 보류한다.
+~~무기 강화 규칙은 아직 명확하지 않으므로 1차 범위에서 보류한다.~~ → Phase 3에서 `POST /v1/weapons/{weaponId}/upgrade|synthesize|awaken`으로 구현 완료(2026-07-02). 상세 사양은 `docs/superpowers/specs/2026-07-02-server-authority-feature-expansion-design.md` §5, 클라이언트 계약은 `docs/client-integration-guide.md` 7장 참고.
 
-- `POST /v1/player/weapon/enhance`는 아직 만들지 않는다.
+- ~~`POST /v1/player/weapon/enhance`는 아직 만들지 않는다.~~ → `POST /v1/weapons/{weaponId}/upgrade`(강화)로 구현. `POST /v1/weapons/{weaponId}/synthesize`(합성)·`POST /v1/weapons/{weaponId}/awaken`(각성)도 함께 추가.
 - 기존 `PATCH /v1/player/weapon`은 삭제한다.
 - 무기 획득은 던전과 보스 보상처럼 서버 계산 보상으로만 발생한다.
-- `PlayerWeapon.EnhancementLevel`, `AwakeningCount` 필드는 남겨두되 현재는 변경하지 않는다.
+- ~~`PlayerWeapon.EnhancementLevel`, `AwakeningCount` 필드는 남겨두되 현재는 변경하지 않는다.~~ → Phase 3부터 강화/각성 API가 두 필드를 갱신한다. 동시 갱신 충돌 방지를 위해 `PlayerWeapon`에 `xmin` 동시성 토큰도 함께 추가됨.
+- 던전 보상 4종(basic/gold/weapon/boss)과 무기 강화/합성/각성의 소모/결과는 Phase 4에서 append-only 감사 로그(`RewardTransaction`)로 함께 기록되도록 확장됨(2026-07-02).
 
 ### 골드 던전
 
@@ -399,7 +400,7 @@ public record SkillUnlockResponse(bool WasAlreadyUnlocked, ChangesDto Changes, P
 ### 기존 Findings 후속 작업
 
 1. ~~클라이언트가 핵심 성장 값을 직접 쓰는 API 제거~~
-2. ~~게임 데이터 Redis 캐시의 private setter JSON 역직렬화 문제 수정~~
+2. ~~게임 데이터 Redis 캐시의 private setter JSON 역직렬화 문제 수정~~ (2026-07-02: 실제로는 미수정 상태였음을 발견하여 이 시점에 수정됨)
 3. ~~재화/보상 갱신의 read-modify-write 동시성 문제 해결~~
 4. ~~회원 삭제 시 플레이어 데이터와 refresh token 정리~~
 5. ~~rate limit을 전역이 아니라 IP 또는 account 기준으로 partition~~

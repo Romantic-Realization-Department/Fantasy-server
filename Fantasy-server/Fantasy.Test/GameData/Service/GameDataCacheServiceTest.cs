@@ -152,6 +152,33 @@ public class GameDataCacheServiceTest
             result.Should().NotBeNull();
             result!.JobType.Should().Be(JobType.Warrior);
         }
+
+        [Fact]
+        public async Task GetWeaponEnhancementCostAsync_캐시_미스면_리포지토리에서_읽고_해당_레벨_비용을_반환한다()
+        {
+            _repository.GetAllWeaponEnhancementCostsAsync().Returns([
+                WeaponEnhancementCost.Create(1001, 0, 100, 0),
+                WeaponEnhancementCost.Create(1001, 5, 600, 1)
+            ]);
+
+            var result = await _sut.GetWeaponEnhancementCostAsync(1001, 5);
+
+            result.Should().NotBeNull();
+            result!.RequiredGold.Should().Be(600);
+            result.RequiredScroll.Should().Be(1);
+        }
+
+        [Fact]
+        public async Task GetWeaponAwakenCostAsync_없는_레벨이면_null을_반환한다()
+        {
+            _repository.GetAllWeaponAwakenCostsAsync().Returns([
+                WeaponAwakenCost.Create(1001, 0, 1, 5)
+            ]);
+
+            var result = await _sut.GetWeaponAwakenCostAsync(1001, 3);
+
+            result.Should().BeNull();
+        }
     }
 
     public class 캐시_히트_시
@@ -178,6 +205,119 @@ public class GameDataCacheServiceTest
 
             result.Should().HaveCount(1);
             await _repository.DidNotReceive().GetAllLevelTablesAsync();
+        }
+
+        [Fact]
+        public async Task GetLevelTableAsync_역직렬화된_Level과_RequiredExp_값을_반환한다()
+        {
+            var result = await _sut.GetLevelTableAsync();
+
+            result[1].Level.Should().Be(1);
+            result[1].RequiredExp.Should().Be(100);
+        }
+
+        [Fact]
+        public async Task GetWeaponDataAsync_역직렬화된_값을_반환한다()
+        {
+            var weaponDataJson = System.Text.Json.JsonSerializer.Serialize(new List<WeaponData>
+            {
+                WeaponData.Create(1, "Iron Sword", WeaponGrade.C, JobType.Warrior, 100, 10, 15, 5, 3, 2)
+            });
+            _cache.GetAsync("game_data:weapon_data:v2", Arg.Any<CancellationToken>())
+                .Returns(System.Text.Encoding.UTF8.GetBytes(weaponDataJson));
+
+            var result = await _sut.GetWeaponDataAsync(1);
+
+            result.Should().NotBeNull();
+            result!.WeaponId.Should().Be(1);
+            result.Name.Should().Be("Iron Sword");
+            result.MaxEnhancementLevel.Should().Be(15);
+            result.SynthesizeRequiredCount.Should().Be(3);
+        }
+
+        [Fact]
+        public async Task GetStageDataAsync_역직렬화된_값을_반환한다()
+        {
+            var stageDataJson = System.Text.Json.JsonSerializer.Serialize(new List<StageData>
+            {
+                StageData.Create(7, 5000, 300, 25, 40, true)
+            });
+            _cache.GetAsync("game_data:stage_data", Arg.Any<CancellationToken>())
+                .Returns(System.Text.Encoding.UTF8.GetBytes(stageDataJson));
+
+            var result = await _sut.GetStageDataAsync(7);
+
+            result.Should().NotBeNull();
+            result!.Stage.Should().Be(7);
+            result.MonsterHp.Should().Be(5000);
+        }
+
+        [Fact]
+        public async Task GetWeaponEnhancementCostAsync_역직렬화된_값을_반환한다()
+        {
+            var costJson = System.Text.Json.JsonSerializer.Serialize(new List<WeaponEnhancementCost>
+            {
+                WeaponEnhancementCost.Create(1001, 5, 600, 1)
+            });
+            _cache.GetAsync("game_data:weapon_enhancement_cost", Arg.Any<CancellationToken>())
+                .Returns(System.Text.Encoding.UTF8.GetBytes(costJson));
+
+            var result = await _sut.GetWeaponEnhancementCostAsync(1001, 5);
+
+            result.Should().NotBeNull();
+            result!.RequiredGold.Should().Be(600);
+            result.RequiredScroll.Should().Be(1);
+        }
+
+        [Fact]
+        public async Task GetWeaponAwakenCostAsync_역직렬화된_값을_반환한다()
+        {
+            var costJson = System.Text.Json.JsonSerializer.Serialize(new List<WeaponAwakenCost>
+            {
+                WeaponAwakenCost.Create(1001, 3, 2, 8)
+            });
+            _cache.GetAsync("game_data:weapon_awaken_cost", Arg.Any<CancellationToken>())
+                .Returns(System.Text.Encoding.UTF8.GetBytes(costJson));
+
+            var result = await _sut.GetWeaponAwakenCostAsync(1001, 3);
+
+            result.Should().NotBeNull();
+            result!.RequiredCount.Should().Be(2);
+            result.RequiredMithril.Should().Be(8);
+        }
+
+        [Fact]
+        public async Task GetJobBaseStatAsync_역직렬화된_값을_반환한다()
+        {
+            var jobBaseStatJson = System.Text.Json.JsonSerializer.Serialize(new List<JobBaseStat>
+            {
+                JobBaseStat.Create(JobType.Archer, 800, 120, 0.10, 1.8, 40.0, 12.0)
+            });
+            _cache.GetAsync("game_data:job_base_stat", Arg.Any<CancellationToken>())
+                .Returns(System.Text.Encoding.UTF8.GetBytes(jobBaseStatJson));
+
+            var result = await _sut.GetJobBaseStatAsync(JobType.Archer);
+
+            result.Should().NotBeNull();
+            result!.JobType.Should().Be(JobType.Archer);
+            result.BaseHp.Should().Be(800);
+        }
+
+        [Fact]
+        public async Task GetSkillDataAsync_역직렬화된_값을_반환한다()
+        {
+            var skillDataJson = System.Text.Json.JsonSerializer.Serialize(new List<SkillData>
+            {
+                SkillData.Create(1, JobType.Warrior, true, 10, null, SkillEffectType.AtkFlat, 50.0)
+            });
+            _cache.GetAsync("game_data:skill_data", Arg.Any<CancellationToken>())
+                .Returns(System.Text.Encoding.UTF8.GetBytes(skillDataJson));
+
+            var result = await _sut.GetSkillDataAsync(1);
+
+            result.Should().NotBeNull();
+            result!.SkillId.Should().Be(1);
+            result.EffectValue.Should().Be(50.0);
         }
     }
 }

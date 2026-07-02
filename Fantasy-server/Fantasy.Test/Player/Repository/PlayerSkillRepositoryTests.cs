@@ -77,6 +77,8 @@ public class PlayerSkillRepositoryTests : IDisposable
             modelBuilder.Ignore<StageData>();
             modelBuilder.Ignore<WeaponData>();
             modelBuilder.Ignore<SkillData>();
+            modelBuilder.Ignore<WeaponEnhancementCost>();
+            modelBuilder.Ignore<WeaponAwakenCost>();
 
             modelBuilder.Entity<PlayerSkill>(entity =>
             {

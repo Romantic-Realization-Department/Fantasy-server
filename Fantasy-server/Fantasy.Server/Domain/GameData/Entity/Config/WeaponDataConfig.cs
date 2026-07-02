@@ -18,5 +18,9 @@ public class WeaponDataConfig : IEntityTypeConfiguration<WeaponData>
         builder.Property(w => w.JobType).IsRequired().HasConversion<string>();
         builder.Property(w => w.BaseAtk).IsRequired();
         builder.Property(w => w.AtkPerEnhancement).IsRequired();
+        builder.Property(w => w.MaxEnhancementLevel).IsRequired();
+        builder.Property(w => w.MaxAwakeningLevel).IsRequired();
+        builder.Property(w => w.SynthesizeRequiredCount).IsRequired(false);
+        builder.Property(w => w.SynthesizeResultWeaponId).IsRequired(false);
     }
 }

@@ -6,6 +6,7 @@ using Fantasy.Server.Domain.GameData.Seed;
 using Fantasy.Server.Domain.LevelUp.Config;
 using Fantasy.Server.Domain.Player.Config;
 using Fantasy.Server.Domain.Tutorial.Config;
+using Fantasy.Server.Domain.Weapon.Config;
 using Fantasy.Server.Global.Config;
 using Fantasy.Server.Global.Infrastructure;
 using Fantasy.Server.Global.Security.Config;
@@ -37,6 +38,7 @@ builder.Services.AddSecurityServices();
 builder.Services.AddGameDataServices();
 builder.Services.AddLevelUpServices();
 builder.Services.AddDungeonServices();
+builder.Services.AddWeaponServices();
 
 var app = builder.Build();
 

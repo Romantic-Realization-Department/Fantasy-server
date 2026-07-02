@@ -1,4 +1,3 @@
-using Fantasy.Server.Domain.Player.Dto.Request;
 using Fantasy.Server.Domain.GameData.Entity;
 using Fantasy.Server.Domain.Player.Entity;
 using Fantasy.Server.Domain.Player.Repository;
@@ -31,21 +30,62 @@ public class PlayerWeaponRepositoryTests : IDisposable
     }
 
     [Fact]
-    public async Task UpsertRangeAsync_중복_무기_ID가_있으면_마지막_값으로_저장한다()
+    public async Task GrantWeaponsAsync_기존_무기가_있으면_Count만_증가하고_강화각성은_유지한다()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
 
-        await _dbContext.PlayerWeapons.AddAsync(PlayerWeapon.Create(1L, 1, 2L, 1L, 0L), cancellationToken);
+        await _dbContext.PlayerWeapons.AddAsync(PlayerWeapon.Create(1L, 1, 2L, 4L, 1L), cancellationToken);
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        List<WeaponChangeItem> items =
-        [
-            new(1, 3L, 2L, 0L),
-            new(1, 7L, 4L, 1L),
-            new(2, 1L, 0L, 0L)
-        ];
+        await _sut.GrantWeaponsAsync(1L, [1]);
 
-        await _sut.UpsertRangeAsync(1L, items);
+        PlayerWeapon saved = await _dbContext.PlayerWeapons
+            .FirstAsync(weapon => weapon.WeaponId == 1, cancellationToken);
+
+        saved.Count.Should().Be(3L);
+        saved.EnhancementLevel.Should().Be(4L);
+        saved.AwakeningCount.Should().Be(1L);
+    }
+
+    [Fact]
+    public async Task GrantWeaponsAsync_보유하지_않은_무기면_기본값으로_생성된다()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        await _sut.GrantWeaponsAsync(1L, [5]);
+
+        PlayerWeapon saved = await _dbContext.PlayerWeapons
+            .FirstAsync(weapon => weapon.WeaponId == 5, cancellationToken);
+
+        saved.Count.Should().Be(1L);
+        saved.EnhancementLevel.Should().Be(0L);
+        saved.AwakeningCount.Should().Be(0L);
+    }
+
+    [Fact]
+    public async Task GrantWeaponsAsync_보유하지_않은_무기가_목록에_중복되면_Count가_2로_생성된다()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        await _sut.GrantWeaponsAsync(1L, [7, 7]);
+
+        PlayerWeapon saved = await _dbContext.PlayerWeapons
+            .FirstAsync(weapon => weapon.WeaponId == 7, cancellationToken);
+
+        saved.Count.Should().Be(2L);
+        saved.EnhancementLevel.Should().Be(0L);
+        saved.AwakeningCount.Should().Be(0L);
+    }
+
+    [Fact]
+    public async Task GrantWeaponsAsync_기존과_신규가_섞여있으면_각각_올바르게_처리된다()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        await _dbContext.PlayerWeapons.AddAsync(PlayerWeapon.Create(1L, 1, 2L, 3L, 2L), cancellationToken);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        await _sut.GrantWeaponsAsync(1L, [1, 9]);
 
         List<PlayerWeapon> saved = await _dbContext.PlayerWeapons
             .OrderBy(weapon => weapon.WeaponId)
@@ -53,10 +93,50 @@ public class PlayerWeaponRepositoryTests : IDisposable
 
         saved.Should().HaveCount(2);
         saved[0].WeaponId.Should().Be(1);
-        saved[0].Count.Should().Be(7L);
-        saved[0].EnhancementLevel.Should().Be(4L);
-        saved[0].AwakeningCount.Should().Be(1L);
-        saved[1].WeaponId.Should().Be(2);
+        saved[0].Count.Should().Be(3L);
+        saved[0].EnhancementLevel.Should().Be(3L);
+        saved[0].AwakeningCount.Should().Be(2L);
+        saved[1].WeaponId.Should().Be(9);
+        saved[1].Count.Should().Be(1L);
+        saved[1].EnhancementLevel.Should().Be(0L);
+        saved[1].AwakeningCount.Should().Be(0L);
+    }
+
+    [Fact]
+    public async Task FindByPlayerIdAndWeaponIdAsync_없으면_null을_반환한다()
+    {
+        var result = await _sut.FindByPlayerIdAndWeaponIdAsync(1L, 999);
+
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task SaveAsync_저장한_무기를_단건_조회할_수_있다()
+    {
+        await _sut.SaveAsync(PlayerWeapon.Create(1L, 1001, 3L, 0L, 0L));
+
+        var result = await _sut.FindByPlayerIdAndWeaponIdAsync(1L, 1001);
+
+        result.Should().NotBeNull();
+        result!.Count.Should().Be(3L);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_엔티티_메서드로_변경한_값이_반영된다()
+    {
+        var weapon = PlayerWeapon.Create(1L, 1001, 5L, 0L, 0L);
+        await _sut.SaveAsync(weapon);
+
+        weapon.ConsumeCount(3L);
+        weapon.Enhance();
+        weapon.Awaken();
+        weapon.AddCount(1L);
+        await _sut.UpdateAsync(weapon);
+
+        var result = await _sut.FindByPlayerIdAndWeaponIdAsync(1L, 1001);
+        result!.Count.Should().Be(3L);
+        result.EnhancementLevel.Should().Be(1L);
+        result.AwakeningCount.Should().Be(1L);
     }
 
     public void Dispose()
@@ -79,6 +159,8 @@ public class PlayerWeaponRepositoryTests : IDisposable
             modelBuilder.Ignore<StageData>();
             modelBuilder.Ignore<WeaponData>();
             modelBuilder.Ignore<SkillData>();
+            modelBuilder.Ignore<WeaponEnhancementCost>();
+            modelBuilder.Ignore<WeaponAwakenCost>();
 
             modelBuilder.Entity<PlayerWeapon>(entity =>
             {

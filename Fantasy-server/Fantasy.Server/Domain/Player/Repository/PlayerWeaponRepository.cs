@@ -1,4 +1,3 @@
-using Fantasy.Server.Domain.Player.Dto.Request;
 using Fantasy.Server.Domain.Player.Entity;
 using Fantasy.Server.Domain.Player.Repository.Interface;
 using Fantasy.Server.Global.Infrastructure;
@@ -18,31 +17,42 @@ public class PlayerWeaponRepository : IPlayerWeaponRepository
             .Where(w => w.PlayerId == playerId)
             .ToListAsync();
 
-    public async Task UpsertRangeAsync(long playerId, List<WeaponChangeItem> items)
+    public async Task GrantWeaponsAsync(long playerId, List<int> weaponIds)
     {
-        List<WeaponChangeItem> normalizedItems = items
-            .GroupBy(item => item.WeaponId)
-            .Select(group => group.Last())
-            .ToList();
-
-        List<int> weaponIds = normalizedItems.Select(item => item.WeaponId).ToList();
+        List<int> distinctIds = weaponIds.Distinct().ToList();
         Dictionary<int, PlayerWeapon> existing = await _db.PlayerWeapons
-            .Where(weapon => weapon.PlayerId == playerId && weaponIds.Contains(weapon.WeaponId))
+            .Where(weapon => weapon.PlayerId == playerId && distinctIds.Contains(weapon.WeaponId))
             .ToDictionaryAsync(weapon => weapon.WeaponId);
 
-        foreach (WeaponChangeItem item in normalizedItems)
+        foreach (int weaponId in weaponIds)
         {
-            if (existing.TryGetValue(item.WeaponId, out PlayerWeapon? weapon))
+            if (existing.TryGetValue(weaponId, out PlayerWeapon? weapon))
             {
-                weapon.Update(item.Count, item.EnhancementLevel, item.AwakeningCount);
-                _db.PlayerWeapons.Update(weapon);
+                weapon.AddCount(1);
                 continue;
             }
 
-            await _db.PlayerWeapons.AddAsync(
-                PlayerWeapon.Create(playerId, item.WeaponId, item.Count, item.EnhancementLevel, item.AwakeningCount));
+            PlayerWeapon created = PlayerWeapon.Create(playerId, weaponId, 1, 0, 0);
+            await _db.PlayerWeapons.AddAsync(created);
+            existing[weaponId] = created;
         }
 
+        await _db.SaveChangesAsync();
+    }
+
+    public async Task<PlayerWeapon?> FindByPlayerIdAndWeaponIdAsync(long playerId, int weaponId)
+        => await _db.PlayerWeapons
+            .FirstOrDefaultAsync(w => w.PlayerId == playerId && w.WeaponId == weaponId);
+
+    public async Task SaveAsync(PlayerWeapon weapon)
+    {
+        _db.PlayerWeapons.Add(weapon);
+        await _db.SaveChangesAsync();
+    }
+
+    public async Task UpdateAsync(PlayerWeapon weapon)
+    {
+        _db.PlayerWeapons.Update(weapon);
         await _db.SaveChangesAsync();
     }
 }

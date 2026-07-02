@@ -1,6 +1,7 @@
 using Fantasy.Server.Domain.Dungeon.Dto.Response;
 using Fantasy.Server.Domain.Dungeon.Service;
 using Fantasy.Server.Domain.Dungeon.Service.Interface;
+using Fantasy.Server.Domain.Player.Constant;
 using Fantasy.Server.Domain.Player.Dto.Response;
 using Fantasy.Server.Domain.Player.Entity;
 using Fantasy.Server.Domain.Player.Enum;
@@ -25,6 +26,7 @@ public class BasicDungeonClaimServiceTests
         IPlayerWeaponRepository? weaponRepo = null,
         IPlayerSkillRepository? skillRepo = null,
         IPlayerRedisRepository? redisRepo = null,
+        IRewardTransactionRepository? rewardTxRepo = null,
         IIdleRewardSettler? settler = null,
         IAppDbTransactionRunner? txRunner = null,
         ICurrentUserProvider? userProvider = null) =>
@@ -36,6 +38,7 @@ public class BasicDungeonClaimServiceTests
             weaponRepo ?? Substitute.For<IPlayerWeaponRepository>(),
             skillRepo ?? Substitute.For<IPlayerSkillRepository>(),
             redisRepo ?? Substitute.For<IPlayerRedisRepository>(),
+            rewardTxRepo ?? Substitute.For<IRewardTransactionRepository>(),
             settler ?? Substitute.For<IIdleRewardSettler>(),
             txRunner ?? Substitute.For<IAppDbTransactionRunner>(),
             userProvider ?? Substitute.For<ICurrentUserProvider>());
@@ -107,6 +110,7 @@ public class BasicDungeonClaimServiceTests
         private readonly IPlayerWeaponRepository _weaponRepository = Substitute.For<IPlayerWeaponRepository>();
         private readonly IPlayerSkillRepository _skillRepository = Substitute.For<IPlayerSkillRepository>();
         private readonly IPlayerRedisRepository _redisRepository = Substitute.For<IPlayerRedisRepository>();
+        private readonly IRewardTransactionRepository _rewardTransactionRepository = Substitute.For<IRewardTransactionRepository>();
         private readonly IIdleRewardSettler _settler = Substitute.For<IIdleRewardSettler>();
         private readonly IAppDbTransactionRunner _txRunner = Substitute.For<IAppDbTransactionRunner>();
         private readonly ICurrentUserProvider _currentUserProvider = Substitute.For<ICurrentUserProvider>();
@@ -154,6 +158,23 @@ public class BasicDungeonClaimServiceTests
 
             await _redisRepository.Received(1).SetPlayerDataAsync(1L, Arg.Any<PlayerDataResponse>());
         }
+
+        [Fact]
+        public async Task RewardTransaction이_기록된다()
+        {
+            var sut = BuildSut(
+                playerRepo: _playerRepository, resourceRepo: _resourceRepository, stageRepo: _stageRepository,
+                sessionRepo: _sessionRepository, weaponRepo: _weaponRepository, skillRepo: _skillRepository,
+                redisRepo: _redisRepository, rewardTxRepo: _rewardTransactionRepository,
+                settler: _settler, txRunner: _txRunner, userProvider: _currentUserProvider);
+
+            await sut.ExecuteAsync();
+
+            await _rewardTransactionRepository.Received(1).SaveRangeAsync(
+                Arg.Is<List<RewardTransaction>>(list =>
+                    list.Any(t => t.SourceType == RewardSourceTypes.DungeonBasic && t.RewardType == RewardTypes.Gold && t.Amount > 0) &&
+                    list.Any(t => t.SourceType == RewardSourceTypes.DungeonBasic && t.RewardType == RewardTypes.Exp && t.Amount > 0)));
+        }
     }
 
     public class 동시_요청으로_저장_트랜잭션이_충돌할_때
@@ -189,7 +210,7 @@ public class BasicDungeonClaimServiceTests
 
         private BasicDungeonClaimService BuildConflictSut() => new(
             _playerRepository, _resourceRepository, _stageRepository, _sessionRepository,
-            _weaponRepository, _skillRepository, _redisRepository, _settler,
+            _weaponRepository, _skillRepository, _redisRepository, Substitute.For<IRewardTransactionRepository>(), _settler,
             _txRunner, _currentUserProvider);
 
         [Fact]

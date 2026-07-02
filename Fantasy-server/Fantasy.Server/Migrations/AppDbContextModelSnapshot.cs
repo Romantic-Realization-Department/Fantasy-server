@@ -287,6 +287,25 @@ namespace Fantasy.Server.Migrations
                     b.ToTable("stage_data", "game_data");
                 });
 
+            modelBuilder.Entity("Fantasy.Server.Domain.GameData.Entity.WeaponAwakenCost", b =>
+                {
+                    b.Property<int>("WeaponId")
+                        .HasColumnType("integer");
+
+                    b.Property<long>("AwakeningLevel")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("RequiredCount")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("RequiredMithril")
+                        .HasColumnType("integer");
+
+                    b.HasKey("WeaponId", "AwakeningLevel");
+
+                    b.ToTable("weapon_awaken_cost", "game_data");
+                });
+
             modelBuilder.Entity("Fantasy.Server.Domain.GameData.Entity.WeaponData", b =>
                 {
                     b.Property<int>("WeaponId")
@@ -306,14 +325,45 @@ namespace Fantasy.Server.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<long>("MaxAwakeningLevel")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("MaxEnhancementLevel")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
+                    b.Property<int?>("SynthesizeRequiredCount")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("SynthesizeResultWeaponId")
+                        .HasColumnType("integer");
+
                     b.HasKey("WeaponId");
 
                     b.ToTable("weapon_data", "game_data");
+                });
+
+            modelBuilder.Entity("Fantasy.Server.Domain.GameData.Entity.WeaponEnhancementCost", b =>
+                {
+                    b.Property<int>("WeaponId")
+                        .HasColumnType("integer");
+
+                    b.Property<long>("EnhancementLevel")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("RequiredGold")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("RequiredScroll")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("WeaponId", "EnhancementLevel");
+
+                    b.ToTable("weapon_enhancement_cost", "game_data");
                 });
 
             modelBuilder.Entity("Fantasy.Server.Domain.Player.Entity.Player", b =>
@@ -536,12 +586,57 @@ namespace Fantasy.Server.Migrations
                     b.Property<int>("WeaponId")
                         .HasColumnType("integer");
 
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
                     b.HasKey("Id");
 
                     b.HasIndex("PlayerId", "WeaponId")
                         .IsUnique();
 
                     b.ToTable("player_weapon", "player");
+                });
+
+            modelBuilder.Entity("Fantasy.Server.Domain.Player.Entity.RewardTransaction", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<long>("Amount")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("PlayerId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("RewardRefId")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("RewardType")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<string>("SourceRefId")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("SourceType")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PlayerId", "CreatedAt");
+
+                    b.ToTable("reward_transaction", "player");
                 });
 
             modelBuilder.Entity("Fantasy.Server.Domain.Tutorial.Entity.PlayerTutorial", b =>
@@ -635,6 +730,15 @@ namespace Fantasy.Server.Migrations
                 });
 
             modelBuilder.Entity("Fantasy.Server.Domain.Player.Entity.PlayerWeapon", b =>
+                {
+                    b.HasOne("Fantasy.Server.Domain.Player.Entity.Player", null)
+                        .WithMany()
+                        .HasForeignKey("PlayerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Fantasy.Server.Domain.Player.Entity.RewardTransaction", b =>
                 {
                     b.HasOne("Fantasy.Server.Domain.Player.Entity.Player", null)
                         .WithMany()

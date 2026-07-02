@@ -36,7 +36,11 @@ public class GameDataQueryService : IGameDataQueryService
             w.Grade.ToString(),
             w.JobType.ToString(),
             w.BaseAtk,
-            w.AtkPerEnhancement
+            w.AtkPerEnhancement,
+            w.MaxEnhancementLevel,
+            w.MaxAwakeningLevel,
+            w.SynthesizeRequiredCount,
+            w.SynthesizeResultWeaponId
         )).ToList();
     }
 

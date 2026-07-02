@@ -18,10 +18,11 @@ public class PlayerWeapon
         AwakeningCount = awakeningCount
     };
 
-    public void Update(long count, long enhancementLevel, long awakeningCount)
-    {
-        Count = count;
-        EnhancementLevel = enhancementLevel;
-        AwakeningCount = awakeningCount;
-    }
+    public void Enhance() => EnhancementLevel += 1;
+
+    public void AddCount(long amount) => Count += amount;
+
+    public void ConsumeCount(long amount) => Count -= amount;
+
+    public void Awaken() => AwakeningCount += 1;
 }

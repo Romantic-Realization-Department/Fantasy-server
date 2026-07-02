@@ -4,6 +4,7 @@ using Fantasy.Server.Domain.Player.Entity;
 using Fantasy.Server.Domain.Player.Enum;
 using Fantasy.Server.Global.Infrastructure;
 using FluentAssertions;
+using Gamism.SDK.Extensions.AspNetCore.Exceptions;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
@@ -62,6 +63,25 @@ public class AppDbTransactionRunnerTests : IDisposable
     }
 
     [Fact]
+    public async Task ExecuteAsync_유니크제약위반이_발생하면_ConflictException으로_변환한다()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        await _dbContext.PlayerWeapons.AddAsync(PlayerWeapon.Create(1L, 1001, 1L, 0L, 0L), cancellationToken);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        var act = async () => await _sut.ExecuteAsync(async () =>
+        {
+            await _dbContext.PlayerWeapons.AddAsync(PlayerWeapon.Create(1L, 1001, 1L, 0L, 0L), cancellationToken);
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        });
+
+        await act.Should().ThrowAsync<ConflictException>();
+        var count = await _dbContext.PlayerWeapons.CountAsync(cancellationToken);
+        count.Should().Be(1);
+    }
+
+    [Fact]
     public async Task ExecuteAsync_중첩_호출이면_기존_트랜잭션을_재사용한다()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
@@ -102,6 +122,8 @@ public class AppDbTransactionRunnerTests : IDisposable
             modelBuilder.Ignore<StageData>();
             modelBuilder.Ignore<WeaponData>();
             modelBuilder.Ignore<SkillData>();
+            modelBuilder.Ignore<WeaponEnhancementCost>();
+            modelBuilder.Ignore<WeaponAwakenCost>();
 
             modelBuilder.Entity<PlayerEntity>(entity =>
             {
@@ -114,6 +136,19 @@ public class AppDbTransactionRunnerTests : IDisposable
                 entity.Property(player => player.Exp).IsRequired();
                 entity.Property(player => player.CreatedAt).IsRequired();
                 entity.Property(player => player.UpdatedAt).IsRequired();
+            });
+
+            modelBuilder.Entity<PlayerWeapon>(entity =>
+            {
+                entity.ToTable("player_weapons");
+                entity.HasKey(weapon => weapon.Id);
+                entity.Property(weapon => weapon.Id).ValueGeneratedOnAdd();
+                entity.Property(weapon => weapon.PlayerId).IsRequired();
+                entity.Property(weapon => weapon.WeaponId).IsRequired();
+                entity.Property(weapon => weapon.Count).IsRequired();
+                entity.Property(weapon => weapon.EnhancementLevel).IsRequired();
+                entity.Property(weapon => weapon.AwakeningCount).IsRequired();
+                entity.HasIndex(weapon => new { weapon.PlayerId, weapon.WeaponId }).IsUnique();
             });
         }
     }
