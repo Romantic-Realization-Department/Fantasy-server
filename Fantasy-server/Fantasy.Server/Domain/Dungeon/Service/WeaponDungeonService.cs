@@ -32,6 +32,7 @@ public class WeaponDungeonService : IWeaponDungeonService
     private readonly IPlayerDungeonProgressRepository _playerDungeonProgressRepository;
     private readonly IRewardTransactionRepository _rewardTransactionRepository;
     private readonly IAppDbTransactionRunner _transactionRunner;
+    private readonly IRandomProvider _randomProvider;
     private readonly ICurrentUserProvider _currentUserProvider;
     private readonly ICombatStatCalculator _calculator;
 
@@ -47,6 +48,7 @@ public class WeaponDungeonService : IWeaponDungeonService
         IPlayerDungeonProgressRepository playerDungeonProgressRepository,
         IRewardTransactionRepository rewardTransactionRepository,
         IAppDbTransactionRunner transactionRunner,
+        IRandomProvider randomProvider,
         ICurrentUserProvider currentUserProvider,
         ICombatStatCalculator calculator)
     {
@@ -61,6 +63,7 @@ public class WeaponDungeonService : IWeaponDungeonService
         _playerDungeonProgressRepository = playerDungeonProgressRepository;
         _rewardTransactionRepository = rewardTransactionRepository;
         _transactionRunner = transactionRunner;
+        _randomProvider = randomProvider;
         _currentUserProvider = currentUserProvider;
         _calculator = calculator;
     }
@@ -123,30 +126,30 @@ public class WeaponDungeonService : IWeaponDungeonService
         if (cleared)
         {
             // B등급 드랍 시도
-            if (Random.Shared.Next(0, 100) < BGradeDropRatePercent)
+            if (_randomProvider.Next(0, 100) < BGradeDropRatePercent)
             {
                 var bWeapons = await _gameDataCacheService.GetWeaponDataByGradeAsync(WeaponGrade.B);
                 var bJobWeapons = bWeapons.Where(w => w.JobType == jobType).ToList();
                 if (bJobWeapons.Count > 0)
                 {
-                    var dropped = bJobWeapons[Random.Shared.Next(bJobWeapons.Count)];
+                    var dropped = bJobWeapons[_randomProvider.Next(0, bJobWeapons.Count)];
                     droppedWeapons.Add(new DroppedWeaponInfo(dropped.WeaponId, dropped.Name, dropped.Grade));
                 }
             }
             // C등급 드랍 시도
-            if (Random.Shared.Next(0, 100) < CGradeDropRatePercent)
+            if (_randomProvider.Next(0, 100) < CGradeDropRatePercent)
             {
                 var cWeapons = await _gameDataCacheService.GetWeaponDataByGradeAsync(WeaponGrade.C);
                 var cJobWeapons = cWeapons.Where(w => w.JobType == jobType).ToList();
                 if (cJobWeapons.Count > 0)
                 {
-                    var dropped = cJobWeapons[Random.Shared.Next(cJobWeapons.Count)];
+                    var dropped = cJobWeapons[_randomProvider.Next(0, cJobWeapons.Count)];
                     droppedWeapons.Add(new DroppedWeaponInfo(dropped.WeaponId, dropped.Name, dropped.Grade));
                 }
             }
 
             // 스크롤 드랍 시도
-            if (Random.Shared.Next(0, 100) < ScrollDropRatePercent)
+            if (_randomProvider.Next(0, 100) < ScrollDropRatePercent)
                 droppedScrolls = 1;
 
             progress ??= PlayerDungeonProgress.Create(player.Id, DungeonType.Weapon);

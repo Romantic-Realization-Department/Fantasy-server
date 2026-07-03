@@ -34,6 +34,7 @@ public class WeaponDungeonServiceTests
         IPlayerDungeonProgressRepository? progressRepo = null,
         IRewardTransactionRepository? rewardTxRepo = null,
         IAppDbTransactionRunner? txRunner = null,
+        IRandomProvider? randomProvider = null,
         ICurrentUserProvider? userProvider = null,
         ICombatStatCalculator? calculator = null)
     {
@@ -47,14 +48,23 @@ public class WeaponDungeonServiceTests
         cache ??= Substitute.For<IGameDataCacheService>();
         progressRepo ??= Substitute.For<IPlayerDungeonProgressRepository>();
         rewardTxRepo ??= Substitute.For<IRewardTransactionRepository>();
-        txRunner ??= Substitute.For<IAppDbTransactionRunner>();
+        txRunner ??= CreateTxRunner();
+        randomProvider ??= Substitute.For<IRandomProvider>();
         userProvider ??= Substitute.For<ICurrentUserProvider>();
         calculator ??= new CombatStatCalculator();
 
         return new WeaponDungeonService(
             playerRepo, resourceRepo, stageRepo, sessionRepo,
             weaponRepo, skillRepo, redisRepo, cache,
-            progressRepo, rewardTxRepo, txRunner, userProvider, calculator);
+            progressRepo, rewardTxRepo, txRunner, randomProvider, userProvider, calculator);
+    }
+
+    private static IAppDbTransactionRunner CreateTxRunner()
+    {
+        var txRunner = Substitute.For<IAppDbTransactionRunner>();
+        txRunner.ExecuteAsync(Arg.Any<Func<Task>>())
+            .Returns(ci => ci.Arg<Func<Task>>()());
+        return txRunner;
     }
 
     public class 플레이어가_없을_때
@@ -492,62 +502,49 @@ public class WeaponDungeonServiceTests
         [Fact]
         public async Task RewardTransaction이_기록된다()
         {
-            // B(20%)/C(70%) 등급 드랍은 WeaponDungeonService 내부 Random.Shared 기반 확률 로직이라
-            // 결정론적으로 강제할 수 없음(Phase 3 기존 동작, 이번 변경 범위 밖).
-            // 드랍이 발생할 때까지 재시도한다 — 미드랍 확률은 시도당 0.8*0.3=0.24, 50회 연속 미드랍 확률은 사실상 0.
-            for (var attempt = 0; attempt < 50; attempt++)
-            {
-                var rewardTxRepo = Substitute.For<IRewardTransactionRepository>();
-                var sut = BuildSut(
-                    playerRepo: _playerRepository, resourceRepo: _playerResourceRepository,
-                    stageRepo: _playerStageRepository, sessionRepo: _playerSessionRepository,
-                    weaponRepo: _playerWeaponRepository, skillRepo: _playerSkillRepository,
-                    redisRepo: _playerRedisRepository, cache: _gameDataCacheService,
-                    rewardTxRepo: rewardTxRepo, txRunner: _transactionRunner,
-                    userProvider: _currentUserProvider);
+            // IRandomProvider.Next가 항상 0을 반환 → 모든 드랍 조건(0 < 20/70/30) 충족, 첫 번째 무기 선택
+            var randomProvider = Substitute.For<IRandomProvider>();
+            randomProvider.Next(Arg.Any<int>(), Arg.Any<int>()).Returns(0);
 
-                var result = await sut.ExecuteAsync();
+            var rewardTxRepo = Substitute.For<IRewardTransactionRepository>();
+            var sut = BuildSut(
+                playerRepo: _playerRepository, resourceRepo: _playerResourceRepository,
+                stageRepo: _playerStageRepository, sessionRepo: _playerSessionRepository,
+                weaponRepo: _playerWeaponRepository, skillRepo: _playerSkillRepository,
+                redisRepo: _playerRedisRepository, cache: _gameDataCacheService,
+                rewardTxRepo: rewardTxRepo, txRunner: _transactionRunner,
+                randomProvider: randomProvider, userProvider: _currentUserProvider);
 
-                if (result.DroppedWeapons.Count == 0)
-                    continue;
+            var result = await sut.ExecuteAsync();
 
-                await rewardTxRepo.Received(1).SaveRangeAsync(
-                    Arg.Is<List<RewardTransaction>>(list =>
-                        list.All(t => t.SourceType == RewardSourceTypes.DungeonWeapon) &&
-                        list.Any(t => t.RewardType == RewardTypes.Weapon && t.Amount == 1)));
-                return;
-            }
-
-            Assert.Fail("50회 시도했지만 무기가 드랍되지 않았습니다.");
+            result.DroppedWeapons.Should().NotBeEmpty();
+            await rewardTxRepo.Received(1).SaveRangeAsync(
+                Arg.Is<List<RewardTransaction>>(list =>
+                    list.All(t => t.SourceType == RewardSourceTypes.DungeonWeapon) &&
+                    list.Any(t => t.RewardType == RewardTypes.Weapon && t.Amount == 1)));
         }
 
         [Fact]
         public async Task 드랍된_무기_ID_목록으로_GrantWeaponsAsync가_호출된다()
         {
-            // B(20%)/C(70%) 등급 드랍은 WeaponDungeonService 내부 Random.Shared 기반 확률 로직이라
-            // 결정론적으로 강제할 수 없음(Phase 3 기존 동작, 이번 변경 범위 밖).
-            // 드랍이 발생할 때까지 재시도한다 — 미드랍 확률은 시도당 0.8*0.3=0.24, 50회 연속 미드랍 확률은 사실상 0.
-            for (var attempt = 0; attempt < 50; attempt++)
-            {
-                var sut = BuildSut(
-                    playerRepo: _playerRepository, resourceRepo: _playerResourceRepository,
-                    stageRepo: _playerStageRepository, sessionRepo: _playerSessionRepository,
-                    weaponRepo: _playerWeaponRepository, skillRepo: _playerSkillRepository,
-                    redisRepo: _playerRedisRepository, cache: _gameDataCacheService,
-                    txRunner: _transactionRunner, userProvider: _currentUserProvider);
+            // IRandomProvider.Next가 항상 0을 반환 → 모든 드랍 조건(0 < 20/70/30) 충족, 첫 번째 무기 선택
+            var randomProvider = Substitute.For<IRandomProvider>();
+            randomProvider.Next(Arg.Any<int>(), Arg.Any<int>()).Returns(0);
 
-                var result = await sut.ExecuteAsync();
+            var sut = BuildSut(
+                playerRepo: _playerRepository, resourceRepo: _playerResourceRepository,
+                stageRepo: _playerStageRepository, sessionRepo: _playerSessionRepository,
+                weaponRepo: _playerWeaponRepository, skillRepo: _playerSkillRepository,
+                redisRepo: _playerRedisRepository, cache: _gameDataCacheService,
+                txRunner: _transactionRunner, randomProvider: randomProvider,
+                userProvider: _currentUserProvider);
 
-                if (result.DroppedWeapons.Count == 0)
-                    continue;
+            var result = await sut.ExecuteAsync();
 
-                var expectedIds = result.DroppedWeapons.Select(w => w.WeaponId).ToList();
-                await _playerWeaponRepository.Received(1).GrantWeaponsAsync(
-                    Arg.Any<long>(), Arg.Is<List<int>>(ids => ids.SequenceEqual(expectedIds)));
-                return;
-            }
-
-            Assert.Fail("50회 시도했지만 무기가 드랍되지 않았습니다.");
+            result.DroppedWeapons.Should().NotBeEmpty();
+            var expectedIds = result.DroppedWeapons.Select(w => w.WeaponId).ToList();
+            await _playerWeaponRepository.Received(1).GrantWeaponsAsync(
+                Arg.Any<long>(), Arg.Is<List<int>>(ids => ids.SequenceEqual(expectedIds)));
         }
     }
 }
