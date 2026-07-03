@@ -183,11 +183,94 @@ public class GetPlayerServiceTest
         }
 
         [Fact]
-        public async Task 재화_데이터가_없으면_InvalidOperationException이_발생한다()
+        public async Task 재화_데이터가_없으면_NotFoundException이_발생한다()
         {
             Func<Task> act = () => _sut.ExecuteAsync();
 
-            await act.Should().ThrowAsync<InvalidOperationException>();
+            await act.Should().ThrowAsync<NotFoundException>();
+        }
+    }
+
+    public class 재화는_있으나_스테이지_데이터가_없을_때
+    {
+        private readonly IPlayerRepository _playerRepository = Substitute.For<IPlayerRepository>();
+        private readonly IPlayerResourceRepository _playerResourceRepository = Substitute.For<IPlayerResourceRepository>();
+        private readonly IPlayerStageRepository _playerStageRepository = Substitute.For<IPlayerStageRepository>();
+        private readonly IPlayerSessionRepository _playerSessionRepository = Substitute.For<IPlayerSessionRepository>();
+        private readonly IPlayerWeaponRepository _playerWeaponRepository = Substitute.For<IPlayerWeaponRepository>();
+        private readonly IPlayerSkillRepository _playerSkillRepository = Substitute.For<IPlayerSkillRepository>();
+        private readonly IPlayerRedisRepository _playerRedisRepository = Substitute.For<IPlayerRedisRepository>();
+        private readonly ICurrentUserProvider _currentUserProvider = Substitute.For<ICurrentUserProvider>();
+        private readonly GetPlayerService _sut;
+
+        public 재화는_있으나_스테이지_데이터가_없을_때()
+        {
+            _currentUserProvider.GetAccountId().Returns(1L);
+            _playerRedisRepository.GetPlayerDataAsync(1L).Returns((PlayerDataResponse?)null);
+            _playerRepository.FindByAccountAsync(1L).Returns(PlayerEntity.Create(1L, JobType.Warrior));
+            _playerResourceRepository.FindByPlayerIdAsync(Arg.Any<long>()).Returns(PlayerResourceEntity.Create(1L));
+            _playerStageRepository.FindByPlayerIdAsync(Arg.Any<long>()).Returns((PlayerStage?)null);
+
+            _sut = new GetPlayerService(
+                _playerRepository,
+                _playerResourceRepository,
+                _playerStageRepository,
+                _playerSessionRepository,
+                _playerWeaponRepository,
+                _playerSkillRepository,
+                _playerRedisRepository,
+                _currentUserProvider);
+        }
+
+        [Fact]
+        public async Task 스테이지_데이터가_없으면_NotFoundException이_발생한다()
+        {
+            Func<Task> act = () => _sut.ExecuteAsync();
+
+            await act.Should().ThrowAsync<NotFoundException>()
+                .WithMessage("플레이어 스테이지 데이터를 찾을 수 없습니다.");
+        }
+    }
+
+    public class 재화와_스테이지는_있으나_세션_데이터가_없을_때
+    {
+        private readonly IPlayerRepository _playerRepository = Substitute.For<IPlayerRepository>();
+        private readonly IPlayerResourceRepository _playerResourceRepository = Substitute.For<IPlayerResourceRepository>();
+        private readonly IPlayerStageRepository _playerStageRepository = Substitute.For<IPlayerStageRepository>();
+        private readonly IPlayerSessionRepository _playerSessionRepository = Substitute.For<IPlayerSessionRepository>();
+        private readonly IPlayerWeaponRepository _playerWeaponRepository = Substitute.For<IPlayerWeaponRepository>();
+        private readonly IPlayerSkillRepository _playerSkillRepository = Substitute.For<IPlayerSkillRepository>();
+        private readonly IPlayerRedisRepository _playerRedisRepository = Substitute.For<IPlayerRedisRepository>();
+        private readonly ICurrentUserProvider _currentUserProvider = Substitute.For<ICurrentUserProvider>();
+        private readonly GetPlayerService _sut;
+
+        public 재화와_스테이지는_있으나_세션_데이터가_없을_때()
+        {
+            _currentUserProvider.GetAccountId().Returns(1L);
+            _playerRedisRepository.GetPlayerDataAsync(1L).Returns((PlayerDataResponse?)null);
+            _playerRepository.FindByAccountAsync(1L).Returns(PlayerEntity.Create(1L, JobType.Warrior));
+            _playerResourceRepository.FindByPlayerIdAsync(Arg.Any<long>()).Returns(PlayerResourceEntity.Create(1L));
+            _playerStageRepository.FindByPlayerIdAsync(Arg.Any<long>()).Returns(PlayerStage.Create(1L));
+            _playerSessionRepository.FindByPlayerIdAsync(Arg.Any<long>()).Returns((PlayerSession?)null);
+
+            _sut = new GetPlayerService(
+                _playerRepository,
+                _playerResourceRepository,
+                _playerStageRepository,
+                _playerSessionRepository,
+                _playerWeaponRepository,
+                _playerSkillRepository,
+                _playerRedisRepository,
+                _currentUserProvider);
+        }
+
+        [Fact]
+        public async Task 세션_데이터가_없으면_NotFoundException이_발생한다()
+        {
+            Func<Task> act = () => _sut.ExecuteAsync();
+
+            await act.Should().ThrowAsync<NotFoundException>()
+                .WithMessage("플레이어 세션 데이터를 찾을 수 없습니다.");
         }
     }
 }

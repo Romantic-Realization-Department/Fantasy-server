@@ -1,3 +1,4 @@
+using Gamism.SDK.Extensions.AspNetCore.Swagger;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Fantasy.Server.Global.Controller;
@@ -7,9 +8,7 @@ namespace Fantasy.Server.Global.Controller;
 [Tags("Health")]
 public class HealthController : ControllerBase
 {
-    /// <summary>서버 상태 확인</summary>
-    /// <remarks>서버가 정상적으로 작동하는지 확인합니다.</remarks>
-    /// <response code="200">서버 정상</response>
+    [ApiDoc("서버 상태 확인", "서버가 정상적으로 작동하는지 확인합니다.")]
     [HttpGet]
     public object CheckHealth()
     {
