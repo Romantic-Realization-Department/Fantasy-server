@@ -34,6 +34,7 @@ public class WeaponDungeonServiceTests
         IPlayerDungeonProgressRepository? progressRepo = null,
         IRewardTransactionRepository? rewardTxRepo = null,
         IAppDbTransactionRunner? txRunner = null,
+        IRandomProvider? randomProvider = null,
         ICurrentUserProvider? userProvider = null,
         ICombatStatCalculator? calculator = null)
     {
@@ -47,14 +48,23 @@ public class WeaponDungeonServiceTests
         cache ??= Substitute.For<IGameDataCacheService>();
         progressRepo ??= Substitute.For<IPlayerDungeonProgressRepository>();
         rewardTxRepo ??= Substitute.For<IRewardTransactionRepository>();
-        txRunner ??= Substitute.For<IAppDbTransactionRunner>();
+        txRunner ??= CreateTxRunner();
+        randomProvider ??= Substitute.For<IRandomProvider>();
         userProvider ??= Substitute.For<ICurrentUserProvider>();
         calculator ??= new CombatStatCalculator();
 
         return new WeaponDungeonService(
             playerRepo, resourceRepo, stageRepo, sessionRepo,
             weaponRepo, skillRepo, redisRepo, cache,
-            progressRepo, rewardTxRepo, txRunner, userProvider, calculator);
+            progressRepo, rewardTxRepo, txRunner, randomProvider, userProvider, calculator);
+    }
+
+    private static IAppDbTransactionRunner CreateTxRunner()
+    {
+        var txRunner = Substitute.For<IAppDbTransactionRunner>();
+        txRunner.ExecuteAsync(Arg.Any<Func<Task>>())
+            .Returns(ci => ci.Arg<Func<Task>>()());
+        return txRunner;
     }
 
     public class 플레이어가_없을_때
