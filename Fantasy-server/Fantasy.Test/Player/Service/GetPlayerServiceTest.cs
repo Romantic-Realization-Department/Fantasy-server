@@ -183,11 +183,11 @@ public class GetPlayerServiceTest
         }
 
         [Fact]
-        public async Task 재화_데이터가_없으면_InvalidOperationException이_발생한다()
+        public async Task 재화_데이터가_없으면_NotFoundException이_발생한다()
         {
             Func<Task> act = () => _sut.ExecuteAsync();
 
-            await act.Should().ThrowAsync<InvalidOperationException>();
+            await act.Should().ThrowAsync<NotFoundException>();
         }
     }
 }
